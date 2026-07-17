@@ -1,0 +1,21 @@
+-- Row Level Security — módulo Dashboard.
+--
+-- REUBICADO (corrección de auditoría de producción, bloqueante crítico
+-- resuelto): el contenido ejecutable de este archivo vivía aquí como un
+-- script SQL manual, fuera del flujo de `prisma migrate deploy` — el
+-- pipeline de CI nunca lo aplicaba, y contenía además un placeholder sin
+-- sustituir (`<db_connection_role>`) y un `GRANT` incompleto que rompía la
+-- resolución de identidad Clerk→estudiante en producción.
+--
+-- La fuente única y ejecutable de las políticas RLS del Dashboard es ahora:
+--
+--   prisma/migrations/202607170900_dashboard_rls_policies/migration.sql
+--
+-- Se aplica automáticamente con `npx prisma migrate deploy`, igual que
+-- cualquier otra migración de esquema — ya no requiere un paso manual
+-- separado. Ver ese mismo directorio (`migration.md`) para el detalle de
+-- qué corrige y por qué, y `rollback.sql` para revertirla.
+--
+-- Este archivo se conserva únicamente como referencia histórica y para no
+-- romper enlaces existentes en la documentación (docs/modules/dashboard.md,
+-- comentarios de código) — no contiene SQL ejecutable y no debe aplicarse.

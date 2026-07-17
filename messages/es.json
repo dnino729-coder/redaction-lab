@@ -1,0 +1,92 @@
+{
+  "common": {
+    "appName": "Redaction Lab",
+    "loading": "Cargando...",
+    "error": {
+      "generic": "Ocurrió un error. Inténtalo de nuevo.",
+      "notFound": "Página no encontrada."
+    }
+  },
+  "nav": {
+    "dashboard": "Panel principal",
+    "my-plan": "Mi plan",
+    "about-delf": "Conoce el DELF B2",
+    "academy": "Academia",
+    "laboratory": "Laboratorio",
+    "daily-training": "Entrenamiento",
+    "simulator": "Simulador",
+    "analytics": "Evolución",
+    "profile": "Perfil"
+  },
+  "auth": {
+    "signIn": {
+      "title": "Iniciar sesión"
+    },
+    "signUp": {
+      "title": "Crear cuenta"
+    }
+  },
+  "dashboard": {
+    "welcome": {
+      "avatarAlt": "Foto de perfil",
+      "greeting": "¡Hola, {name}!",
+      "defaultName": "estudiante",
+      "lastSession": "Última sesión: {date}",
+      "variants": {
+        "ready": "Así va tu preparación hoy.",
+        "emptyFirstVisit": "¡Bienvenido a Redaction Lab! Tu recorrido comienza aquí.",
+        "reactivation": "¡Qué bueno verte de nuevo! Retomemos juntos, a tu ritmo.",
+        "progressImproved": "¡Excelente progreso! Sigue así.",
+        "highScore": "¡Felicidades por ese gran resultado reciente!",
+        "struggling": "Cada paso cuenta. Avanzamos juntos, poco a poco."
+      }
+    },
+    "goal": {
+      "title": "Mi objetivo",
+      "currentLevel": "Nivel actual: {level}",
+      "targetLevel": "Nivel objetivo: {level}",
+      "examIn": "{days, plural, =0 {Examen hoy} one {# día para el examen} other {# días para el examen}}",
+      "noExamDate": "Todavía no hay una fecha de examen definida",
+      "preparation": "Preparación general",
+      "estimatedPerformance": "Rendimiento estimado: {score}/25"
+    },
+    "plan": {
+      "title": "Mi plan",
+      "noPlan": "No hay un plan activo por el momento",
+      "weeklyGoal": "Objetivo semanal",
+      "minutesCompleted": "{completed} de {total}",
+      "dailyGoal": "Objetivo de hoy"
+    },
+    "continue": {
+      "title": "Continúa donde te quedaste",
+      "empty": "No hay nada pendiente por retomar — ¡buen trabajo!",
+      "wordsWritten": "{count, plural, =0 {Borrador vacío} one {# palabra escrita} other {# palabras escritas}}",
+      "cta": "Continuar"
+    },
+    "recommendation": {
+      "title": "Recomendación del Coach IA",
+      "empty": "No hay una nueva recomendación por ahora.",
+      "coachLabel": "Mensaje del Coach IA",
+      "cta": "Comenzar entrenamiento",
+      "dismiss": "Descartar"
+    },
+    "evolution": {
+      "title": "Evolución",
+      "empty": "Sigue entrenando para ver aquí tu evolución.",
+      "activeDays": "{count, plural, =0 {Sin días activos recientes} one {# día activo} other {# días activos}}",
+      "streak": "{count, plural, =0 {Todavía sin racha activa} one {# día seguido} other {# días seguidos}}",
+      "performance": "Tasa de éxito"
+    },
+    "ecosystems": {
+      "title": "Acceder a los espacios"
+    },
+    "skeleton": {
+      "loading": "Cargando el panel principal..."
+    },
+    "error": {
+      "title": "Un pequeño inconveniente técnico",
+      "description": "No pudimos cargar tu panel principal. Inténtalo de nuevo en un momento.",
+      "retry": "Reintentar"
+    }
+  }
+}

@@ -1,0 +1,41 @@
+# Redaction Lab — infraestructura local de desarrollo.
+# Provee PostgreSQL 17 (sección 13.12) y Redis (sección 15.1) para desarrollo
+# sin depender de servicios en la nube. No sustituye a Supabase/Redis gestionado
+# en Staging/Production (sección 13.14: Development → Testing → Staging → Production).
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: redaction-lab-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: redaction_lab
+      POSTGRES_PASSWORD: redaction_lab
+      POSTGRES_DB: redaction_lab
+    ports:
+      - "5432:5432"
+    volumes:
+      - redaction_lab_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U redaction_lab"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: redaction-lab-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redaction_lab_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  redaction_lab_postgres_data:
+  redaction_lab_redis_data:

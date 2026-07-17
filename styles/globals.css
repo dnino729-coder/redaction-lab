@@ -1,0 +1,8 @@
+/* Redaction Lab — hoja de estilos global.
+   Solo capas de Tailwind + variables CSS de tokens que no puedan expresarse
+   en tailwind.config.ts. No debe contener estilos de componentes de producto
+   (sección 14.12.1 MUST: "toda propiedad visual deberá referenciar un token"). */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

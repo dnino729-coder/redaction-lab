@@ -1,0 +1,110 @@
+# Redaction Lab — Despliegue y promoción entre entornos.
+#
+# Corrige el hallazgo 6 de la auditoría de infraestructura: ci.yml solo
+# validaba (lint/typecheck/test/build/e2e) pero no existía ningún workflow
+# que materializara el flujo obligatorio de la sección 13.14:
+#   Development → Testing → Staging → Production
+# ("no ejecutar directamente en producción").
+#
+# Mapeo de entornos adoptado (Vercel como despliegue principal — resolución 18.1):
+#   - Development: entorno local de cada desarrollador (docker-compose.yml).
+#   - Testing:     preview deploy automático de Vercel en cada Pull Request
+#                  (no requiere este workflow; lo gestiona la integración
+#                  nativa de Vercel con GitHub).
+#   - Staging:     este workflow, job `deploy-staging`, disparado al hacer
+#                  push/merge a la rama `develop`. Despliega al proyecto de
+#                  Vercel usando el entorno de GitHub "staging" (con sus
+#                  propias variables/secretos, incluida una base de datos
+#                  Supabase separada de producción).
+#   - Production:  este workflow, job `deploy-production`, disparado
+#                  únicamente al hacer push/merge a `main`, y solo después
+#                  de que ci.yml haya pasado. Usa el entorno de GitHub
+#                  "production" — puede configurarse con revisores
+#                  obligatorios (protección manual) en GitHub.
+#
+# Requiere configurar en el repositorio (Settings → Environments):
+#   staging:    VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID, DATABASE_URL (staging)
+#   production: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID, DATABASE_URL (production)
+# Ninguno de estos secretos se define aquí (sección 15.6: "nunca expuestas
+# al cliente"; se gestionan como GitHub Environment Secrets).
+
+name: Deploy
+
+on:
+  push:
+    branches: [develop, main]
+
+jobs:
+  deploy-staging:
+    name: Deploy a Staging
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+      - run: npm ci
+      - run: npm run prisma:generate
+      - name: Ejecutar migraciones en Staging
+        run: npm run prisma:migrate:deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # Corrección de auditoría (hallazgo adicional, no reportado
+          # inicialmente): prisma/schema.prisma declara
+          # `directUrl = env("DIRECT_URL")`; sin esta variable, Prisma falla
+          # al cargar el esquema y NINGUNA migración se aplica — incluida la
+          # de RLS (202607170900_dashboard_rls_policies), dejando el
+          # despliegue de Staging corriendo contra un esquema/RLS
+          # desactualizados sin que el paso lo reportara como éxito parcial.
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+      - name: Deploy a Vercel (Staging)
+        id: deploy
+        run: |
+          npm i -g vercel@latest
+          vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
+          vercel build --token="$VERCEL_TOKEN"
+          url=$(vercel deploy --prebuilt --token="$VERCEL_TOKEN")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+  deploy-production:
+    name: Deploy a Production
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+      - run: npm ci
+      - run: npm run prisma:generate
+      - name: Ejecutar migraciones en Production
+        run: npm run prisma:migrate:deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # Ver la misma corrección/nota en el job deploy-staging.
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+      - name: Deploy a Vercel (Production)
+        id: deploy
+        run: |
+          npm i -g vercel@latest
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          vercel build --prod --token="$VERCEL_TOKEN"
+          url=$(vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}

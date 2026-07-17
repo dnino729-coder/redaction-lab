@@ -1,0 +1,92 @@
+{
+  "common": {
+    "appName": "Redaction Lab",
+    "loading": "Chargement...",
+    "error": {
+      "generic": "Une erreur est survenue. Veuillez réessayer.",
+      "notFound": "Page introuvable."
+    }
+  },
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "my-plan": "Mon plan",
+    "about-delf": "Découvrir le DELF B2",
+    "academy": "Académie",
+    "laboratory": "Laboratoire",
+    "daily-training": "Entraînement",
+    "simulator": "Simulateur",
+    "analytics": "Évolution",
+    "profile": "Profil"
+  },
+  "auth": {
+    "signIn": {
+      "title": "Se connecter"
+    },
+    "signUp": {
+      "title": "Créer un compte"
+    }
+  },
+  "dashboard": {
+    "welcome": {
+      "avatarAlt": "Photo de profil",
+      "greeting": "Bonjour, {name} !",
+      "defaultName": "cher étudiant",
+      "lastSession": "Dernière session : {date}",
+      "variants": {
+        "ready": "Voici où en est ta préparation aujourd'hui.",
+        "emptyFirstVisit": "Bienvenue sur Redaction Lab ! Ton parcours commence ici.",
+        "reactivation": "Ça fait plaisir de te revoir ! Reprenons ensemble, à ton rythme.",
+        "progressImproved": "Excellent progrès ! Continue comme ça.",
+        "highScore": "Bravo pour ce très bon résultat récent !",
+        "struggling": "Chaque étape compte. On avance ensemble, pas à pas."
+      }
+    },
+    "goal": {
+      "title": "Mon objectif",
+      "currentLevel": "Niveau actuel : {level}",
+      "targetLevel": "Niveau visé : {level}",
+      "examIn": "{days, plural, =0 {Examen aujourd'hui} one {# jour avant l'examen} other {# jours avant l'examen}}",
+      "noExamDate": "Aucune date d'examen définie pour le moment",
+      "preparation": "Préparation générale",
+      "estimatedPerformance": "Performance estimée : {score}/25"
+    },
+    "plan": {
+      "title": "Mon plan",
+      "noPlan": "Aucun plan actif pour le moment",
+      "weeklyGoal": "Objectif hebdomadaire",
+      "minutesCompleted": "{completed} sur {total}",
+      "dailyGoal": "Objectif du jour"
+    },
+    "continue": {
+      "title": "Continue là où tu t'es arrêté",
+      "empty": "Rien à reprendre pour le moment — beau travail !",
+      "wordsWritten": "{count, plural, =0 {Brouillon vide} one {# mot rédigé} other {# mots rédigés}}",
+      "cta": "Continuer"
+    },
+    "recommendation": {
+      "title": "Recommandation du Coach IA",
+      "empty": "Pas de nouvelle recommandation pour l'instant.",
+      "coachLabel": "Message du Coach IA",
+      "cta": "Commencer l'entraînement",
+      "dismiss": "Ignorer"
+    },
+    "evolution": {
+      "title": "Évolution",
+      "empty": "Continue à t'entraîner pour voir ton évolution ici.",
+      "activeDays": "{count, plural, =0 {Aucun jour actif récemment} one {# jour actif} other {# jours actifs}}",
+      "streak": "{count, plural, =0 {Pas encore de série en cours} one {# jour de suite} other {# jours de suite}}",
+      "performance": "Taux de réussite"
+    },
+    "ecosystems": {
+      "title": "Accéder aux espaces"
+    },
+    "skeleton": {
+      "loading": "Chargement du tableau de bord..."
+    },
+    "error": {
+      "title": "Un petit souci technique",
+      "description": "Nous n'avons pas pu charger ton tableau de bord. Réessaie dans un instant.",
+      "retry": "Réessayer"
+    }
+  }
+}

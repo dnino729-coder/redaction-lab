@@ -1,0 +1,125 @@
+# Redaction Lab — Pipeline de Integración Continua.
+# Sección 15.6: "CI/CD: GitHub, GitHub Actions — pipeline automático de
+# pruebas, compilación, despliegue, validación."
+# Sección 15.6 / 16.2 (Fase 10): cobertura mínima de pruebas unitarias 90%.
+# No ejecuta despliegue a producción directamente (13.14: Development →
+# Testing → Staging → Production; "no ejecutar directamente en producción").
+# El despliegue/promoción entre entornos se gestiona en deploy.yml.
+#
+# Gestor de paquetes: npm (nativo de Node, sin pasos de setup adicionales).
+# El repositorio incluye package-lock.json real y comprometido — `npm ci`
+# es seguro y reproducible desde el primer commit (auditoría de infraestructura,
+# hallazgo 2: resuelto).
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+jobs:
+  lint-typecheck:
+    name: Lint & Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+
+  unit-integration-tests:
+    name: Pruebas unitarias e integración
+    runs-on: ubuntu-latest
+    needs: lint-typecheck
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: redaction_lab
+          POSTGRES_PASSWORD: redaction_lab
+          POSTGRES_DB: redaction_lab_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U redaction_lab"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+      - run: npm ci
+      - run: npm run prisma:generate
+      # Corrección de auditoría de producción (hallazgo cerrado): antes este
+      # job nunca aplicaba las migraciones (ni el esquema ni las políticas
+      # RLS) contra el Postgres de prueba — "npm run test:coverage" pasaba
+      # igual porque la suite actual no depende de una base de datos real,
+      # pero eso significaba que CI nunca validaba que el SQL de las
+      # migraciones (incluida la migración de RLS) fuera siquiera aplicable.
+      - run: npm run prisma:migrate:deploy
+        env:
+          DATABASE_URL: postgresql://redaction_lab:redaction_lab@localhost:5432/redaction_lab_test
+          DIRECT_URL: postgresql://redaction_lab:redaction_lab@localhost:5432/redaction_lab_test
+      - run: npm run test:coverage
+        env:
+          DATABASE_URL: postgresql://redaction_lab:redaction_lab@localhost:5432/redaction_lab_test
+          DIRECT_URL: postgresql://redaction_lab:redaction_lab@localhost:5432/redaction_lab_test
+          REDIS_URL: redis://localhost:6379
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: unit-integration-tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+      - run: npm ci
+      # Hallazgo adicional (no reportado inicialmente, detectado al revisar
+      # el pipeline completo durante la corrección de bloqueantes de
+      # auth/RLS): `prisma generate` exige que las variables referenciadas
+      # en el bloque `datasource` de schema.prisma (`DATABASE_URL`,
+      # `DIRECT_URL`) existan en el entorno para poder parsear el esquema,
+      # aunque no necesiten apuntar a una base de datos real alcanzable —
+      # sin ellas, este paso fallaba con "Environment variable not found"
+      # antes de llegar siquiera a compilar el proyecto. `next build` no
+      # ejecuta código que dependa de una conexión real (la ruta del
+      # Dashboard es dinámica, protegida por sesión — sin generación
+      # estática que lea datos reales en build), por lo que un valor
+      # sintácticamente válido basta.
+      - run: npm run prisma:generate
+        env:
+          DATABASE_URL: postgresql://build:build@localhost:5432/build_placeholder
+          DIRECT_URL: postgresql://build:build@localhost:5432/build_placeholder
+      - run: npm run build
+        env:
+          DATABASE_URL: postgresql://build:build@localhost:5432/build_placeholder
+          DIRECT_URL: postgresql://build:build@localhost:5432/build_placeholder
+
+  e2e:
+    name: Pruebas end-to-end
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+      - run: npm ci
+      - run: npx playwright install --with-deps
+      - run: npm run test:e2e

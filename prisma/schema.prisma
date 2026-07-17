@@ -1,0 +1,577 @@
+// Redaction Lab — Esquema de base de datos (Prisma ORM)
+// Motor: PostgreSQL 17 · ORM: Prisma (resolución 18.1, sustituye a Drizzle ORM)
+//
+// Convenciones obligatorias (sección 13.13, no negociables):
+//   - Tablas: singular, snake_case, inglés (@@map)
+//   - Columnas: snake_case (@map)
+//   - PK: siempre `id` (UUID), excepto tablas puente (PK compuesta)
+//   - FK: `<tabla>_id`
+//   - ENUM (tipo): PascalCase · ENUM (valores): UPPER_SNAKE_CASE
+//   - Todas las tablas incluyen created_at/updated_at; deleted_at solo si aplica Soft Delete (13.12)
+//   - Nombres físicos de constraint/índice: pk_<tabla> · fk_<tabla>_<columna> ·
+//     uq_<tabla>_<columnas> · idx_<tabla>_<columnas> · ck_<tabla>_<regla> —
+//     declarados aquí vía `map:` en cada @id/@unique/@relation/@@index, para
+//     que `prisma migrate dev` genere automáticamente el nombre correcto en
+//     toda migración futura (cierre de la auditoría de nomenclatura previa a
+//     la Baseline 1.0; ver prisma/migrations/202607171200_constraint_naming_standardization).
+//     Los CHECK constraints no tienen soporte nativo en esta versión de
+//     Prisma: se siguen declarando a mano en migration.sql con el prefijo
+//     `ck_` (ya se hacía así desde la primera migración).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// =============================================================================
+// MÓDULO DASHBOARD — esquema de lectura (implementación del módulo Dashboard,
+// docs/modules/dashboard.md, sección 10 "Base de datos involucrada").
+//
+// Alcance deliberado de esta fase: se incluyen ÚNICAMENTE los modelos que el
+// Dashboard lee (más su propia entidad `StudentDashboard`), con los campos
+// exactos especificados en la sección 13 del documento consolidado para cada
+// tabla. NO se incluye ningún modelo, tabla ni lógica de negocio que
+// pertenezca a otros módulos (Mi Plan, Producción Escrita, Coach IA,
+// Evaluación DELF, Competencias, Gamificación) más allá del subconjunto de
+// columnas que el propio documento define para esas tablas — el Dashboard
+// solo lee, nunca escribe en ellas (regla MUST, sección 10).
+//
+// Catálogos fuera de alcance (Exam, Evaluator, WritingTask, WritingVersion):
+// sus FKs correspondientes (`exam_id`, `evaluator_id`, `writing_task_id`,
+// `current_version_id`) se modelan como columnas UUID simples, SIN relación
+// Prisma, porque esas tablas catálogo pertenecen a módulos que esta fase no
+// debe desarrollar (07_delf_evaluation, 06_writing — orden de migraciones,
+// sección 13.14) y el Dashboard no necesita mostrar su nombre legible. La
+// relación Prisma se añadirá cuando esos módulos se implementen, sin requerir
+// cambios incompatibles aquí (13.15: "evolución de columnas... permitido
+// agregar relaciones opcionales").
+//
+// Excepción: `Competency` SÍ se incluye como catálogo mínimo (ver comentario
+// junto al modelo `Competency` más abajo) porque el bloque 6 del Dashboard
+// necesita su nombre legible, no solo el UUID.
+//
+// Nomenclatura de constraints/índices (PK/FK/UNIQUE/INDEX): estandarizada a
+// los prefijos pk_/fk_/uq_/idx_ de la sección 13.13 mediante `map:` explícito
+// en cada declaración de este archivo — ver
+// prisma/migrations/202607171200_constraint_naming_standardization para la
+// migración de renombrado aplicada sobre el estado creado por
+// 202607161000/202607170900, y docs/database/naming-convention-audit-2026-07-17.md
+// para la auditoría completa. Los CHECK constraints (ck_<tabla>_<regla>) ya
+// cumplían desde el inicio, por escribirse a mano en migration.sql.
+// =============================================================================
+
+// --- ENUMs -------------------------------------------------------------
+
+/// Sección 13.1 — Tabla `User`, columna `status`.
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+  PENDING
+}
+
+/// Rango completo de nivel de lengua (A1-C2), usado consistentemente en
+/// StudentProfile, CoachContext y StudentDashboard (secciones 13.2, 13.7,
+/// 13.8; resolución 18.17: mismo patrón de rango completo aplicado ya a
+/// WritingTask.delf_level).
+enum DelfLevel {
+  A1
+  A2
+  B1
+  B2
+  C1
+  C2
+}
+
+/// Sección 13.4 — Tabla `LearningPlan`, columna `status`.
+enum LearningPlanStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+/// Sección 13.5 — Tabla `WritingSubmission`, columna `status`.
+enum WritingSubmissionStatus {
+  DRAFT
+  IN_PROGRESS
+  SUBMITTED
+  UNDER_REVIEW
+  CORRECTED
+  ARCHIVED
+}
+
+/// Sección 13.6 — Tabla `ExamAttempt`, columna `status`.
+enum ExamAttemptStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  SUBMITTED
+  EVALUATED
+  CANCELLED
+}
+
+/// Sección 11.4 — enum `XPTransaction.source`, explícito en el documento.
+enum XpSource {
+  ACTIVITY
+  MISSION
+  ACHIEVEMENT
+  DAILY_LOGIN
+  BONUS
+}
+
+/// Prioridad compartida (patrón ya usado en `LearningGoal.priority`, sección
+/// 13.4). Reutilizada aquí para `CoachRecommendation.priority`, cuyo
+/// documento fuente declara el campo como "ENUM" sin enumerar valores
+/// propios — se reutiliza el mismo enum en vez de inventar uno nuevo
+/// (13.13: "mantener una única convención en todo el proyecto").
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// --- Capítulo 1 — Usuarios y Autenticación (13.1, subconjunto) ---------
+// Solo se modela `User` (tabla raíz de la que penden todas las FKs
+// `student_id` leídas por el Dashboard). Role/Permission/Session/etc.
+// pertenecen al módulo de Autenticación (02_authentication) y no son leídos
+// por el Dashboard — fuera de alcance de esta fase.
+
+model User {
+  id            String     @id(map: "pk_user") @default(uuid()) @db.Uuid
+  /// Columna añadida fuera del listado literal de campos de la sección 13.1
+  /// (que no anticipa esta necesidad), pero requerida por integración: la
+  /// sección 12.3 fija Clerk como proveedor de identidad y 12.4 especifica
+  /// que la identidad se crea en Clerk *antes* que el perfil en esta tabla
+  /// — sin una columna que enlace el `userId` de Clerk (formato propio,
+  /// nunca UUID) con este `id` interno, la integración descrita en 12.3/12.4
+  /// no podría implementarse en absoluto. No es una funcionalidad nueva:
+  /// es la clave de unión mínima que el flujo ya especificado requiere.
+  clerkUserId   String     @unique(map: "uq_user_clerk_user_id") @map("clerk_user_id")
+  email         String     @unique(map: "uq_user_email")
+  passwordHash  String?    @map("password_hash")
+  firstName     String     @map("first_name")
+  lastName      String     @map("last_name")
+  avatarUrl     String?    @map("avatar_url")
+  language      String     @default("fr")
+  timezone      String     @default("UTC")
+  status        UserStatus @default(PENDING)
+  lastLoginAt   DateTime?  @map("last_login_at")
+  emailVerified Boolean    @default(false) @map("email_verified")
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+  deletedAt     DateTime?  @map("deleted_at")
+
+  studentProfile      StudentProfile?
+  learningPlans       LearningPlan[]
+  writingSubmissions  WritingSubmission[]
+  coachRecommendations CoachRecommendation[]
+  coachContext        CoachContext?
+  studentCompetencies StudentCompetency[]
+  learningMetrics     LearningMetric[]
+  performanceMetrics  PerformanceMetric[]
+  learningAnalytics   LearningAnalytics?
+  studentDashboard    StudentDashboard?
+  streak              Streak?
+  studentLevel        StudentLevel?
+  xpTransactions      XPTransaction[]
+  examAttempts        ExamAttempt[]
+
+  @@index([status], map: "idx_user_status")
+  @@map("user")
+}
+
+// --- Capítulo 2 — Perfiles (13.2, subconjunto) --------------------------
+
+model StudentProfile {
+  id             String    @id(map: "pk_student_profile") @default(uuid()) @db.Uuid
+  userId         String    @unique(map: "uq_student_profile_user_id") @map("user_id") @db.Uuid
+  currentLevel   DelfLevel @map("current_level")
+  targetLevel    DelfLevel @map("target_level")
+  nativeLanguage String    @map("native_language")
+  country        String?
+  institution    String?
+  learningGoal   String?   @map("learning_goal")
+  biography      String?
+  /// Contradicción interna del documento fuente detectada al implementar el
+  /// Dashboard: la sección 12.2 define el dominio "Perfil pedagógico" como
+  /// "nivel de francés, FECHA DEL EXAMEN, objetivos, disponibilidad semanal,
+  /// progreso, competencias" — pero la ficha física de `StudentProfile`
+  /// (13.2) omite esa columna. El Dashboard (docs/modules/dashboard.md,
+  /// bloque 2: "fecha prevista del examen, días restantes") depende de ella.
+  /// Se añade aquí para cerrar la omisión de 13.2 frente a su propia
+  /// sección 12.2, no como funcionalidad nueva.
+  targetExamDate DateTime? @map("target_exam_date") @db.Date
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], map: "fk_student_profile_user_id")
+
+  @@map("student_profile")
+}
+
+// --- Capítulo 4 — Plan de Aprendizaje (13.4, subconjunto) ---------------
+
+model LearningPlan {
+  id          String             @id(map: "pk_learning_plan") @default(uuid()) @db.Uuid
+  studentId   String             @map("student_id") @db.Uuid
+  name        String
+  description String?
+  targetLevel DelfLevel          @map("target_level")
+  startDate   DateTime           @map("start_date") @db.Date
+  endDate     DateTime?          @map("end_date") @db.Date
+  status      LearningPlanStatus @default(ACTIVE)
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+
+  student         User             @relation(fields: [studentId], references: [id], map: "fk_learning_plan_student_id")
+  dailyPlans      DailyPlan[]
+  weeklyPlans     WeeklyPlan[]
+  learningProgress LearningProgress?
+  coachContexts   CoachContext[]
+
+  @@index([studentId], map: "idx_learning_plan_student_id")
+  @@index([studentId, status], map: "idx_learning_plan_student_id_status")
+  @@map("learning_plan")
+}
+
+model DailyPlan {
+  id                   String   @id(map: "pk_daily_plan") @default(uuid()) @db.Uuid
+  learningPlanId       String   @map("learning_plan_id") @db.Uuid
+  planDate             DateTime @map("plan_date") @db.Date
+  estimatedMinutes     Int      @map("estimated_minutes")
+  completedMinutes     Int      @default(0) @map("completed_minutes")
+  completionPercentage Decimal  @default(0) @map("completion_percentage") @db.Decimal(5, 2)
+
+  learningPlan LearningPlan @relation(fields: [learningPlanId], references: [id], map: "fk_daily_plan_learning_plan_id")
+
+  @@index([learningPlanId], map: "idx_daily_plan_learning_plan_id")
+  @@index([learningPlanId, planDate], map: "idx_daily_plan_learning_plan_id_plan_date")
+  @@map("daily_plan")
+}
+
+model WeeklyPlan {
+  id                   String  @id(map: "pk_weekly_plan") @default(uuid()) @db.Uuid
+  learningPlanId       String  @map("learning_plan_id") @db.Uuid
+  weekNumber           Int     @map("week_number")
+  estimatedMinutes     Int     @map("estimated_minutes")
+  completedMinutes     Int     @default(0) @map("completed_minutes")
+  completionPercentage Decimal @default(0) @map("completion_percentage") @db.Decimal(5, 2)
+
+  learningPlan LearningPlan @relation(fields: [learningPlanId], references: [id], map: "fk_weekly_plan_learning_plan_id")
+
+  @@index([learningPlanId], map: "idx_weekly_plan_learning_plan_id")
+  @@map("weekly_plan")
+}
+
+model LearningProgress {
+  id                   String   @id(map: "pk_learning_progress") @default(uuid()) @db.Uuid
+  learningPlanId       String   @unique(map: "uq_learning_progress_learning_plan_id") @map("learning_plan_id") @db.Uuid
+  completedTasks       Int      @default(0) @map("completed_tasks")
+  totalTasks           Int      @default(0) @map("total_tasks")
+  completionPercentage Decimal  @default(0) @map("completion_percentage") @db.Decimal(5, 2)
+  currentStreak        Int      @default(0) @map("current_streak")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  learningPlan LearningPlan @relation(fields: [learningPlanId], references: [id], map: "fk_learning_progress_learning_plan_id")
+
+  @@map("learning_progress")
+}
+
+// --- Capítulo 5 — Producción Escrita (13.5, subconjunto) ----------------
+
+model WritingSubmission {
+  id        String                  @id(map: "pk_writing_submission") @default(uuid()) @db.Uuid
+  studentId String                  @map("student_id") @db.Uuid
+  /// FK física a `WritingTask` (módulo Producción Escrita, 06_writing) —
+  /// fuera de alcance de esta fase; ver nota de alcance al inicio del archivo.
+  writingTaskId String              @map("writing_task_id") @db.Uuid
+  /// FK física a `WritingVersion` (mismo módulo) — fuera de alcance.
+  currentVersionId String?          @map("current_version_id") @db.Uuid
+  status    WritingSubmissionStatus @default(DRAFT)
+  submittedAt DateTime?             @map("submitted_at")
+  createdAt DateTime                @default(now()) @map("created_at")
+  updatedAt DateTime                @updatedAt @map("updated_at")
+
+  student       User            @relation(fields: [studentId], references: [id], map: "fk_writing_submission_student_id")
+  drafts        WritingDraft[]
+  coachContexts CoachContext[]
+
+  @@index([studentId], map: "idx_writing_submission_student_id")
+  @@index([studentId, status], map: "idx_writing_submission_student_id_status")
+  @@map("writing_submission")
+}
+
+model WritingDraft {
+  id              String   @id(map: "pk_writing_draft") @default(uuid()) @db.Uuid
+  submissionId    String   @map("submission_id") @db.Uuid
+  content         String
+  wordCount       Int      @default(0) @map("word_count")
+  characterCount  Int      @default(0) @map("character_count")
+  autosavedAt     DateTime @map("autosaved_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  submission WritingSubmission @relation(fields: [submissionId], references: [id], map: "fk_writing_draft_submission_id")
+
+  @@index([submissionId], map: "idx_writing_draft_submission_id")
+  @@map("writing_draft")
+}
+
+// --- Capítulo 6 — Evaluación del DELF (13.6, subconjunto) ---------------
+
+model ExamAttempt {
+  id        String            @id(map: "pk_exam_attempt") @default(uuid()) @db.Uuid
+  studentId String            @map("student_id") @db.Uuid
+  /// FK física a `Exam` (módulo Evaluación DELF, 07_delf_evaluation) — fuera
+  /// de alcance de esta fase; ver nota de alcance al inicio del archivo.
+  examId       String         @map("exam_id") @db.Uuid
+  startedAt    DateTime?      @map("started_at")
+  submittedAt  DateTime?      @map("submitted_at")
+  finishedAt   DateTime?      @map("finished_at")
+  status       ExamAttemptStatus @default(NOT_STARTED)
+  totalScore   Decimal?       @map("total_score") @db.Decimal(5, 2)
+  passed       Boolean?
+
+  student           User               @relation(fields: [studentId], references: [id], map: "fk_exam_attempt_student_id")
+  evaluationResult  EvaluationResult?
+
+  @@index([studentId], map: "idx_exam_attempt_student_id")
+  @@index([studentId, status], map: "idx_exam_attempt_student_id_status")
+  @@map("exam_attempt")
+}
+
+model EvaluationResult {
+  id       String  @id(map: "pk_evaluation_result") @default(uuid()) @db.Uuid
+  attemptId String @unique(map: "uq_evaluation_result_attempt_id") @map("attempt_id") @db.Uuid
+  /// FK física a `Evaluator` (mismo módulo) — fuera de alcance.
+  evaluatorId     String  @map("evaluator_id") @db.Uuid
+  finalScore      Decimal @map("final_score") @db.Decimal(5, 2)
+  percentage      Decimal @db.Decimal(5, 2)
+  passed          Boolean
+  overallFeedback String? @map("overall_feedback")
+  evaluatedAt     DateTime @map("evaluated_at")
+
+  attempt ExamAttempt @relation(fields: [attemptId], references: [id], map: "fk_evaluation_result_attempt_id")
+
+  @@map("evaluation_result")
+}
+
+// --- Capítulo 7 — Coach IA y Memoria (13.7, subconjunto) -----------------
+
+model CoachRecommendation {
+  id             String   @id(map: "pk_coach_recommendation") @default(uuid()) @db.Uuid
+  studentId      String   @map("student_id") @db.Uuid
+  recommendation String
+  priority       Priority @default(MEDIUM)
+  generatedFrom  String?  @map("generated_from")
+  completed      Boolean  @default(false)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  student User @relation(fields: [studentId], references: [id], map: "fk_coach_recommendation_student_id")
+
+  @@index([studentId], map: "idx_coach_recommendation_student_id")
+  @@index([studentId, completed, createdAt], map: "idx_coach_recommendation_student_id_completed_created_at")
+  @@map("coach_recommendation")
+}
+
+model CoachContext {
+  id                 String    @id(map: "pk_coach_context") @default(uuid()) @db.Uuid
+  studentId          String    @unique(map: "uq_coach_context_student_id") @map("student_id") @db.Uuid
+  currentLevel       DelfLevel @map("current_level")
+  targetLevel        DelfLevel @map("target_level")
+  currentPlanId      String?   @map("current_plan_id") @db.Uuid
+  lastSubmissionId   String?   @map("last_submission_id") @db.Uuid
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  student        User               @relation(fields: [studentId], references: [id], map: "fk_coach_context_student_id")
+  currentPlan    LearningPlan?      @relation(fields: [currentPlanId], references: [id], map: "fk_coach_context_current_plan_id")
+  lastSubmission WritingSubmission? @relation(fields: [lastSubmissionId], references: [id], map: "fk_coach_context_last_submission_id")
+
+  @@map("coach_context")
+}
+
+// --- Capítulo 8 — Competencias y Analíticas de Aprendizaje (13.8) -------
+
+/// Ampliación de alcance justificada (a diferencia de Exam/Evaluator, que
+/// permanecen como columna UUID sin relación): el bloque 6 del Dashboard
+/// ("calidad de escritura, organización textual, gramática, cohesión,
+/// vocabulario... autonomía", sección 2) necesita el NOMBRE legible de cada
+/// competencia para ser presentable — no es un detalle decorativo, es el
+/// contenido mismo del bloque. Sin esta tabla, el Dashboard solo podría
+/// mostrar UUIDs opacos, incumpliendo su propio diseño aprobado. Se limita
+/// estrictamente a los campos de catálogo (id, code, name) que 13.8 ya
+/// define — sin lógica de negocio del módulo Coach/Competencias (asignación,
+/// evaluación, subcompetencias quedan fuera).
+model Competency {
+  id        String   @id(map: "pk_competency") @default(uuid()) @db.Uuid
+  code      String   @unique(map: "uq_competency_code")
+  /// Deuda técnica señalada: `name` se siembra en francés únicamente
+  /// (prisma/seed_competencies.ts), sin contraparte `name_es`. La regla de
+  /// idioma (18.18) exige que la interfaz sea traducible a español, pero
+  /// este nombre es dato de catálogo, no texto estático de i18n — requiere
+  /// una columna adicional (o una tabla de traducciones) para cumplir 18.18
+  /// por completo. Se documenta aquí en vez de dejarlo como una omisión
+  /// silenciosa; corrección prevista al implementar el módulo Coach/Competencias.
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  studentCompetencies StudentCompetency[]
+
+  @@map("competency")
+}
+
+model StudentCompetency {
+  id     String @id(map: "pk_student_competency") @default(uuid()) @db.Uuid
+  studentId String @map("student_id") @db.Uuid
+  competencyId       String   @map("competency_id") @db.Uuid
+  currentLevel       DelfLevel @map("current_level")
+  targetLevel        DelfLevel @map("target_level")
+  masteryPercentage  Decimal  @default(0) @map("mastery_percentage") @db.Decimal(5, 2)
+  lastUpdated        DateTime @map("last_updated")
+
+  student    User                 @relation(fields: [studentId], references: [id], map: "fk_student_competency_student_id")
+  competency Competency           @relation(fields: [competencyId], references: [id], map: "fk_student_competency_competency_id")
+  progress   CompetencyProgress[]
+
+  @@index([studentId], map: "idx_student_competency_student_id")
+  @@index([studentId, competencyId], map: "idx_student_competency_student_id_competency_id")
+  @@map("student_competency")
+}
+
+model CompetencyProgress {
+  id                  String   @id(map: "pk_competency_progress") @default(uuid()) @db.Uuid
+  studentCompetencyId String   @map("student_competency_id") @db.Uuid
+  previousScore       Decimal  @map("previous_score") @db.Decimal(5, 2)
+  currentScore        Decimal  @map("current_score") @db.Decimal(5, 2)
+  improvement         Decimal  @db.Decimal(5, 2)
+  recordedAt          DateTime @map("recorded_at")
+
+  studentCompetency StudentCompetency @relation(fields: [studentCompetencyId], references: [id], map: "fk_competency_progress_student_competency_id")
+
+  @@index([studentCompetencyId], map: "idx_competency_progress_student_competency_id")
+  @@map("competency_progress")
+}
+
+model LearningMetric {
+  id                String   @id(map: "pk_learning_metric") @default(uuid()) @db.Uuid
+  studentId         String   @map("student_id") @db.Uuid
+  studyTimeMinutes  Int      @default(0) @map("study_time_minutes")
+  completedSessions Int      @default(0) @map("completed_sessions")
+  completedTasks    Int      @default(0) @map("completed_tasks")
+  activeDays        Int      @default(0) @map("active_days")
+  calculatedAt      DateTime @map("calculated_at")
+
+  student User @relation(fields: [studentId], references: [id], map: "fk_learning_metric_student_id")
+
+  @@index([studentId], map: "idx_learning_metric_student_id")
+  @@index([studentId, calculatedAt], map: "idx_learning_metric_student_id_calculated_at")
+  @@map("learning_metric")
+}
+
+model PerformanceMetric {
+  id       String   @id(map: "pk_performance_metric") @default(uuid()) @db.Uuid
+  studentId String  @map("student_id") @db.Uuid
+  averageScore    Decimal @map("average_score") @db.Decimal(5, 2)
+  successRate     Decimal @map("success_rate") @db.Decimal(5, 2)
+  /// Tipo derivado por consistencia con los campos vecinos (`average_score`,
+  /// `success_rate`), ambos numéricos — el documento fuente no especifica el
+  /// tipo de `average_feedback`; se interpreta como un promedio numérico de
+  /// calificación de retroalimentación (Decimal), no como texto libre.
+  averageFeedback Decimal @map("average_feedback") @db.Decimal(5, 2)
+  evaluatedAt     DateTime @map("evaluated_at")
+
+  student User @relation(fields: [studentId], references: [id], map: "fk_performance_metric_student_id")
+
+  @@index([studentId], map: "idx_performance_metric_student_id")
+  @@index([studentId, evaluatedAt], map: "idx_performance_metric_student_id_evaluated_at")
+  @@map("performance_metric")
+}
+
+model LearningAnalytics {
+  id     String   @id(map: "pk_learning_analytics") @default(uuid()) @db.Uuid
+  studentId String @unique(map: "uq_learning_analytics_student_id") @map("student_id") @db.Uuid
+  /// Índices compuestos, interpretados como porcentaje 0-100 (13.12:
+  /// "Restricciones CHECK: porcentajes 0–100"), consistente con el resto de
+  /// campos de tipo "índice"/"porcentaje" del documento.
+  productivityIndex Decimal  @map("productivity_index") @db.Decimal(5, 2)
+  engagementIndex   Decimal  @map("engagement_index") @db.Decimal(5, 2)
+  consistencyIndex  Decimal  @map("consistency_index") @db.Decimal(5, 2)
+  progressionIndex  Decimal  @map("progression_index") @db.Decimal(5, 2)
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  student User @relation(fields: [studentId], references: [id], map: "fk_learning_analytics_student_id")
+
+  @@map("learning_analytics")
+}
+
+model StudentDashboard {
+  id                   String    @id(map: "pk_student_dashboard") @default(uuid()) @db.Uuid
+  studentId            String    @unique(map: "uq_student_dashboard_student_id") @map("student_id") @db.Uuid
+  currentLevel         DelfLevel @map("current_level")
+  totalXp              Int       @default(0) @map("total_xp")
+  completedActivities  Int       @default(0) @map("completed_activities")
+  completedPlans       Int       @default(0) @map("completed_plans")
+  currentStreak        Int       @default(0) @map("current_streak")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  student User @relation(fields: [studentId], references: [id], map: "fk_student_dashboard_student_id")
+
+  @@map("student_dashboard")
+}
+
+// --- Capítulo 9 — Gamificación (13.9 / 11.4, subconjunto) ---------------
+// Campos derivados de las reglas de negocio explícitas de la sección 11.4
+// (el documento fuente no incluye, para estas tres tablas, una ficha de
+// columnas equivalente a las de los capítulos 1-8 — solo la lista de
+// entidades y las reglas de negocio). Se documenta aquí la derivación para
+// trazabilidad, tal como exige el protocolo de trabajo de este proyecto.
+
+model Streak {
+  id             String    @id(map: "pk_streak") @default(uuid()) @db.Uuid
+  studentId      String    @unique(map: "uq_streak_student_id") @map("student_id") @db.Uuid
+  /// "Cada estudiante tiene un único nivel activo" / racha activa (11.4) → 1:1.
+  currentCount   Int       @default(0) @map("current_count")
+  longestCount   Int       @default(0) @map("longest_count")
+  lastActivityDate DateTime? @map("last_activity_date") @db.Date
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  student User @relation(fields: [studentId], references: [id], map: "fk_streak_student_id")
+
+  @@map("streak")
+}
+
+model StudentLevel {
+  id          String   @id(map: "pk_student_level") @default(uuid()) @db.Uuid
+  studentId   String   @unique(map: "uq_student_level_student_id") @map("student_id") @db.Uuid
+  /// "Cada estudiante tiene un único nivel activo" (11.4) → 1:1. El XP total
+  /// no se duplica aquí: se calcula agregando `XPTransaction` (regla MUST:
+  /// "el XP total se calcula como la suma de todas las transacciones").
+  levelNumber Int      @default(1) @map("level_number")
+  achievedAt  DateTime @map("achieved_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  student User @relation(fields: [studentId], references: [id], map: "fk_student_level_student_id")
+
+  @@map("student_level")
+}
+
+model XPTransaction {
+  id        String   @id(map: "pk_xp_transaction") @default(uuid()) @db.Uuid
+  studentId String   @map("student_id") @db.Uuid
+  amount    Int
+  source    XpSource
+  description String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  student User @relation(fields: [studentId], references: [id], map: "fk_xp_transaction_student_id")
+
+  @@index([studentId], map: "idx_xp_transaction_student_id")
+  @@index([studentId, createdAt], map: "idx_xp_transaction_student_id_created_at")
+  @@map("xp_transaction")
+}
