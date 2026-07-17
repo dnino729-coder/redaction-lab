@@ -136,6 +136,71 @@ enum Priority {
   CRITICAL
 }
 
+/// Sección 13.4 (resolución 18.21) — `status` de `LearningGoal`,
+/// `LearningObjective`, `LearningPhase` y `LearningTask`: mismo conjunto de
+/// valores en las 4 entidades por coherencia (13.13), pero declarado como 4
+/// ENUM Prisma distintos (no uno compartido) para permitir que cada tabla
+/// evolucione sus valores de forma independiente en el futuro sin afectar a
+/// las demás (13.15: "toda nueva entidad... no crear entidades duplicadas",
+/// aplicado aquí en sentido inverso: no acoplar 4 dominios distintos a un
+/// único tipo). Vocabulario reutilizado, no inventado: `NOT_STARTED`/
+/// `CANCELLED` provienen de `ExamAttemptStatus` (13.6); `COMPLETED`/
+/// `CANCELLED` ya son compartidos con `LearningPlanStatus`. No se reutiliza
+/// `ACTIVE`/`PAUSED` de `LearningPlanStatus` porque pausar es un control
+/// exclusivo del plan completo (18.21): las entidades hijas nunca tienen un
+/// estado "pausado" propio.
+enum LearningGoalStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum LearningObjectiveStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum LearningPhaseStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum LearningTaskStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+/// Sección 13.4 — `LearningTask.difficulty`. Nombrado con prefijo de entidad
+/// (no `Difficulty` genérico) para no colisionar en el futuro con
+/// `WritingTask.difficulty` (13.5: solo `EASY, MEDIUM, HARD`, sin
+/// `EXPERT` — conjunto de valores distinto, no puede ser el mismo tipo).
+enum LearningTaskDifficulty {
+  EASY
+  MEDIUM
+  HARD
+  EXPERT
+}
+
+/// Sección 13.4, resolución 18.20.5 — extensión formal de `LearningTask`,
+/// no prevista en el listado literal original de 13.4. Determina si una
+/// tarea se completa manualmente (`SELF_DIRECTED`) o exclusivamente por el
+/// evento `EXTERNAL_ACTIVITY_COMPLETED` del ecosistema de origen (cualquier
+/// otro valor) — ver 18.21, regla de origen de la transición a `COMPLETED`.
+enum LearningTaskSource {
+  SELF_DIRECTED
+  ACADEMY
+  LABORATORY
+  DAILY_TRAINING
+  SIMULATOR
+}
+
 // --- Capítulo 1 — Usuarios y Autenticación (13.1, subconjunto) ---------
 // Solo se modela `User` (tabla raíz de la que penden todas las FKs
 // `student_id` leídas por el Dashboard). Role/Permission/Session/etc.
@@ -181,6 +246,10 @@ model User {
   studentLevel        StudentLevel?
   xpTransactions      XPTransaction[]
   examAttempts        ExamAttempt[]
+  /// Añadido por el Sprint 3.3.1 (Mi Plan, 13.4: "User 1:N StudySession") —
+  /// misma naturaleza aditiva/obligatoria que el resto de relaciones
+  /// inversas de este modelo; ninguna columna propia de User cambia.
+  studySessions       StudySession[]
 
   @@index([status], map: "idx_user_status")
   @@map("user")
@@ -234,6 +303,15 @@ model LearningPlan {
   weeklyPlans     WeeklyPlan[]
   learningProgress LearningProgress?
   coachContexts   CoachContext[]
+  /// Campos añadidos por el Sprint 3.3.1 (Mi Plan, resoluciones 18.20/18.21):
+  /// relación inversa obligatoria de Prisma hacia las 3 entidades nuevas que
+  /// cuelgan directamente de LearningPlan. No es una modificación del
+  /// modelo de negocio de LearningPlan (ninguna columna propia cambia) —
+  /// es la contraparte estructural que Prisma exige declarar en ambos lados
+  /// de toda relación.
+  learningGoals   LearningGoal[]
+  learningPhases  LearningPhase[]
+  studySchedule   StudySchedule?
 
   @@index([studentId], map: "idx_learning_plan_student_id")
   @@index([studentId, status], map: "idx_learning_plan_student_id_status")
@@ -281,6 +359,146 @@ model LearningProgress {
   learningPlan LearningPlan @relation(fields: [learningPlanId], references: [id], map: "fk_learning_progress_learning_plan_id")
 
   @@map("learning_progress")
+}
+
+// --- Capítulo 4 (continuación) — Mi Plan: entidades añadidas en el Sprint
+// 3.3.1 (Modelo de Datos), sobre la Arquitectura Definitiva del módulo
+// (docs/modules/mi-plan.md) y las resoluciones 18.20/18.21. Completan las
+// 10 entidades de 13.4: las 4 anteriores (LearningPlan, DailyPlan,
+// WeeklyPlan, LearningProgress) ya existían, de solo lectura, para el
+// Dashboard; estas 6 son nuevas y quedan con lectura Y escritura desde su
+// creación (ver migración de RLS dedicada). No se modifica ninguna columna,
+// relación ni constraint de las 4 tablas ya existentes.
+
+model LearningGoal {
+  id             String             @id(map: "pk_learning_goal") @default(uuid()) @db.Uuid
+  learningPlanId String             @map("learning_plan_id") @db.Uuid
+  title          String
+  description    String?
+  priority       Priority           @default(MEDIUM)
+  targetDate     DateTime?          @map("target_date") @db.Date
+  /// Automático: se asigna únicamente cuando `status` pasa a `COMPLETED`
+  /// (invariante de 18.21), nunca por valor externo.
+  completedAt    DateTime?          @map("completed_at")
+  /// Calculado automáticamente a partir de `LearningObjective` — nunca se
+  /// edita manualmente (18.21). Ver migración de RLS: sin GRANT de escritura
+  /// para `dashboard_app_role` en esta tabla.
+  status         LearningGoalStatus @default(NOT_STARTED)
+
+  learningPlan LearningPlan        @relation(fields: [learningPlanId], references: [id], map: "fk_learning_goal_learning_plan_id")
+  objectives   LearningObjective[]
+
+  @@index([learningPlanId], map: "idx_learning_goal_learning_plan_id")
+  @@index([learningPlanId, status], map: "idx_learning_goal_learning_plan_id_status")
+  @@map("learning_goal")
+}
+
+model LearningObjective {
+  id              String                  @id(map: "pk_learning_objective") @default(uuid()) @db.Uuid
+  learningGoalId  String                  @map("learning_goal_id") @db.Uuid
+  title           String
+  description     String?
+  orderNumber     Int                     @map("order_number")
+  /// Automático: se asigna únicamente cuando `status` pasa a `COMPLETED`
+  /// (invariante de 18.21). Campo añadido formalmente en esta fase — 13.4
+  /// original no lo listaba en la ficha de esta tabla (inconsistencia
+  /// detectada y corregida junto con la resolución 18.21).
+  completedAt     DateTime?               @map("completed_at")
+  /// Única de las 4 entidades sin campo `source`: su transición a
+  /// `COMPLETED` es siempre manual, por el propio estudiante (18.21).
+  status          LearningObjectiveStatus @default(NOT_STARTED)
+
+  learningGoal LearningGoal @relation(fields: [learningGoalId], references: [id], map: "fk_learning_objective_learning_goal_id")
+
+  @@index([learningGoalId], map: "idx_learning_objective_learning_goal_id")
+  @@index([learningGoalId, status], map: "idx_learning_objective_learning_goal_id_status")
+  @@map("learning_objective")
+}
+
+model LearningPhase {
+  id             String              @id(map: "pk_learning_phase") @default(uuid()) @db.Uuid
+  learningPlanId String              @map("learning_plan_id") @db.Uuid
+  name           String
+  phaseOrder     Int                 @map("phase_order")
+  startDate      DateTime            @map("start_date") @db.Date
+  endDate        DateTime?           @map("end_date") @db.Date
+  /// Automático: idéntica regla que `LearningGoal.completedAt`. Campo
+  /// añadido formalmente en esta fase (misma corrección que
+  /// `LearningObjective`, ver comentario arriba).
+  completedAt    DateTime?           @map("completed_at")
+  /// Calculado automáticamente a partir de `LearningTask` — nunca se edita
+  /// manualmente (18.21).
+  status         LearningPhaseStatus @default(NOT_STARTED)
+
+  learningPlan LearningPlan   @relation(fields: [learningPlanId], references: [id], map: "fk_learning_phase_learning_plan_id")
+  tasks        LearningTask[]
+
+  @@index([learningPlanId], map: "idx_learning_phase_learning_plan_id")
+  @@index([learningPlanId, status], map: "idx_learning_phase_learning_plan_id_status")
+  @@map("learning_phase")
+}
+
+model LearningTask {
+  id                String                 @id(map: "pk_learning_task") @default(uuid()) @db.Uuid
+  learningPhaseId   String                 @map("learning_phase_id") @db.Uuid
+  title             String
+  description       String?
+  estimatedMinutes  Int                    @map("estimated_minutes")
+  difficulty        LearningTaskDifficulty @default(MEDIUM)
+  dueDate           DateTime?              @map("due_date") @db.Date
+  /// Automático: idéntica regla que las anteriores. Único caso donde el
+  /// origen de la transición depende de `source` (ver abajo).
+  completedAt       DateTime?              @map("completed_at")
+  /// Manual (por el estudiante) solo si `source = SELF_DIRECTED`; en
+  /// cualquier otro caso, exclusivamente vía el evento
+  /// `EXTERNAL_ACTIVITY_COMPLETED` (18.21). Ver migración de RLS: la
+  /// política de escritura de `dashboard_app_role` exige `source =
+  /// SELF_DIRECTED` también a nivel de base de datos (defensa en
+  /// profundidad, mismo criterio ya aplicado a RLS en el resto del proyecto).
+  status            LearningTaskStatus     @default(NOT_STARTED)
+  /// Extensión formal de 13.4 (resolución 18.20.5) — determina el emisor
+  /// autorizado de la finalización de esta tarea.
+  source            LearningTaskSource     @default(SELF_DIRECTED)
+
+  learningPhase LearningPhase  @relation(fields: [learningPhaseId], references: [id], map: "fk_learning_task_learning_phase_id")
+  studySessions StudySession[]
+
+  @@index([learningPhaseId], map: "idx_learning_task_learning_phase_id")
+  @@index([learningPhaseId, status], map: "idx_learning_task_learning_phase_id_status")
+  @@index([source], map: "idx_learning_task_source")
+  @@index([dueDate], map: "idx_learning_task_due_date")
+  @@map("learning_task")
+}
+
+model StudySchedule {
+  id                String   @id(map: "pk_study_schedule") @default(uuid()) @db.Uuid
+  learningPlanId    String   @unique(map: "uq_study_schedule_learning_plan_id") @map("learning_plan_id") @db.Uuid
+  daysPerWeek       Int      @map("days_per_week")
+  sessionsPerDay    Int      @map("sessions_per_day")
+  minutesPerSession Int      @map("minutes_per_session")
+  reminderTime      DateTime? @map("reminder_time") @db.Time
+
+  learningPlan LearningPlan @relation(fields: [learningPlanId], references: [id], map: "fk_study_schedule_learning_plan_id")
+
+  @@map("study_schedule")
+}
+
+model StudySession {
+  id               String    @id(map: "pk_study_session") @default(uuid()) @db.Uuid
+  studentId        String    @map("student_id") @db.Uuid
+  learningTaskId   String    @map("learning_task_id") @db.Uuid
+  startedAt        DateTime  @default(now()) @map("started_at")
+  finishedAt       DateTime? @map("finished_at")
+  durationMinutes  Int?      @map("duration_minutes")
+  completed        Boolean   @default(false)
+
+  student      User         @relation(fields: [studentId], references: [id], map: "fk_study_session_student_id")
+  learningTask LearningTask @relation(fields: [learningTaskId], references: [id], map: "fk_study_session_learning_task_id")
+
+  @@index([studentId], map: "idx_study_session_student_id")
+  @@index([learningTaskId], map: "idx_study_session_learning_task_id")
+  @@index([studentId, startedAt], map: "idx_study_session_student_id_started_at")
+  @@map("study_session")
 }
 
 // --- Capítulo 5 — Producción Escrita (13.5, subconjunto) ----------------
