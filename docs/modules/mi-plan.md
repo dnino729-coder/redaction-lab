@@ -3,7 +3,7 @@
 **Rol:** Arquitecto Principal del proyecto. **Fecha:** 2026-07-17.
 **Insumo:** `docs/audits/mi-plan-functional-audit-2026-07-17.md` (Fase 3.1 — auditoría funcional, veredicto ⚠️ REQUIERE ACLARACIONES, 10 vacíos de documentación) y `02_Conocimiento_Consolidado_Resuelto.md` completo.
 **Objetivo de esta fase:** cerrar los 10 vacíos detectados con decisiones arquitectónicas consistentes con el resto del proyecto, y dejar una Arquitectura Definitiva lista para la Fase 3.3 (implementación). **No contiene código ni diseño visual.**
-**Estado al cierre de esta fase:** ✅ Vacíos de la Fase 3.1 cerrados — ver resolución 18.20 en el documento consolidado. **Actualización posterior:** la auditoría de implementabilidad (`docs/audits/mi-plan-implementability-audit-2026-07-17.md`) detectó 3 omisiones de especificación adicionales, cerradas en la resolución 18.21 — ver Parte 4 (Adenda) al final de este documento.
+**Estado al cierre de esta fase:** ✅ Vacíos de la Fase 3.1 cerrados — ver resolución 18.20 en el documento consolidado. **Actualización posterior:** la auditoría de implementabilidad (`docs/audits/mi-plan-implementability-audit-2026-07-17.md`) detectó 3 omisiones de especificación adicionales, cerradas en la resolución 18.21 — ver Parte 4 (Adenda) al final de este documento. **Segunda actualización:** la auditoría DDD del Domain Layer (Sprint 3.3.2) señaló dos decisiones interpretativas del implementador que debían formalizarse, cerradas en la resolución 18.22 — ver Parte 5 (Adenda) al final de este documento.
 
 ---
 
@@ -323,3 +323,16 @@ La auditoría de implementabilidad posterior a esta fase (`docs/audits/mi-plan-i
 **3. `LearningTask.source` en 13.4:** la ficha de 13.4 fue editada para incluir literalmente el campo `source` (ya decidido en 18.20.5) y los 4 ENUM de `status` de este punto. A partir de esta adenda, 13.4, 18.20, 18.21 y este documento describen exactamente el mismo modelo — sin diferencias entre fuentes.
 
 **Entidades definitivas (Parte 2.2), corrección de forma:** la fila de `LearningTask` de la tabla de la sección 2.2 ya anticipaba correctamente el campo `source`; se confirma aquí que además incorpora el ENUM `status` completo. Las filas de `LearningGoal`, `LearningObjective` y `LearningPhase` de esa misma tabla quedan también con su `status` completamente definido — sin cambios en la tabla misma, solo cierre del campo que quedaba pendiente.
+
+
+---
+
+## Parte 5 — Adenda: formalización de decisiones interpretativas del Domain Layer (resolución 18.22)
+
+La auditoría DDD del Domain Layer de Mi Plan (Sprint 3.3.2, `features/my-plan/domain/`) aprobó la implementación con estado 🟡 REQUIERE AJUSTES, señalando que dos decisiones tomadas dentro del código eran inferencias razonadas del implementador, no texto literal de ninguna resolución previa. Se cierran en la resolución **18.22** del documento consolidado, sin modificar ningún comportamiento ya implementado. Se referencian aquí sin reabrir ni reescribir las Partes 1-4 anteriores.
+
+**1. Transiciones de `LearningPlan.status`:** 13.4 nunca definió una tabla de transiciones válidas para `LearningPlan` (a diferencia de los 4 ENUM de 18.21). Se formaliza el grafo ya implementado: `ACTIVE ⇄ PAUSED`; `ACTIVE|PAUSED → COMPLETED`; `ACTIVE|PAUSED → CANCELLED`; `COMPLETED`/`CANCELLED` terminales. El disparador de negocio de `pause()` (cuándo y por qué se pausa un plan) queda explícitamente fuera de alcance — no definido en ningún documento, pendiente de un caso de uso concreto. Detalle completo: 18.22, punto 1.
+
+**2. `cancel()` en `LearningGoal`/`LearningPhase`:** se formaliza que `CANCELLED` es una transición de naturaleza distinta a `NOT_STARTED`/`IN_PROGRESS`/`COMPLETED` en las 4 entidades de 18.21 — estas últimas se determinan siempre por cálculo, mientras que `CANCELLED` es siempre una decisión externa explícita (p. ej. una reprogramación, 18.20.2), nunca un valor calculado. La frase de 18.21 "nunca se editan manualmente" se formaliza como referida específicamente al cálculo de `COMPLETED`/`IN_PROGRESS`/`NOT_STARTED`, no a la transición `CANCELLED`. Detalle completo: 18.22, punto 2.
+
+**Consolidación documental:** ambas decisiones ya estaban implementadas y probadas antes de esta resolución (55 pruebas unitarias, Sprint 3.3.2); esta adenda cierra la dependencia de interpretación, sin generar ningún cambio de código.

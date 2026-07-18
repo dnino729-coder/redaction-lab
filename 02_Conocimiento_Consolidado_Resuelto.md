@@ -4637,3 +4637,31 @@ Esta distinción (dos entidades con transición manual posible — `LearningTask
 **Justificación general:** ninguno de los tres puntos introduce una decisión de producto nueva ni modifica una regla ya aprobada — son, en los tres casos, la única forma de completar información que ya estaba implícita en reglas MUST previas (13.4: cálculo automático de progreso; 18.20.5: separación manual/automática por `source`; 18.20.7: terminalidad sin eliminación) pero que no había sido enumerada explícitamente a nivel de valores concretos.
 
 **Módulos impactados:** ninguno ya implementado — mismas conclusiones que 18.20 (Dashboard sin cambios; `services/gamification` sin cambios adicionales a los ya señalados). `docs/modules/mi-plan.md` se actualiza con una adenda que remite a esta resolución, sin reescribir su Parte 1/2/3 ya aprobada.
+
+### 18.22 Formalización de dos decisiones interpretativas del Domain Layer de Mi Plan (Sprint 3.3.2)
+
+**Contexto:** la auditoría DDD del Domain Layer de Mi Plan (Sprint 3.3.2) aprobó la implementación con estado 🟡 REQUIERE AJUSTES, señalando que dos decisiones tomadas dentro del código (`features/my-plan/domain/entities/LearningPlan.ts` y `LearningGoal.ts`/`LearningPhase.ts`) eran inferencias razonadas del implementador, no texto literal de ninguna resolución previa, y debían formalizarse antes de que el Sprint 3.3.3 dependiera de ellas por interpretación. Esta resolución las cierra sin modificar ningún comportamiento ya implementado — únicamente los declara como decisión oficial.
+
+**1. Transiciones de `LearningPlan.status` (ACTIVE, PAUSED, COMPLETED, CANCELLED — 13.4):**
+
+A diferencia de los 4 ENUM de estado de 18.21, 13.4 nunca definió una tabla de transiciones válidas para `LearningPlan`. Se formaliza aquí el grafo ya implementado:
+
+- `ACTIVE → PAUSED` y `PAUSED → ACTIVE` (transición bidireccional).
+- `ACTIVE → COMPLETED`, `PAUSED → COMPLETED`.
+- `ACTIVE → CANCELLED`, `PAUSED → CANCELLED`.
+- `COMPLETED` y `CANCELLED` son estados terminales: ninguna transición posterior es válida, sin excepción — misma filosofía de terminalidad ya vigente en el resto del proyecto (13.7: "no se permite eliminar la memoria, solo marcarla inactiva"; 18.21: terminalidad de `CANCELLED` en las 4 entidades hijas).
+- Transición prohibida explícita: no existe ninguna transición directa `PAUSED → PAUSED` ni auto-transición (`from === to`) para ningún estado.
+
+**Justificación:** 18.20.4 presupone que `COMPLETED` y `CANCELLED` son alcanzables ("el cierre de un `LearningPlan` (`COMPLETED`/`CANCELLED`)... es una operación atómica"), y 18.21 aclara que `PAUSED` "no propaga a hijas" — ambos hechos ya asumían implícitamente que las 4 transiciones de cierre y la transición a `PAUSED` existen. Esta resolución solo hace explícito el grafo completo que las hace posibles, sin añadir ningún estado ni valor no contemplado en la ficha original de 13.4.
+
+**Disparador de negocio de `pause()`, explícitamente fuera de alcance:** ni esta resolución ni ninguna anterior definen *cuándo* o *por qué* un plan pasa a `PAUSED` (a diferencia de `COMPLETED`/`CANCELLED`, que sí tienen disparadores documentados — cierre natural del plan, cancelación). Esa decisión de producto queda pendiente para cuando exista un caso de uso concreto que la requiera; el dominio únicamente garantiza que la transición mecánica es válida cuando se invoque.
+
+**2. `cancel()` en `LearningGoal`/`LearningPhase` pese a ser entidades de cálculo automático:**
+
+Se formaliza que `CANCELLED` es, en las 4 entidades de 18.21 (`LearningGoal`, `LearningObjective`, `LearningPhase`, `LearningTask`), una transición de naturaleza distinta a `NOT_STARTED`/`IN_PROGRESS`/`COMPLETED`: estas tres últimas se determinan siempre por cálculo (automático en `LearningGoal`/`LearningPhase`, manual en `LearningObjective`/`LearningTask` con `source = SELF_DIRECTED`), mientras que `CANCELLED` es siempre una decisión externa explícita (p. ej., como resultado de una reprogramación del plan, 18.20.2, que redistribuye o elimina prioridades), nunca un valor calculado a partir de los hijos.
+
+**Justificación:** 18.21 ya declaraba, sin ambigüedad, que `CANCELLED` es válido "para las 4 entidades" en su tabla de transiciones, y que su significado ("deja de ser relevante... sin haberse completado") no depende de ningún cálculo agregado. La frase de 18.21 "`LearningPhase.status`/`LearningGoal.status` se calculan automáticamente... nunca se editan manualmente" se interpreta, y se formaliza aquí como interpretación oficial, referida específicamente a cómo se determina `COMPLETED`/`IN_PROGRESS`/`NOT_STARTED` (el resultado del cálculo de progreso), no a la transición `CANCELLED`, que es una operación de ciclo de vida distinta y no contradice la ausencia de edición manual del *progreso*.
+
+**Consolidación documental:** ambas decisiones ya estaban implementadas y probadas en el Domain Layer del Sprint 3.3.2 antes de esta resolución; no se modifica ningún comportamiento, código, constraint ni migración — únicamente se elimina la dependencia de interpretación señalada por la auditoría.
+
+**Módulos impactados:** ninguno ya implementado. El Domain Layer de Mi Plan (`features/my-plan/domain/`) queda alineado 1:1 con esta resolución sin requerir ningún cambio de código.
