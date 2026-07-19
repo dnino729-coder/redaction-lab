@@ -1297,7 +1297,7 @@ Claude no deberá: almacenar contraseñas en la base de datos propia; duplicar i
 
 **Entidades:** `StudentProfile, TeacherProfile, UserPreference, UserLanguage, LearningPreference, NotificationPreference, AccessibilityPreference, Avatar`.
 
-**Tabla `StudentProfile`**: id (PK), user_id (FK, UNIQUE), current_level (ENUM A1-C2), target_level (ENUM A1-C2), native_language (VARCHAR(50), NOT NULL), country (NULL), institution (NULL), learning_goal (TEXT NULL), biography (TEXT NULL), created_at, updated_at.
+**Tabla `StudentProfile`**: id (PK), user_id (FK, UNIQUE), current_level (ENUM A1-C2), target_level (ENUM A1-C2), target_exam_date (DATE, NULL — formalizado en resolución 18.23), native_language (VARCHAR(50), NOT NULL), country (NULL), institution (NULL), learning_goal (TEXT NULL), biography (TEXT NULL), created_at, updated_at.
 
 **Tabla `TeacherProfile`**: id (PK), user_id (FK, UNIQUE), institution (NOT NULL), department (NULL), specialization (NULL), biography (NULL), office_hours (NULL), created_at, updated_at.
 
@@ -4665,3 +4665,136 @@ Se formaliza que `CANCELLED` es, en las 4 entidades de 18.21 (`LearningGoal`, `L
 **Consolidación documental:** ambas decisiones ya estaban implementadas y probadas en el Domain Layer del Sprint 3.3.2 antes de esta resolución; no se modifica ningún comportamiento, código, constraint ni migración — únicamente se elimina la dependencia de interpretación señalada por la auditoría.
 
 **Módulos impactados:** ninguno ya implementado. El Domain Layer de Mi Plan (`features/my-plan/domain/`) queda alineado 1:1 con esta resolución sin requerir ningún cambio de código.
+
+### 18.23 Resolución arquitectónica del flujo de reprogramación del Learning Plan (cierre de la contradicción documental detectada en la auditoría funcional del Sprint 3.3.3)
+
+**Contexto:** la auditoría funcional del Sprint 3.3.3 (`features/my-plan/application/`) detectó una contradicción entre secciones del propio Vacío 2 (18.20.2) y `docs/modules/mi-plan.md`, sección 2.10: (a) el mecanismo de reprogramación descrito ("Solución arquitectónica", punto 2d) y la síntesis de flujo (2.5) limitan la persistencia a `DailyPlan`/`WeeklyPlan`/`LearningPhase`/`LearningTask`, mientras que el párrafo de "Impacto" del mismo Vacío 2 incluye `LearningPlan` entre las tablas escritas; (b) el Vacío 2 dice que el estudiante modifica "la fecha del examen... vía `StudySchedule`", pero la ficha de `StudySchedule` (13.4) no tiene ningún campo de fecha de examen; (c) la sección 2.10 introduce `StudentProfile.target_exam_date` como si ya existiera, sin que ese campo esté declarado en la ficha oficial de `StudentProfile` (13.2). Esta resolución cierra las tres contradicciones con una única decisión definitiva por punto, sin reabrir ninguna decisión funcional ya aprobada de 18.20-18.22.
+
+**1. `LearningPlan` NO se modifica durante una reprogramación.**
+
+Decisión definitiva: el flujo de reprogramación (18.20.2) nunca escribe en `LearningPlan`. Persiste exclusivamente en `LearningPhase`, `LearningTask`, `DailyPlan` y `WeeklyPlan` — coherente, sin excepción, con el mecanismo ya descrito en el punto 2(d) del Vacío 2 y con la síntesis de flujo de `docs/modules/mi-plan.md`, sección 2.5 (`→ DailyPlan/WeeklyPlan/LearningPhase/LearningTask actualizados`), ambas más específicas y detalladas que la lista genérica de "Impacto" del mismo Vacío 2, que queda corregida por esta resolución (ver Cambios documentales).
+
+*Justificación DDD:* `LearningPlan` es el Aggregate Root que gobierna la identidad y el ciclo de vida del plan (`status`, y `endDate` únicamente como efecto de sus transiciones terminales `complete()`/`cancel()`, 18.22) — no el contenido pedagógico del calendario. Ese contenido (fases, tareas, resúmenes diarios/semanales) es responsabilidad de sus entidades hijas y de los agregados de lectura `DailyPlan`/`WeeklyPlan`. Redistribuir el calendario no cambia quién es el plan, cuándo se creó, ni su nivel objetivo — cambia cómo se reparte el trabajo dentro de él. Tratar la reprogramación como una mutación de `LearningPlan` mezclaría dos responsabilidades distintas dentro de un único Aggregate Root, violando el principio de que un Aggregate Root protege sus propios invariantes, no los de sus hijos.
+
+*Justificación Clean Architecture:* el Domain Layer ya aprobado (Sprint 3.3.2, cerrado en 18.22) nunca expuso un mutador de campos escalares en `LearningPlan`, y dos auditorías independientes y sucesivas (auditoría funcional Fase 3.1, con 10 vacíos detectados, y auditoría DDD del Sprint 3.3.2) tuvieron oportunidad de señalar esa ausencia como un hallazgo pendiente y ninguna lo hizo. Añadir ahora una vía de escritura directa sobre `LearningPlan` para servir a la reprogramación reabriría una capa ya cerrada y auditada sin una necesidad documentada que lo justifique.
+
+*Interpretaciones descartadas y por qué:* (i) "`LearningPlan` se reescribe con un nuevo `endDate` derivado de la nueva fecha de examen" — descartada porque `endDate` solo es mutable como consecuencia de `complete()`/`cancel()` (transiciones terminales, 18.22), nunca como una actualización independiente; convertirlo en editable fuera de esas transiciones contradiría el grafo de transiciones ya formalizado. (ii) "El párrafo de Impacto del Vacío 2 es literal y debe honrarse" — descartada porque es menos específico que el propio mecanismo (punto 2d) y la síntesis (2.5) del mismo documento, ambos redactados con más detalle y consistentes entre sí; se interpreta como una imprecisión de redacción (probable referencia abreviada al "ecosistema de datos de Mi Plan", no a la fila de `LearningPlan` en sí), corregida aquí.
+
+**2. La fecha objetivo del examen vive en `StudentProfile` (13.2), como campo formalizado por esta resolución.**
+
+Decisión definitiva: `StudentProfile.target_exam_date` (DATE, NULL) se formaliza como campo oficial de la ficha de `StudentProfile` en 13.2 — no es un campo fantasma: a partir de esta resolución, 13.2 queda editada para incluirlo explícitamente (ver Cambios documentales). No pertenece a `LearningPlan` (13.4) ni a `StudySchedule` (13.4): ninguna de las dos fichas tiene, ni tuvo nunca, un campo de fecha de examen — el Vacío 2 se equivocaba al agruparla junto a la disponibilidad "vía `StudySchedule`".
+
+*Justificación:* la fecha del examen es un atributo del perfil pedagógico del estudiante (13.2: "nivel de francés, fecha del examen, objetivos, disponibilidad semanal..." ya la listaba como parte del perfil en la síntesis funcional, aunque nunca se había declarado como columna), no un atributo operativo del plan de estudio vigente — un estudiante puede cambiar su fecha de examen sin tener un plan activo, y un plan puede completarse/cancelarse sin que la fecha de examen cambie. Vive en el módulo de Perfiles (13.2), fuera del bounded context de Mi Plan, igual que `LearningPreference` (13.2) vive fuera de Mi Plan y solo se lee, nunca se escribe, desde allí (18.20.6).
+
+*Lectura por Mi Plan — corrección de 2.10:* la sección 2.10 de `docs/modules/mi-plan.md` decía que `StudentProfile.target_exam_date` se lee "una única vez, al crear el plan, sin sincronización posterior" — igual que `LearningPreference`. Esto es incorrecto para este campo específico: el bloque 1 de Mi Plan (Resumen general, Vacío 1) muestra una "cuenta regresiva al examen", que por definición debe reflejar la fecha vigente, no una copia congelada del momento de creación del plan. Se corrige: Mi Plan lee `StudentProfile.target_exam_date` **en vivo, en cada lectura del bloque 1** (una consulta de solo lectura entre módulos, sin copiar el valor a ninguna tabla de Mi Plan) — a diferencia de `LearningPreference`, que sí se copia una única vez a `StudySchedule` al crear el plan (18.20.6, sin cambios). Son dos patrones distintos para dos campos distintos; 2.10 los agrupaba incorrectamente bajo una misma regla.
+
+**3. Disparadores oficiales de reprogramación.**
+
+Se formalizan exactamente 4 disparadores — ninguno adicional se declara en esta resolución, por no existir evidencia documental de otros (ver Verificación de consistencia sobre "cambio de objetivo" e "intervención docente", explícitamente descartados por ausencia de fuente):
+
+| # | Disparador | Origen | Productor | Evento | Consumidor |
+|---|---|---|---|---|---|
+| 1 | Cambio de disponibilidad | Estudiante, dentro de Mi Plan (bloque 5, Configuración) | Estudiante, vía `UpdateStudySchedule` (ya implementado, Sprint 3.3.3) + solicitud explícita de reprogramación | `PLAN_REORGANIZATION_REQUESTED` (`reason = AVAILABILITY_CHANGED`) | Learning Planner |
+| 2 | Cambio de fecha del examen | Estudiante, en Perfil (`StudentProfile.target_exam_date`, fuera de Mi Plan) | Estudiante, vía solicitud explícita de reprogramación en Mi Plan tras el cambio de perfil (acción manual, no un listener automático entre módulos — ver justificación) | `PLAN_REORGANIZATION_REQUESTED` (`reason = EXAM_DATE_CHANGED`) | Learning Planner |
+| 3 | Umbral de inactividad (3 días) | Sistema | Servicio de reorganización automática (job recurrente, Vacío 3/18.20.3) | `PLAN_INACTIVITY_THRESHOLD_REACHED` | Learning Planner, Coach IA |
+| 4 | Evento externo relevante (p. ej. simulación revela una dificultad significativa) | Otro ecosistema (Laboratorio/Simulador) | Ese ecosistema, vía `EXTERNAL_ACTIVITY_COMPLETED` | `EXTERNAL_ACTIVITY_COMPLETED` (consumido primero por el Servicio de finalización de tareas; la posible reorganización subsiguiente es una decisión interna de Mi Plan, no un evento adicional) | Servicio de finalización de tareas de Mi Plan → (internamente) Learning Planner |
+
+*Justificación de "manual, no automático" en el disparador 2:* no se introduce un listener automático de Perfil→Mi Plan porque el vocabulario de eventos de Mi Plan está cerrado a 5 eventos oficiales (18.20.10) y ninguno de ellos es emitido por el módulo de Perfiles; añadir una escucha automática exigiría un sexto evento no autorizado por ninguna resolución vigente, y violaría 5.7 ("nunca llamadas directas entre servicios de ecosistemas distintos") si se implementara como llamada directa en vez de evento. Mantenerlo como una acción explícita del estudiante (consistente con 8.8: "el estudiante conserva el control") evita ambos problemas sin inventar infraestructura nueva.
+
+*Disparadores explícitamente NO declarados en esta resolución* (ver punto 3 del encargo — "cambio de objetivo", "intervención docente"): ninguna fuente revisada (13.2-13.9, 18.1-18.22, `docs/modules/mi-plan.md`) los documenta como disparadores de reprogramación. No se formalizan aquí por no existir evidencia — su eventual incorporación requeriría su propio vacío de documentación y una decisión de producto explícita, fuera del alcance de esta resolución (ver Verificación de consistencia).
+
+**4. Flujo completo de reprogramación (arquitectura, sin pseudocódigo).**
+
+```
+Evento (uno de los 4 disparadores del punto 3)
+  ↓
+Application Service — "Servicio de reprogramación" (18.20, 2.4):
+  valida propiedad del plan, valida el disparador, construye y publica
+  PLAN_REORGANIZATION_REQUESTED (disparador 1/2) o recibe
+  PLAN_INACTIVITY_THRESHOLD_REACHED/EXTERNAL_ACTIVITY_COMPLETED
+  (disparadores 3/4) — el paso "RequestPlanReorganization" del Sprint
+  3.3.3 cubre únicamente esta validación y publicación para los
+  disparadores 1/2, sin aplicar ningún cambio de dominio todavía
+  ↓
+Learning Planner (servicio de IA, AI Orchestrator, 9.4):
+  lee el estado actual del plan (fases, tareas, progreso) y, para el
+  disparador 2, lee en vivo StudentProfile.target_exam_date (punto 2);
+  genera una propuesta estructurada de recalendarización — nunca
+  persiste, nunca decide
+  ↓
+Motor Pedagógico Adaptativo (9.7, autoridad final):
+  valida la propuesta contra sus reglas "si-entonces"; para los
+  disparadores 1/2 (reorganización solicitada por el estudiante), la
+  propuesta validada se presenta al estudiante para confirmación
+  explícita antes de continuar (18.20.2); para los disparadores 3/4
+  (reacción del sistema), se aplica directamente sin confirmación
+  (2.8)
+  ↓
+Entidades modificadas (punto 5 de esta resolución):
+  LearningPhase, LearningTask — redistribución de fases/tareas;
+  LearningGoal — únicamente su status recalculado (18.21), nunca sus
+  campos propios; LearningProgress recalculado como consecuencia
+  derivada; LearningPlan, LearningObjective, StudySession — sin
+  cambios (punto 5)
+  ↓
+Eventos emitidos:
+  ninguno adicional a los 5 ya oficiales (18.20.10) — la reorganización
+  en sí misma no es un evento de dominio nuevo; si, como efecto
+  colateral, alguna LearningTask queda CANCELLED (18.22, punto 2) esa
+  transición no emite evento propio (solo PLAN_TASK_COMPLETED tiene
+  emisor, y CANCELLED no lo es)
+  ↓
+Persistencia:
+  el Motor Pedagógico Adaptativo aplica los cambios ya validados sobre
+  LearningPhase/LearningTask/DailyPlan/WeeklyPlan mediante los
+  Repositories de dominio ya definidos (Sprint 3.3.2) y coordinados por
+  un Handler de Application Layer aún no implementado (p. ej.
+  "ApplyPlanReorganization" — fuera de alcance de esta resolución y del
+  Sprint 3.3.3 ya cerrado)
+  ↓
+Respuesta al usuario:
+  el estudiante recibe la confirmación de que el plan fue reorganizado;
+  el Dashboard y los bloques de Mi Plan reflejan el calendario nuevo en
+  su siguiente lectura (GetDailyPlan/GetWeeklyPlan/GetLearningProgress,
+  ya implementados, Sprint 3.3.3), sin necesidad de ningún endpoint de
+  lectura adicional (2.5, "Dashboard refleja el cambio... sin acción
+  propia")
+```
+
+**5. Matriz de entidades modificables durante una reprogramación.**
+
+| Entidad | ¿Se modifica? | Justificación |
+|---|---|---|
+| `LearningPlan` | **No** | Ver punto 1 — su Aggregate Root gobierna identidad/ciclo de vida, no el contenido del calendario. |
+| `LearningGoal` | **Condicional** | Solo su `status`, recalculado automáticamente (18.21) si el `status` de alguno de sus `LearningObjective` cambia como efecto indirecto; nunca sus campos propios (`title`/`description`/`priority`/`targetDate`), que no participan del calendario. |
+| `LearningObjective` | **No** | 13.4: `LearningGoal`↔`LearningObjective` y `LearningPhase`↔`LearningTask` son "dos ramas independientes bajo `LearningPlan`" — la reprogramación redistribuye el calendario (fases/tareas), nunca los objetivos pedagógicos. |
+| `LearningPhase` | **Sí** | Entidad explícitamente listada en el mecanismo (18.20.2, punto 2d) y en la síntesis de flujo (2.5). |
+| `LearningTask` | **Sí** | Ídem — redistribución directa de tareas entre fases/fechas. |
+| `DailyPlan` | **Sí** | Ídem — recálculo del resumen diario tras la redistribución. |
+| `WeeklyPlan` | **Sí** | Ídem — recálculo del resumen semanal. |
+| `StudySchedule` | **Condicional** | Solo si el disparador es "cambio de disponibilidad" (disparador 1) — y en ese caso el cambio ya ocurrió *antes* de la reprogramación, vía `UpdateStudySchedule` (Sprint 3.3.3); es la causa del disparador, no un efecto de la reprogramación en sí. |
+| `StudySession` | **No** | Historial append-only de sesiones ya ocurridas (13.4) — reprogramar el futuro no reescribe el pasado. |
+| `LearningProgress` | **Sí (recalculado)** | Consecuencia derivada obligatoria del recálculo de tareas/fases (13.4 MUST: "el progreso se calcula automáticamente"). |
+
+**6. Por qué no existe `UpdateLearningPlan`.**
+
+`LearningPlan` no cambia durante una reprogramación (punto 1) ni en ningún otro flujo documentado — sus únicas mutaciones son las transiciones de ciclo de vida ya cubiertas por `PauseLearningPlan`/`ResumeLearningPlan`/`CancelLearningPlan` (Sprint 3.3.3) y `complete()` (expuesto en el dominio desde el Sprint 3.3.2, sin Handler propio por no estar entre los 15 casos de uso nombrados — ver Riesgos). Ningún documento revisado (13.4, 18.1-18.22, `docs/modules/mi-plan.md`) describe una pantalla o flujo donde el estudiante edite directamente `name`, `description`, `targetLevel` o `endDate` de su plan — el bloque 5 "Configuración del plan" (Vacío 1) cubre exclusivamente `StudySchedule` y el punto de entrada a la reprogramación, nunca la edición de esos 4 campos. Por tanto: no existe ninguna zona gris — `UpdateLearningPlan` no debe implementarse porque no hay ningún caso de uso documentado que lo requiera, no porque el Domain Layer tenga una carencia pendiente de resolver.
+
+**7. Contrato conceptual entre Learning Planner, Motor Pedagógico Adaptativo, Application Layer, Infraestructura e IA (responsabilidades, sin interfaces).**
+
+- **Learning Planner:** analiza el estado actual del plan y el disparador recibido; genera una propuesta estructurada de recalendarización (fases, tareas, distribución diaria/semanal candidata). Nunca persiste, nunca decide, nunca se invoca desde el cliente (18.20.8/2.7).
+- **Motor Pedagógico Adaptativo:** única autoridad que valida una propuesta del Learning Planner contra las reglas "si-entonces" del proyecto (9.7) antes de que se aplique u ofrezca al estudiante; es quien efectivamente traduce una propuesta validada en cambios sobre las entidades del punto 5. Independiente del modelo de IA (2.7).
+- **Application Layer (Mi Plan):** coordina el disparo del Servicio de reprogramación (valida propiedad/disparador, publica `PLAN_REORGANIZATION_REQUESTED` para los disparadores 1/2), y — en un sprint futuro, no en el 3.3.3 ya cerrado — coordinará la aplicación de la propuesta ya validada por el Motor Pedagógico Adaptativo sobre los Repositories de dominio. Nunca contiene ella misma la lógica de generación ni de validación de la propuesta.
+- **Infraestructura:** persiste lo que la Application Layer le indica (Repositories concretos, Prisma) e invoca al AI Orchestrator para llegar al Learning Planner; no toma ninguna decisión de negocio propia.
+- **IA (Learning Planner + AI Orchestrator):** provee la capacidad de generación de propuestas; queda siempre subordinada a la validación del Motor Pedagógico Adaptativo (9.7: "la IA puede explicar decisiones, nunca decidirlas") y nunca tiene acceso de escritura directo a ninguna tabla.
+
+## Cambios documentales necesarios (a ejecutar junto con esta resolución)
+
+1. **13.2** — la ficha de `StudentProfile` se edita para incluir `target_exam_date (DATE, NULL — formalizado en 18.23)`, entre `target_level` y `native_language`.
+2. **`docs/modules/mi-plan.md`, Vacío 2, punto 5 (Impacto):** el listado `LearningPlan/DailyPlan/WeeklyPlan/LearningPhase/LearningTask/StudySchedule` queda corregido a `DailyPlan/WeeklyPlan/LearningPhase/LearningTask` (se retira `LearningPlan`; `StudySchedule` se aclara como consecuencia del disparador de disponibilidad, no de la reprogramación en sí) — corrección puntual, sin reescribir el resto del Vacío 2.
+3. **`docs/modules/mi-plan.md`, sección 2.10:** la entrada "Mi Plan → Perfil" se corrige para distinguir explícitamente los dos patrones de lectura descritos en el punto 2 de esta resolución (`LearningPreference`: copia única al crear el plan; `StudentProfile.target_exam_date`: lectura en vivo en cada render del bloque 1).
+4. **`docs/modules/mi-plan.md`:** se añade una Parte 6 — Adenda, referenciando esta resolución, siguiendo el mismo patrón ya usado para 18.21 (Parte 4) y 18.22 (Parte 5), sin reescribir las Partes 1-5 anteriores.
+
+**Riesgos:** el Handler de Application Layer que aplicaría una propuesta ya confirmada ("ApplyPlanReorganization" o nombre equivalente) no existe todavía — el Sprint 3.3.3 solo implementó el paso de solicitud (`RequestPlanReorganization`), consistente con que el Learning Planner/Motor Pedagógico Adaptativo tampoco existen aún como infraestructura; esta resolución especifica el flujo pero no lo implementa. `LearningPlan.complete()` (dominio, Sprint 3.3.2) no tiene Handler de Application Layer propio en el Sprint 3.3.3 — al no formar parte de los 15 casos de uso nombrados en ese sprint, queda fuera de esta resolución, pero es un vacío de cobertura a evaluar en un sprint futuro (18.20.4 exige el cierre atómico de un plan; el mecanismo de disparo de esa transición no está resuelto todavía).
+
+**Módulos impactados:** ninguno ya implementado sufre cambio de comportamiento — Dashboard, Domain Layer y Application Layer de Mi Plan (Sprints 3.3.2/3.3.3) permanecen sin modificación de código. Afecta directamente al futuro Sprint de infraestructura de Mi Plan (Learning Planner, Motor Pedagógico Adaptativo, Handler de aplicación de reprogramación) y al módulo de Perfiles (13.2, nuevo campo `target_exam_date`, sin migración ejecutada por esta resolución — decisión de negocio cerrada aquí, ejecución pendiente, mismo patrón que 18.21 con el `CHECK` de `completed_at`).
