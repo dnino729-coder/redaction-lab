@@ -22,6 +22,7 @@ import {
   makeDailyPlanReadPort,
   makeWeeklyPlanReadPort,
   makeLearningProgressReadPort,
+  makeUnitOfWork,
   makeLogger,
 } from "./mocks";
 import { APP_FIXTURE_IDS } from "./fixtures";
@@ -37,20 +38,30 @@ function buildActivePlan() {
 }
 
 describe("GetActiveLearningPlanHandler", () => {
-  it("devuelve el plan activo del estudiante", async () => {
+  it("devuelve el plan activo del estudiante, leyendo bajo el contexto RLS del propio estudiante (18.24)", async () => {
     const learningPlanRepository = makeLearningPlanRepository();
     learningPlanRepository.findActiveByStudentId.mockResolvedValue(buildActivePlan());
-    const handler = new GetActiveLearningPlanHandler(learningPlanRepository as never, makeLogger() as never);
+    const unitOfWork = makeUnitOfWork();
+    const handler = new GetActiveLearningPlanHandler(
+      learningPlanRepository as never,
+      unitOfWork as never,
+      makeLogger() as never,
+    );
 
     const result = await handler.handle(
       GetActiveLearningPlanQuery.fromRequest({ studentId: APP_FIXTURE_IDS.student }),
     );
     expect(result.id).toBe(APP_FIXTURE_IDS.plan);
+    expect(unitOfWork.execute).toHaveBeenCalledWith(expect.any(Function), APP_FIXTURE_IDS.student);
   });
 
   it("lanza ResourceNotFoundException si no hay plan activo", async () => {
     const learningPlanRepository = makeLearningPlanRepository();
-    const handler = new GetActiveLearningPlanHandler(learningPlanRepository as never, makeLogger() as never);
+    const handler = new GetActiveLearningPlanHandler(
+      learningPlanRepository as never,
+      makeUnitOfWork() as never,
+      makeLogger() as never,
+    );
 
     await expect(
       handler.handle(GetActiveLearningPlanQuery.fromRequest({ studentId: APP_FIXTURE_IDS.student })),
@@ -71,9 +82,11 @@ describe("GetDailyPlanHandler (CQRS read port)", () => {
       completedMinutes: 30,
       completionPercentage: 50,
     });
+    const unitOfWork = makeUnitOfWork();
     const handler = new GetDailyPlanHandler(
       learningPlanRepository as never,
       dailyPlanReadPort as never,
+      unitOfWork as never,
       makeLogger() as never,
     );
 
@@ -85,6 +98,7 @@ describe("GetDailyPlanHandler (CQRS read port)", () => {
       APP_FIXTURE_IDS.plan,
       new Date("2026-07-18"),
     );
+    expect(unitOfWork.execute).toHaveBeenCalledWith(expect.any(Function), APP_FIXTURE_IDS.student);
   });
 });
 
@@ -101,9 +115,11 @@ describe("GetWeeklyPlanHandler (CQRS read port)", () => {
       completedMinutes: 100,
       completionPercentage: 33,
     });
+    const unitOfWork = makeUnitOfWork();
     const handler = new GetWeeklyPlanHandler(
       learningPlanRepository as never,
       weeklyPlanReadPort as never,
+      unitOfWork as never,
       makeLogger() as never,
     );
 
@@ -111,6 +127,7 @@ describe("GetWeeklyPlanHandler (CQRS read port)", () => {
       GetWeeklyPlanQuery.fromRequest({ studentId: APP_FIXTURE_IDS.student, weekNumber: 3 }),
     );
     expect(result.weekNumber).toBe(3);
+    expect(unitOfWork.execute).toHaveBeenCalledWith(expect.any(Function), APP_FIXTURE_IDS.student);
   });
 });
 
@@ -128,9 +145,11 @@ describe("GetLearningProgressHandler (CQRS read port)", () => {
       currentStreak: 2,
       updatedAt: "2026-07-18T00:00:00.000Z",
     });
+    const unitOfWork = makeUnitOfWork();
     const handler = new GetLearningProgressHandler(
       learningPlanRepository as never,
       learningProgressReadPort as never,
+      unitOfWork as never,
       makeLogger() as never,
     );
 
@@ -138,6 +157,7 @@ describe("GetLearningProgressHandler (CQRS read port)", () => {
       GetLearningProgressQuery.fromRequest({ studentId: APP_FIXTURE_IDS.student }),
     );
     expect(result.completedTasks).toBe(5);
+    expect(unitOfWork.execute).toHaveBeenCalledWith(expect.any(Function), APP_FIXTURE_IDS.student);
   });
 });
 
@@ -153,13 +173,16 @@ describe("GetStudyScheduleHandler", () => {
       frequency: StudyFrequency.create({ daysPerWeek: 4, sessionsPerDay: 1, minutesPerSession: 25 }),
     });
     studyScheduleRepository.findByLearningPlanId.mockResolvedValue(schedule);
+    const unitOfWork = makeUnitOfWork();
     const handler = new GetStudyScheduleHandler(
       learningPlanRepository as never,
       studyScheduleRepository as never,
+      unitOfWork as never,
       makeLogger() as never,
     );
 
     const result = await handler.handle(GetStudyScheduleQuery.fromRequest({ studentId: APP_FIXTURE_IDS.student }));
     expect(result.daysPerWeek).toBe(4);
+    expect(unitOfWork.execute).toHaveBeenCalledWith(expect.any(Function), APP_FIXTURE_IDS.student);
   });
 });

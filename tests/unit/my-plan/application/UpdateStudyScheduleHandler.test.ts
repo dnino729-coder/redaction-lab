@@ -29,16 +29,17 @@ function buildFixtures(studentId = APP_FIXTURE_IDS.student) {
 }
 
 describe("UpdateStudyScheduleHandler", () => {
-  it("reconfigura la disponibilidad (StudyFrequency/ReminderTime nuevos)", async () => {
+  it("reconfigura la disponibilidad (StudyFrequency/ReminderTime nuevos), bajo el contexto RLS del propio estudiante (18.24)", async () => {
     const studyScheduleRepository = makeStudyScheduleRepository();
     const learningPlanRepository = makeLearningPlanRepository();
     const { plan, schedule } = buildFixtures();
     learningPlanRepository.findById.mockResolvedValue(plan);
     studyScheduleRepository.findByLearningPlanId.mockResolvedValue(schedule);
+    const unitOfWork = makeUnitOfWork();
     const handler = new UpdateStudyScheduleHandler(
       studyScheduleRepository as never,
       learningPlanRepository as never,
-      makeUnitOfWork() as never,
+      unitOfWork as never,
       makeLogger() as never,
     );
 
@@ -57,6 +58,7 @@ describe("UpdateStudyScheduleHandler", () => {
     expect(result.daysPerWeek).toBe(6);
     expect(result.reminderHour).toBe(8);
     expect(studyScheduleRepository.save).toHaveBeenCalledWith(schedule);
+    expect(unitOfWork.execute).toHaveBeenCalledWith(expect.any(Function), APP_FIXTURE_IDS.student);
   });
 
   it("rechaza con ForbiddenException si el plan no pertenece al estudiante", async () => {

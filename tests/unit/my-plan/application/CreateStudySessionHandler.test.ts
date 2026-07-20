@@ -59,22 +59,36 @@ function buildHandler() {
     learningPhaseRepository as never,
     learningGoalRepository as never,
   );
+  const unitOfWork = makeUnitOfWork();
   const handler = new CreateStudySessionHandler(
     studySessionRepository as never,
     learningTaskRepository as never,
     ownershipVerificationService,
-    makeUnitOfWork() as never,
+    unitOfWork as never,
     makeClock(new Date("2026-07-18T09:00:00.000Z")) as never,
     makeUuidGenerator([APP_FIXTURE_IDS.session]) as never,
     makeLogger() as never,
   );
-  return { handler, studySessionRepository, learningTaskRepository, learningPhaseRepository, learningPlanRepository };
+  return {
+    handler,
+    studySessionRepository,
+    learningTaskRepository,
+    learningPhaseRepository,
+    learningPlanRepository,
+    unitOfWork,
+  };
 }
 
 describe("CreateStudySessionHandler", () => {
-  it("inicia una StudySession abierta (finishedAt = null, completed = false)", async () => {
-    const { handler, studySessionRepository, learningTaskRepository, learningPhaseRepository, learningPlanRepository } =
-      buildHandler();
+  it("inicia una StudySession abierta (finishedAt = null, completed = false), bajo el contexto RLS del propio estudiante (18.24)", async () => {
+    const {
+      handler,
+      studySessionRepository,
+      learningTaskRepository,
+      learningPhaseRepository,
+      learningPlanRepository,
+      unitOfWork,
+    } = buildHandler();
     const { plan, phase, task } = buildFixtures();
     learningTaskRepository.findById.mockResolvedValue(task);
     learningPhaseRepository.findById.mockResolvedValue(phase);
@@ -92,6 +106,7 @@ describe("CreateStudySessionHandler", () => {
     expect(result.completed).toBe(false);
     expect(result.finishedAt).toBeNull();
     expect(studySessionRepository.save).toHaveBeenCalledTimes(1);
+    expect(unitOfWork.execute).toHaveBeenCalledWith(expect.any(Function), APP_FIXTURE_IDS.student);
   });
 
   it("rechaza con ResourceNotFoundException si la tarea no existe", async () => {

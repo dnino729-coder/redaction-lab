@@ -5,7 +5,7 @@ import { ForbiddenException } from "@/features/my-plan/application/exceptions/Fo
 import { LearningPlan } from "@/features/my-plan/domain/entities/LearningPlan";
 import { LearningPlanId } from "@/features/my-plan/domain/value-objects/LearningPlanId";
 import { StudentId } from "@/features/my-plan/domain/value-objects/StudentId";
-import { makeLearningPlanRepository, makeEventBus, makeClock, makeLogger } from "./mocks";
+import { makeLearningPlanRepository, makeEventBus, makeUnitOfWork, makeClock, makeLogger } from "./mocks";
 import { APP_FIXTURE_IDS } from "./fixtures";
 
 function buildPlan(studentId = APP_FIXTURE_IDS.student) {
@@ -19,14 +19,16 @@ function buildPlan(studentId = APP_FIXTURE_IDS.student) {
 }
 
 describe("RequestPlanReorganizationHandler", () => {
-  it("publica PLAN_REORGANIZATION_REQUESTED sin persistir ningún cambio de dominio", async () => {
+  it("publica PLAN_REORGANIZATION_REQUESTED sin persistir ningún cambio de dominio, leyendo bajo el contexto RLS del propio estudiante (18.24)", async () => {
     const learningPlanRepository = makeLearningPlanRepository();
     learningPlanRepository.findById.mockResolvedValue(buildPlan());
     const eventBus = makeEventBus();
+    const unitOfWork = makeUnitOfWork();
     const fixedNow = new Date("2026-07-18T15:00:00.000Z");
     const handler = new RequestPlanReorganizationHandler(
       learningPlanRepository as never,
       eventBus as never,
+      unitOfWork as never,
       makeClock(fixedNow) as never,
       makeLogger() as never,
     );
@@ -46,6 +48,7 @@ describe("RequestPlanReorganizationHandler", () => {
     const [events] = eventBus.publish.mock.calls[0]!;
     expect(events[0].eventName).toBe("PLAN_REORGANIZATION_REQUESTED");
     expect(learningPlanRepository.save).not.toHaveBeenCalled();
+    expect(unitOfWork.execute).toHaveBeenCalledWith(expect.any(Function), APP_FIXTURE_IDS.student);
   });
 
   it("rechaza con ForbiddenException si el plan no pertenece al estudiante", async () => {
@@ -54,6 +57,7 @@ describe("RequestPlanReorganizationHandler", () => {
     const handler = new RequestPlanReorganizationHandler(
       learningPlanRepository as never,
       makeEventBus() as never,
+      makeUnitOfWork() as never,
       makeClock(new Date()) as never,
       makeLogger() as never,
     );

@@ -23,6 +23,11 @@ import { OwnershipVerificationService } from "../services/OwnershipVerificationS
 // fuera de alcance, igual que `UpdateLearningPlan` (ver informe de
 // entrega). No emite Domain Event: `StudySession` extiende `Entity`, no
 // `AggregateRoot` (ver domain/entities/StudySession.ts).
+//
+// Resolución 18.24: se pasa `studentId` a `UnitOfWork.execute()` — esta
+// escritura toca únicamente `study_session`, tabla donde `dashboard_app_role`
+// ya tiene GRANT INSERT/UPDATE (migración 202607171400) — se ejecuta bajo
+// `withStudentContext` (RLS real) en vez de `withServiceContext`.
 export class CreateStudySessionHandler {
   constructor(
     private readonly studySessionRepository: StudySessionRepository,
@@ -54,7 +59,7 @@ export class CreateStudySessionHandler {
         startedAt: this.clock.now(),
       });
       await this.studySessionRepository.save(session);
-    });
+    }, studentId.value);
 
     const session = await this.studySessionRepository.findById(sessionId);
     if (!session) throw new ResourceNotFoundException("StudySession", sessionId.value);

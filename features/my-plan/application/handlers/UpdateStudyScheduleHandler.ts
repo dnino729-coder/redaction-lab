@@ -20,6 +20,12 @@ import type { Logger } from "../ports/Logger";
 // disparar la propuesta del Learning Planner es responsabilidad de
 // `RequestPlanReorganizationHandler` (evento separado, ver ese archivo),
 // no de este caso de uso.
+//
+// Resolución 18.24: se pasa `studentId` a `UnitOfWork.execute()` — esta
+// escritura toca únicamente `study_schedule`, tabla donde
+// `dashboard_app_role` ya tiene GRANT UPDATE (migración 202607171400) —
+// se ejecuta bajo `withStudentContext` (RLS real) en vez de
+// `withServiceContext`.
 export class UpdateStudyScheduleHandler {
   constructor(
     private readonly studyScheduleRepository: StudyScheduleRepository,
@@ -60,7 +66,7 @@ export class UpdateStudyScheduleHandler {
 
       schedule.reschedule(frequency, reminderTime);
       await this.studyScheduleRepository.save(schedule);
-    });
+    }, studentId.value);
 
     const schedule = await this.studyScheduleRepository.findByLearningPlanId(planId);
     if (!schedule) throw new ResourceNotFoundException("StudySchedule", planId.value);
