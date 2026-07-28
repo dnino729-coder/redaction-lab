@@ -40,8 +40,8 @@ export function makeEventBus() {
 
 function makeRepoBase<T>() {
   return {
-    findById: vi.fn<[unknown], Promise<T | null>>(async () => null),
-    save: vi.fn<[T], Promise<void>>(async () => undefined),
+    findById: vi.fn(async (_id: unknown): Promise<T | null> => null),
+    save: vi.fn(async (_entity: T): Promise<void> => undefined),
   };
 }
 

@@ -1,4 +1,4 @@
-import type { LearningGoalModel } from "@prisma/client";
+import type { LearningGoal as LearningGoalModel } from "@prisma/client";
 import { LearningGoal } from "@/features/my-plan/domain/entities/LearningGoal";
 import { LearningGoalId } from "@/features/my-plan/domain/value-objects/LearningGoalId";
 import { LearningPlanId } from "@/features/my-plan/domain/value-objects/LearningPlanId";

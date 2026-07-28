@@ -250,6 +250,13 @@ model User {
   /// misma naturaleza aditiva/obligatoria que el resto de relaciones
   /// inversas de este modelo; ninguna columna propia de User cambia.
   studySessions       StudySession[]
+  /// Añadido por el Sprint 6.2 (Academia, Infrastructure Layer) — misma
+  /// naturaleza aditiva que `studySessions` (Mi Plan): ninguna columna
+  /// propia de User cambia, solo se agregan relaciones inversas.
+  academyUnitsAsStudent          AcademyUnit[]            @relation("AcademyUnitsForStudent")
+  academyTeacherOverrides        TeacherOverride[]        @relation("AcademyTeacherOverrides")
+  academyRecommendationsForMe    TeacherRecommendation[]  @relation("AcademyRecommendationsForStudent")
+  academyRecommendationsByMe     TeacherRecommendation[]  @relation("AcademyRecommendationsByTeacher")
 
   @@index([status], map: "idx_user_status")
   @@map("user")
@@ -792,4 +799,310 @@ model XPTransaction {
   @@index([studentId], map: "idx_xp_transaction_student_id")
   @@index([studentId, createdAt], map: "idx_xp_transaction_student_id_created_at")
   @@map("xp_transaction")
+}
+
+// =============================================================================
+// MÓDULO ACADEMIA — esquema de persistencia (Sprint 6.2, Infrastructure Layer).
+// Aplica de forma literal la Persistence Layer Specification v1.0 (Sprint 5.1,
+// Frozen) — 10 modelos nuevos, 11 enums nuevos, extensión aditiva sobre
+// `User`. Ningún modelo/enum/migración ya existente del proyecto se modifica.
+// =============================================================================
+
+// --- ENUMs — Academia ----------------------------------------------------
+
+/// Domain Model v1.1, Sección 6 — `UnitState` (A-07, exacta).
+enum AcademyUnitState {
+  LOCKED
+  UNLOCKED
+  IN_PROGRESS
+  AWAITING_FEEDBACK
+  REVISION
+  REFLECTION
+  COMPLETED
+  MASTERED
+}
+
+/// Domain Model v1.1, Sección 6 — `UnitStep` (A-02, exacta, 11 pasos).
+enum AcademyUnitStep {
+  CONTEXTUALIZE
+  DEFINE_OBJECTIVES
+  COMPREHEND
+  OBSERVE
+  ANALYZE
+  PRACTICE
+  PRODUCE
+  RECEIVE_FEEDBACK
+  REWRITE
+  REFLECT
+  UNLOCK
+}
+
+/// Domain Model v1.1, Sección 6 — `TextType`. Prefijado `Academy` para no
+/// colisionar con un futuro TextType de Producción Escrita.
+enum AcademyTextType {
+  LETTER
+  ARTICLE
+  ESSAY
+  EMAIL
+  REPORT
+}
+
+/// Domain Model v1.1, Sección 6 — `DifficultyLevel`.
+enum AcademyDifficultyLevel {
+  EASY
+  MEDIUM
+  HARD
+}
+
+/// Domain Model v1.1, Sección 6 — `FeedbackCategory` (orden macro→micro).
+/// `priority` (H-07) NO se persiste como columna — ver Nota en
+/// `feedback_observation`, se deriva de un mapa constante en Infrastructure.
+enum AcademyFeedbackCategory {
+  COMPREHENSION
+  COMMUNICATIVE_INTENT
+  STRUCTURE
+  COHERENCE
+  COHESION
+  ARGUMENTATION
+  REGISTER
+  VOCABULARY
+  GRAMMAR
+  SPELLING
+}
+
+/// Domain Model v1.1, Sección 6 — `MasteryLevel` (H-05: `SUSTAINED`). Sin
+/// columna que lo use hoy — declarado por completitud del Domain Model.
+enum AcademyMasteryLevel {
+  DEVELOPING
+  CONSOLIDATING
+  SUSTAINED
+}
+
+/// Domain Model v1.1, Sección 6 — `FeedbackStrength`.
+enum AcademyFeedbackStrength {
+  STRENGTH
+  WEAKNESS
+}
+
+/// Domain Model v1.1, Sección 6 — `OverrideAction` (A-10, exacto).
+enum AcademyOverrideAction {
+  FORCE_LOCK
+  FORCE_RESTART
+}
+
+/// `ModelExampleDTO.rating` — calificación editorial.
+enum ModelExampleRating {
+  EXCELLENT
+  HAS_ERRORS
+}
+
+/// `ModelExampleDTO.status` — ciclo de vida editorial (soft delete).
+enum ModelExampleStatus {
+  ACTIVE
+  RETIRED
+}
+
+/// Estado de una fila de la tabla Outbox de Academia (at-least-once,
+/// dead-letter tras agotar reintentos). No es un Domain Event — es
+/// mecanismo de entrega, Infrastructure Model v1.1 Sección 5/7.
+enum AcademyOutboxStatus {
+  PENDING
+  PUBLISHED
+  FAILED
+  DEAD_LETTER
+}
+
+/// Aggregate de origen de un evento en la tabla Outbox.
+enum AcademyOutboxAggregateType {
+  ACADEMY_UNIT
+  ATTEMPT
+}
+
+// --- Modelos — Academia ---------------------------------------------------
+
+/// AR-1 Domain Model v1.1 — Aggregate Root `AcademyUnit`.
+model AcademyUnit {
+  id              String            @id(map: "pk_academy_unit") @default(uuid()) @db.Uuid
+  studentId       String            @map("student_id") @db.Uuid
+  textType        AcademyTextType   @map("text_type")
+  position        Int
+  state           AcademyUnitState  @default(LOCKED)
+  activeAttemptId String?           @unique(map: "uq_academy_unit_active_attempt_id") @map("active_attempt_id") @db.Uuid
+  completedAt     DateTime?         @map("completed_at")
+  masteredAt      DateTime?         @map("mastered_at")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  student                 User                     @relation("AcademyUnitsForStudent", fields: [studentId], references: [id], map: "fk_academy_unit_student_id")
+  attempts                Attempt[]                @relation("AcademyUnitAttempts")
+  activeAttempt           Attempt?                 @relation("AcademyUnitActiveAttempt", fields: [activeAttemptId], references: [id], map: "fk_academy_unit_active_attempt_id")
+  teacherOverrides        TeacherOverride[]
+  teacherRecommendations  TeacherRecommendation[]
+
+  @@unique([studentId, textType, position], map: "uq_academy_unit_student_text_type_position")
+  @@index([studentId], map: "idx_academy_unit_student_id")
+  @@index([studentId, textType], map: "idx_academy_unit_student_id_text_type")
+  @@index([studentId, state], map: "idx_academy_unit_student_id_state")
+  @@map("academy_unit")
+}
+
+/// AR-2 Domain Model v1.1 — Aggregate Root `Attempt`.
+model Attempt {
+  id                     String          @id(map: "pk_attempt") @default(uuid()) @db.Uuid
+  academyUnitId          String          @map("academy_unit_id") @db.Uuid
+  currentStep            AcademyUnitStep @default(CONTEXTUALIZE) @map("current_step")
+  comprehensionVerified  Boolean         @default(false) @map("comprehension_verified")
+  attemptNumber          Int             @map("attempt_number")
+  isCurrent              Boolean         @default(true) @map("is_current")
+  startedAt              DateTime        @default(now()) @map("started_at")
+  completedAt            DateTime?       @map("completed_at")
+  createdAt              DateTime        @default(now()) @map("created_at")
+  updatedAt              DateTime        @updatedAt @map("updated_at")
+
+  academyUnit    AcademyUnit  @relation("AcademyUnitAttempts", fields: [academyUnitId], references: [id], map: "fk_attempt_academy_unit_id")
+  activeForUnit  AcademyUnit? @relation("AcademyUnitActiveAttempt")
+  draft          Draft?
+  versions       Version[]
+
+  @@index([academyUnitId], map: "idx_attempt_academy_unit_id")
+  @@index([academyUnitId, isCurrent], map: "idx_attempt_academy_unit_id_is_current")
+  @@map("attempt")
+}
+
+/// Entidad interna de `Attempt` — a lo sumo un Borrador activo a la vez.
+model Draft {
+  id              String   @id(map: "pk_draft") @default(uuid()) @db.Uuid
+  attemptId       String   @unique(map: "uq_draft_attempt_id") @map("attempt_id") @db.Uuid
+  content         String   @db.Text
+  wordCount       Int      @default(0) @map("word_count")
+  characterCount  Int      @default(0) @map("character_count")
+  lastSavedAt     DateTime @map("last_saved_at")
+
+  attempt Attempt @relation(fields: [attemptId], references: [id], map: "fk_draft_attempt_id")
+
+  @@map("draft")
+}
+
+/// Entidad interna de `Attempt` — inmutable una vez creada (RN-5).
+model Version {
+  id             String    @id(map: "pk_version") @default(uuid()) @db.Uuid
+  attemptId      String    @map("attempt_id") @db.Uuid
+  versionNumber  Int       @map("version_number")
+  content        String    @db.Text
+  submittedAt    DateTime  @default(now()) @map("submitted_at")
+
+  attempt   Attempt    @relation(fields: [attemptId], references: [id], map: "fk_version_attempt_id")
+  feedback  Feedback?
+
+  @@unique([attemptId, versionNumber], map: "uq_version_attempt_id_version_number")
+  @@index([attemptId], map: "idx_version_attempt_id")
+  @@map("version")
+}
+
+/// Entidad interna de `Attempt` — asociada 1:1 a la `Version` que evalúa.
+model Feedback {
+  id           String    @id(map: "pk_feedback") @default(uuid()) @db.Uuid
+  versionId    String    @unique(map: "uq_feedback_version_id") @map("version_id") @db.Uuid
+  deliveredAt  DateTime  @default(now()) @map("delivered_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  version       Version                 @relation(fields: [versionId], references: [id], map: "fk_feedback_version_id")
+  observations  FeedbackObservation[]
+
+  @@map("feedback")
+}
+
+/// Value Object `FeedbackObservation` — persistido como tabla propia (una
+/// `Feedback` contiene una COLECCIÓN de observaciones). `priority` (H-07)
+/// deliberadamente NO es columna — se deriva del enum en Infrastructure.
+model FeedbackObservation {
+  id           String                   @id(map: "pk_feedback_observation") @default(uuid()) @db.Uuid
+  feedbackId   String                   @map("feedback_id") @db.Uuid
+  category     AcademyFeedbackCategory
+  strength     AcademyFeedbackStrength
+  explanation  String                   @db.Text
+  suggestion   String                   @db.Text
+
+  feedback Feedback @relation(fields: [feedbackId], references: [id], map: "fk_feedback_observation_feedback_id")
+
+  @@index([feedbackId], map: "idx_feedback_observation_feedback_id")
+  @@map("feedback_observation")
+}
+
+/// Entidad interna de `AcademyUnit` — anulación docente (A-10, RN-13).
+model TeacherOverride {
+  id             String                 @id(map: "pk_teacher_override") @default(uuid()) @db.Uuid
+  academyUnitId  String                 @map("academy_unit_id") @db.Uuid
+  action         AcademyOverrideAction
+  teacherId      String                 @map("teacher_id") @db.Uuid
+  reason         String                 @db.Text
+  appliedAt      DateTime               @default(now()) @map("applied_at")
+  createdAt      DateTime               @default(now()) @map("created_at")
+
+  academyUnit  AcademyUnit  @relation(fields: [academyUnitId], references: [id], map: "fk_teacher_override_academy_unit_id")
+  teacher      User         @relation("AcademyTeacherOverrides", fields: [teacherId], references: [id], map: "fk_teacher_override_teacher_id")
+
+  @@index([academyUnitId], map: "idx_teacher_override_academy_unit_id")
+  @@index([teacherId], map: "idx_teacher_override_teacher_id")
+  @@map("teacher_override")
+}
+
+/// AR-3 Domain Model v1.1 — Aggregate Root `ModelExample`.
+model ModelExample {
+  id                 String              @id(map: "pk_model_example") @default(uuid()) @db.Uuid
+  textType           AcademyTextType     @map("text_type")
+  content            String              @db.Text
+  rating             ModelExampleRating
+  curatorialComment  String              @map("curatorial_comment") @db.Text
+  status             ModelExampleStatus  @default(ACTIVE)
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+  retiredAt          DateTime?           @map("retired_at")
+
+  @@index([textType, status], map: "idx_model_example_text_type_status")
+  @@map("model_example")
+}
+
+/// Repository de infraestructura pura (CMD-11) — no reconstituye ningún
+/// Aggregate de Domain (Application Layer Spec v1.0, CMD-11/Sección 2).
+model TeacherRecommendation {
+  id             String    @id(map: "pk_teacher_recommendation") @default(uuid()) @db.Uuid
+  academyUnitId  String    @map("academy_unit_id") @db.Uuid
+  studentId      String    @map("student_id") @db.Uuid
+  teacherId      String    @map("teacher_id") @db.Uuid
+  recommendedAt  DateTime  @default(now()) @map("recommended_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  academyUnit  AcademyUnit  @relation(fields: [academyUnitId], references: [id], map: "fk_teacher_recommendation_academy_unit_id")
+  student      User         @relation("AcademyRecommendationsForStudent", fields: [studentId], references: [id], map: "fk_teacher_recommendation_student_id")
+  teacher      User         @relation("AcademyRecommendationsByTeacher", fields: [teacherId], references: [id], map: "fk_teacher_recommendation_teacher_id")
+
+  @@index([studentId], map: "idx_teacher_recommendation_student_id")
+  @@index([teacherId], map: "idx_teacher_recommendation_teacher_id")
+  @@index([academyUnitId], map: "idx_teacher_recommendation_academy_unit_id")
+  @@map("teacher_recommendation")
+}
+
+/// Tabla Outbox de Academia (Infrastructure Model v1.1, Sección 5/7) — un
+/// evento se escribe aquí dentro de la MISMA transacción que modifica el
+/// Aggregate origen; un publicador separado (fuera de alcance de Sprint 6.2)
+/// hace polling y publica al bus.
+model AcademyOutbox {
+  id             String                       @id(map: "pk_academy_outbox") @default(uuid()) @db.Uuid
+  eventId        String                       @unique(map: "uq_academy_outbox_event_id") @map("event_id") @db.Uuid
+  eventName      String                       @map("event_name")
+  aggregateId    String                       @map("aggregate_id") @db.Uuid
+  aggregateType  AcademyOutboxAggregateType   @map("aggregate_type")
+  payload        Json
+  status         AcademyOutboxStatus          @default(PENDING)
+  occurredAt     DateTime                     @default(now()) @map("occurred_at")
+  publishedAt    DateTime?                    @map("published_at")
+  retryCount     Int                          @default(0) @map("retry_count")
+  lastError      String?                      @map("last_error") @db.Text
+  createdAt      DateTime                     @default(now()) @map("created_at")
+
+  @@index([status], map: "idx_academy_outbox_status")
+  @@index([aggregateId, aggregateType], map: "idx_academy_outbox_aggregate_id_aggregate_type")
+  @@index([status, occurredAt], map: "idx_academy_outbox_status_occurred_at")
+  @@map("academy_outbox")
 }

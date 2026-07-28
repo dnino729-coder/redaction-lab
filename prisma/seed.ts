@@ -13,6 +13,7 @@
 
 import { PrismaClient } from "@prisma/client";
 import { seedCompetencies } from "./seed_competencies";
+import { seedAcademy } from "./seeds/academy.seed";
 
 const prisma = new PrismaClient();
 
@@ -23,6 +24,10 @@ async function main(): Promise<void> {
   // Templates, Feature Flags, Configurations) se añadirán al desarrollar
   // cada módulo correspondiente (sección 13.14).
   await seedCompetencies(prisma);
+
+  // Módulo Academia (Sprint 6.2, Infrastructure Layer) — Biblioteca de
+  // Modelos + primera AcademyUnit por TextType.
+  await seedAcademy(prisma);
 }
 
 main()

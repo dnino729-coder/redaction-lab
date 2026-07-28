@@ -1,4 +1,4 @@
-import type { LearningPhaseModel } from "@prisma/client";
+import type { LearningPhase as LearningPhaseModel } from "@prisma/client";
 import { LearningPhase } from "@/features/my-plan/domain/entities/LearningPhase";
 import { LearningPhaseId } from "@/features/my-plan/domain/value-objects/LearningPhaseId";
 import { LearningPlanId } from "@/features/my-plan/domain/value-objects/LearningPlanId";

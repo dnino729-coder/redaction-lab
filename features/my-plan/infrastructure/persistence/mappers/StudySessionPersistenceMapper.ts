@@ -1,4 +1,4 @@
-import type { StudySessionModel } from "@prisma/client";
+import type { StudySession as StudySessionModel } from "@prisma/client";
 import { StudySession } from "@/features/my-plan/domain/entities/StudySession";
 import { StudySessionId } from "@/features/my-plan/domain/value-objects/StudySessionId";
 import { StudentId } from "@/features/my-plan/domain/value-objects/StudentId";

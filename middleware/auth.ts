@@ -12,6 +12,15 @@
 // defecto (fr) no lleva prefijo de URL, pero los demás locales sí
 // (/es/sign-in). isPublicRoute debe reconocer ambas formas, o Clerk
 // protegería por error las rutas públicas del locale español.
+//
+// Sprint 6.3 (Academia API Layer): se añade "/api/v1/academy/health(.*)"
+// como ruta pública — mismo criterio ya aplicado a "/api/health"
+// (plataforma): los Health/Readiness/Liveness Checks deben ser
+// alcanzables sin JWT (los orquestadores de infraestructura, p. ej. un
+// load balancer o Kubernetes, nunca presentan una sesión Clerk). Ningún
+// otro endpoint de Academia se añade aquí — los 23 endpoints de negocio
+// (API Contract v1.3) permanecen protegidos por Clerk, exactamente igual
+// que el resto de la plataforma.
 
 import { createRouteMatcher } from "@clerk/nextjs/server";
 import { PUBLIC_ROUTES } from "@/config/routes";
@@ -42,4 +51,5 @@ export const isPublicRoute = createRouteMatcher([
   ...nonDefaultLocales.map((locale) => `/${locale}/sign-up(.*)`),
   "/api/webhooks(.*)",
   "/api/health",
+  "/api/v1/academy/health(.*)",
 ]);

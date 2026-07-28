@@ -1,4 +1,4 @@
-import type { LearningTaskModel } from "@prisma/client";
+import type { LearningTask as LearningTaskModel } from "@prisma/client";
 import { LearningTask } from "@/features/my-plan/domain/entities/LearningTask";
 import { LearningTaskId } from "@/features/my-plan/domain/value-objects/LearningTaskId";
 import { LearningPhaseId } from "@/features/my-plan/domain/value-objects/LearningPhaseId";

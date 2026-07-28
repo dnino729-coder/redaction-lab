@@ -23,7 +23,7 @@ const handleI18nRouting = createIntlMiddleware(routing);
 
 export default clerkMiddleware(async (auth, request) => {
   if (!isPublicRoute(request)) {
-    await auth.protect();
+    await auth().protect();
   }
 
   return handleI18nRouting(request);

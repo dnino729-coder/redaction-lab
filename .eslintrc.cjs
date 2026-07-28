@@ -116,10 +116,14 @@ module.exports = {
               {
                 target: "./app/api",
                 from: "./features",
-                except: FEATURES.flatMap((f) => [`./${f}/pages`, `./${f}/services`]),
+                except: FEATURES.flatMap((f) => [
+  `./${f}/pages`,
+  `./${f}/services`,
+  `./${f}/api`,
+]),
                 message:
-                  "app/api/ solo debe importar features/*/pages o features/*/services (la fachada pública de datos de una feature).",
-              },
+                  "app/api/ solo debe importar features/*/pages, features/*/services o features/*/api (la fachada pública de datos de una feature).",
+},
             ],
           },
         ],
