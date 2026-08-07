@@ -4,7 +4,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, screen } from "@testing-library/react";
 import { DashboardErrorState } from "@/features/dashboard/components/DashboardErrorState";
-import { renderWithIntl } from "../../../fixtures/renderWithIntl";
+import { renderWithIntl } from "../../fixtures/renderWithIntl";
 
 describe("DashboardErrorState", () => {
   it("expone role='alert' con el mensaje tranquilo (fr, fuente primaria)", () => {

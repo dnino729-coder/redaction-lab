@@ -18,26 +18,30 @@ export class AcademyAuthorizationGuard {
     private readonly teacherStudentRelationshipPort: TeacherStudentRelationshipPort,
   ) {}
 
+  // Sprint 10 (remediación S1, Destructive Testing Report v1): un `unitId`/
+  // `attemptId` que existe pero pertenece a otro estudiante se trata como
+  // `ResourceNotFoundException` (404), nunca como `ForbiddenException` (403)
+  // — API Contract v1.4, Sección 11, catálogo de `404`: "recurso inexistente
+  // o fuera del alcance del actor (nunca se distingue de 'no autorizado'
+  // cuando la distinción revelaría información sensible)". El `403` de ese
+  // mismo catálogo está reservado a "relación docente-estudiante no
+  // establecida, rol insuficiente" (ver `assertTeacherRelationship`), no a
+  // ownership simple de estudiante sobre su propio recurso. EP-01/EP-02
+  // (Sección 4) ya documentaban explícitamente `404` para "no pertenece al
+  // estudiante" — este cambio corrige una desviación del contrato ya
+  // congelado, no introduce un contrato nuevo.
   public async assertUnitOwnership(unitId: string, studentId: string): Promise<AcademyUnit> {
     const unit = await this.academyUnitRepository.findById(AcademyUnitId.create(unitId));
-    if (!unit) throw new ResourceNotFoundException("ACADEMY_NOT_FOUND_UNIT", "AcademyUnit", unitId);
-    if (unit.studentId.value !== studentId) {
-      throw new ForbiddenException(
-        "ACADEMY_FORBIDDEN_NOT_OWNER",
-        `El estudiante ${studentId} no es propietario de la unidad ${unitId}.`,
-      );
+    if (!unit || unit.studentId.value !== studentId) {
+      throw new ResourceNotFoundException("ACADEMY_NOT_FOUND_UNIT", "AcademyUnit", unitId);
     }
     return unit;
   }
 
   public async assertAttemptOwnership(attemptId: string, studentId: string): Promise<Attempt> {
     const attempt = await this.attemptRepository.findById(AttemptId.create(attemptId));
-    if (!attempt) throw new ResourceNotFoundException("ACADEMY_NOT_FOUND_ATTEMPT", "Attempt", attemptId);
-    if (attempt.studentId.value !== studentId) {
-      throw new ForbiddenException(
-        "ACADEMY_FORBIDDEN_NOT_OWNER",
-        `El estudiante ${studentId} no es propietario del intento ${attemptId}.`,
-      );
+    if (!attempt || attempt.studentId.value !== studentId) {
+      throw new ResourceNotFoundException("ACADEMY_NOT_FOUND_ATTEMPT", "Attempt", attemptId);
     }
     return attempt;
   }

@@ -18,6 +18,12 @@ export {
   type ClerkUserSyncPayload,
 } from "./clerkProvisioning";
 
+export {
+  resolvePlatformRoleFromClaims,
+  resolvePostAuthRedirectPath,
+  type PlatformRole,
+} from "./resolvePlatformRole";
+
 export class UnauthenticatedError extends Error {
   constructor() {
     super("No hay sesión activa (middleware.ts debería haber bloqueado esta ruta).");

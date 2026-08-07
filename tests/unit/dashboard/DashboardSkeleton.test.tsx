@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { screen } from "@testing-library/react";
 import { DashboardSkeleton } from "@/features/dashboard/components/DashboardSkeleton";
-import { renderWithIntl } from "../../../fixtures/renderWithIntl";
+import { renderWithIntl } from "../../fixtures/renderWithIntl";
 
 describe("DashboardSkeleton", () => {
   it("anuncia el estado de carga vía role='status'", () => {

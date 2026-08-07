@@ -3,10 +3,19 @@
 // Ver sección 5.2 (Arquitectura Tecnológica) y 5.4 (Arquitectura del Proyecto).
 
 import createNextIntlPlugin from "next-intl/plugin";
+import createBundleAnalyzer from "@next/bundle-analyzer";
 
 // Registra i18n/request.ts como resolvedor de locale + diccionario de
 // mensajes para Server Components (resolución 18.18).
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
+
+// Fase 6 del Roadmap de Academia (§24: "revisión de bundle size"). Inactivo
+// por defecto — el comportamiento normal del build no cambia salvo que se
+// invoque explícitamente con `ANALYZE=true` (script `analyze`,
+// `package.json`).
+const withBundleAnalyzer = createBundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
+});
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -50,4 +59,4 @@ const nextConfig = {
   },
 };
 
-export default withNextIntl(nextConfig);
+export default withBundleAnalyzer(withNextIntl(nextConfig));

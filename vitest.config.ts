@@ -8,6 +8,20 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./tests/setup.ts"],
+    // Fase 6 (Roadmap §24): al añadir specs E2E de Playwright bajo
+    // `tests/e2e/` (mismo glob `.spec.ts` que Vitest ya reconoce por
+    // defecto), Vitest intentaba recolectarlos también y fallaba
+    // ("Playwright Test did not expect test.describe() to be called
+    // here") — los excluye explícitamente, preservando además la lista de
+    // exclusión por defecto de Vitest (nunca sobrescrita, solo extendida).
+    exclude: [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/cypress/**",
+      "**/.{idea,git,cache,output,temp}/**",
+      "**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build,eslint,prettier}.config.*",
+      "tests/e2e/**",
+    ],
     coverage: {
       provider: "v8",
       reporter: ["text", "html"],

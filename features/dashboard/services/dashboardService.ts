@@ -9,22 +9,85 @@
 // llama directamente a Prisma/Redis sin pasar por services/ (sección 7).
 
 import type { DelfLevel } from "@prisma/client";
-import { getAnalyticsSnapshot } from "@/services/analytics";
+import { getAnalyticsSnapshot, type AnalyticsSnapshot } from "@/services/analytics";
 import { getDashboardCoreData, persistDashboardConsolidation } from "@/services/database";
-import { getGamificationSnapshot } from "@/services/gamification";
+import { getGamificationSnapshot, type GamificationSnapshot } from "@/services/gamification";
 import { redis } from "@/lib/redis";
-import { DASHBOARD_CACHE_KEY_PREFIX, DASHBOARD_CACHE_TTL_SECONDS } from "../constants/dashboard.constants";
+import {
+  DASHBOARD_CACHE_KEY_PREFIX,
+  DASHBOARD_CACHE_TTL_SECONDS,
+} from "../constants/dashboard.constants";
 import { buildEcosystemLinks, daysBetween, selectWelcomeVariant } from "./dashboardService.logic";
 import type { DashboardReadModel } from "../types";
 
 export { buildEcosystemLinks, daysBetween, selectWelcomeVariant } from "./dashboardService.logic";
 
+// Valores por defecto usados únicamente cuando su propia lectura
+// independiente falla (Sprint 10, remediación D1 — Destructive Testing
+// Report v1): `getGamificationSnapshot`/`getAnalyticsSnapshot` corren en su
+// propia transacción independiente de `getDashboardCoreData` (cada una abre
+// su propio `withStudentContext`), por lo que un fallo en una no invalida a
+// las otras — se degradan de forma aislada, en vez de tumbar todo el
+// Dashboard. `getDashboardCoreData` en sí (sus 7 lecturas internas) sigue
+// siendo todo-o-nada porque comparten una única transacción Postgres con
+// contexto RLS (`withStudentContext`) — degradarla requeriría separar esa
+// transacción, un cambio de seguridad/arquitectura fuera de alcance de esta
+// corrección (ver informe de Sprint 10).
+const EMPTY_GAMIFICATION_SNAPSHOT: GamificationSnapshot = {
+  currentStreak: 0,
+  longestStreak: 0,
+  levelNumber: 0,
+  totalXp: 0,
+};
+
+const EMPTY_ANALYTICS_SNAPSHOT: AnalyticsSnapshot = {
+  competencies: [],
+  learningAnalytics: null,
+  studyFrequency: null,
+  performance: null,
+};
+
 async function buildReadModel(studentId: string): Promise<DashboardReadModel> {
-  const [core, gamification, analytics] = await Promise.all([
+  const [coreResult, gamificationResult, analyticsResult] = await Promise.allSettled([
     getDashboardCoreData(studentId),
     getGamificationSnapshot(studentId),
     getAnalyticsSnapshot(studentId),
   ]);
+
+  // `core` sigue siendo esencial (identidad/plan/continuación alimentan casi
+  // todos los bloques) — su fallo continúa propagándose tal como antes, sin
+  // cambiar ese comportamiento (fuera del alcance de esta corrección).
+  if (coreResult.status === "rejected") {
+    console.error("================================");
+    console.error("ERROR EN getDashboardCoreData");
+    console.error(coreResult.reason);
+    console.error("================================");
+
+    throw coreResult.reason;
+  }
+  const core = coreResult.value;
+
+  if (gamificationResult.status === "rejected") {
+    // eslint-disable-next-line no-console -- mismo patrón ya usado en este archivo (persistDashboardConsolidation, más abajo)
+    console.error(
+      "[dashboard] no se pudo obtener el snapshot de gamificación, se degrada a valores por defecto",
+      gamificationResult.reason,
+    );
+  }
+  const gamification =
+    gamificationResult.status === "fulfilled"
+      ? gamificationResult.value
+      : EMPTY_GAMIFICATION_SNAPSHOT;
+
+  if (analyticsResult.status === "rejected") {
+    // eslint-disable-next-line no-console -- mismo patrón ya usado en este archivo (persistDashboardConsolidation, más abajo)
+    console.error(
+      "[dashboard] no se pudo obtener el snapshot de analíticas, se degrada a valores por defecto",
+      analyticsResult.reason,
+    );
+  }
+  const analytics =
+    analyticsResult.status === "fulfilled" ? analyticsResult.value : EMPTY_ANALYTICS_SNAPSHOT;
 
   const hasAnyHistory = Boolean(core.continuation || core.learningPlan || core.storedDashboard);
 
@@ -35,7 +98,10 @@ async function buildReadModel(studentId: string): Promise<DashboardReadModel> {
   const readModel: DashboardReadModel = {
     studentId,
     welcome: {
-      variant: selectWelcomeVariant({ hasAnyHistory, lastLoginAt: core.identity?.lastLoginAt ?? null }),
+      variant: selectWelcomeVariant({
+        hasAnyHistory,
+        lastLoginAt: core.identity?.lastLoginAt ?? null,
+      }),
       firstName: core.identity?.firstName ?? "",
       avatarUrl: core.identity?.avatarUrl ?? null,
       lastLoginAt: core.identity?.lastLoginAt?.toISOString() ?? null,

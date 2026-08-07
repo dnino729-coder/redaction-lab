@@ -13,18 +13,17 @@ import { toUnitDetailHttp } from "./unitResponseMappers";
 
 // Response Mapper (Alcance #7) — `Attempt`/`Draft`/`Version`/`Feedback`.
 //
-// Nota de fidelidad (disclosed, no BLOCKER): el Contrato v1.3 documenta
-// `AttemptSummaryDTO.versionCount`, que el DTO real de Application
-// (`AttemptSummaryResponseDto`, Frozen desde Sprint 6.1.2) no expone — no
-// se fabrica aquí (requeriría contar `Version`, un dato que el Mapper de
-// Application deliberadamente no calcula, Sección 6 de ese documento: "el
-// Mapper nunca los deriva por sí mismo").
+// ACP-004: `versionCount` se propaga desde `AttemptSummaryResponseDto`
+// cuando está disponible (solo en los DTOs producidos por el Read Model
+// de Infraestructura; los Handlers de Command que usan `AttemptMapper`
+// directamente no lo calculan) — opcional aquí por el mismo motivo.
 export interface AttemptSummaryHttp {
   readonly attemptId: string;
   readonly unitId: string;
   readonly currentStep: string;
   readonly startedAt: string;
   readonly isCurrent: boolean;
+  readonly versionCount?: number;
 }
 
 export function toAttemptSummaryHttp(dto: AttemptSummaryResponseDto): AttemptSummaryHttp {
@@ -34,6 +33,7 @@ export function toAttemptSummaryHttp(dto: AttemptSummaryResponseDto): AttemptSum
     currentStep: dto.currentStep,
     startedAt: dto.startedAt,
     isCurrent: dto.isCurrent,
+    versionCount: dto.versionCount,
   };
 }
 

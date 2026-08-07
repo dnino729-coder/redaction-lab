@@ -48,4 +48,9 @@ export interface AttemptSummaryResponseDto {
   readonly isCurrent: boolean;
   readonly startedAt: string;
   readonly completedAt: string | null;
+  // ACP-004: producido únicamente por `PrismaAcademyReadModelPort` (lectura,
+  // vía conteo de la relación `versions` ya existente); opcional para no
+  // exigirlo de `AttemptMapper.toSummaryDto()` (Domain -> DTO tras un
+  // Command), que no lo calcula.
+  readonly versionCount?: number;
 }

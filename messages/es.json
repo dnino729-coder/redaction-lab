@@ -88,5 +88,185 @@
       "description": "No pudimos cargar tu panel principal. Inténtalo de nuevo en un momento.",
       "retry": "Reintentar"
     }
+  },
+  "academy": {
+    "layout": {
+      "title": "Academia",
+      "modelLibraryLink": "Biblioteca de Modelos"
+    },
+    "unitMap": {
+      "unitLabel": "Unidad {position}",
+      "recommended": "Recomendada",
+      "errorTitle": "No pudimos cargar tus unidades",
+      "retryLabel": "Reintentar",
+      "emptyTitle": "Tu plan de unidades se está preparando",
+      "continueBanner": "Continuar donde quedaste",
+      "filterLabel": "Tipo de texto",
+      "filterAll": "Todos"
+    },
+    "textType": {
+      "LETTER": "Carta",
+      "ARTICLE": "Artículo",
+      "ESSAY": "Ensayo",
+      "EMAIL": "Correo electrónico",
+      "REPORT": "Informe"
+    },
+    "unitState": {
+      "LOCKED": "Bloqueada",
+      "UNLOCKED": "Disponible",
+      "IN_PROGRESS": "En progreso",
+      "AWAITING_FEEDBACK": "Esperando retroalimentación",
+      "REVISION": "En revisión",
+      "REFLECTION": "En reflexión",
+      "COMPLETED": "Completada",
+      "MASTERED": "Dominada"
+    },
+    "unitDetail": {
+      "forbiddenTitle": "No tienes acceso a esta unidad",
+      "errorTitle": "No pudimos cargar el detalle de la unidad",
+      "startLabel": "Comenzar",
+      "continueLabel": "Continuar",
+      "lockedLabel": "Unidad bloqueada",
+      "repeatLabel": "Repetir",
+      "viewHistoryLink": "Ver historial"
+    },
+    "unitHistory": {
+      "breadcrumbCurrent": "Historial",
+      "emptyTitle": "Todavía no hay intentos registrados para esta unidad",
+      "errorTitle": "No pudimos cargar el historial de intentos",
+      "currentLabel": "En curso",
+      "columnStep": "Paso",
+      "columnStartedAt": "Iniciado"
+    },
+    "unitStep": {
+      "CONTEXTUALIZE": "Contextualizar",
+      "DEFINE_OBJECTIVES": "Definir objetivos",
+      "COMPREHEND": "Comprender",
+      "OBSERVE": "Observar",
+      "ANALYZE": "Analizar",
+      "PRACTICE": "Practicar",
+      "PRODUCE": "Producir",
+      "RECEIVE_FEEDBACK": "Recibir retroalimentación",
+      "REWRITE": "Reescribir",
+      "REFLECT": "Reflexionar",
+      "UNLOCK": "Desbloqueo"
+    },
+    "attemptStep": {
+      "errorTitle": "No pudimos cargar este paso",
+      "contentPending": "El contenido de este paso todavía no está disponible.",
+      "stepChangedAnnouncement": "Ahora en: {step}"
+    },
+    "comprehensionGate": {
+      "fieldLabel": "Tu respuesta",
+      "fieldRequired": "Este campo es obligatorio.",
+      "insufficientMessage": "Tu respuesta todavía no refleja una comprensión suficiente del material. Vuelve a leerlo e inténtalo de nuevo.",
+      "submitLabel": "Enviar"
+    },
+    "modelLibrary": {
+      "title": "Biblioteca de Modelos",
+      "filterLabel": "Tipo de texto",
+      "filterAll": "Todos",
+      "errorTitle": "No pudimos cargar la Biblioteca de Modelos",
+      "retryLabel": "Reintentar"
+    },
+    "modelExample": {
+      "emptyTitle": "Todavía no hay ejemplos modelo para este tipo de texto",
+      "ratingExcellent": "Ejemplo excelente",
+      "ratingHasErrors": "Contiene errores",
+      "expandLabel": "Ver ejemplo completo",
+      "editLabel": "Editar",
+      "retireLabel": "Retirar"
+    },
+    "adminModelLibrary": {
+      "title": "Gestión de Biblioteca de Modelos",
+      "filterLabel": "Tipo de texto",
+      "filterAll": "Todos",
+      "errorTitle": "No pudimos cargar la Biblioteca de Modelos",
+      "retryLabel": "Reintentar",
+      "createLabel": "Crear ejemplo modelo",
+      "createTitle": "Crear ejemplo modelo",
+      "editTitle": "Editar ejemplo modelo",
+      "cancelLabel": "Cancelar",
+      "retireConfirmTitle": "Retirar ejemplo modelo",
+      "retireConfirmMessage": "¿Confirmas que quieres retirar este ejemplo modelo? Dejará de estar disponible para los estudiantes.",
+      "confirmRetireLabel": "Retirar"
+    },
+    "modelExampleForm": {
+      "textTypeLabel": "Tipo de texto",
+      "textTypePlaceholder": "Selecciona un tipo de texto",
+      "textTypeRequired": "Selecciona un tipo de texto.",
+      "ratingLabel": "Calificación",
+      "ratingPlaceholder": "Selecciona una calificación",
+      "ratingRequired": "Selecciona una calificación.",
+      "contentLabel": "Contenido del ejemplo",
+      "contentRequired": "Este campo es obligatorio.",
+      "curatorialCommentLabel": "Comentario curatorial",
+      "curatorialCommentRequired": "Este campo es obligatorio.",
+      "submitLabel": "Guardar"
+    },
+    "writingEditor": {
+      "fieldLabelProduce": "Tu producción",
+      "fieldLabelRewrite": "Tu reescritura",
+      "offlineBanner": "Sin conexión. Tu texto no se pierde; se reintentará guardar al reconectar.",
+      "autosaveSaving": "Guardando...",
+      "autosaveSaved": "Guardado {time}",
+      "autosaveError": "No se pudo guardar. Se reintentará con el próximo cambio.",
+      "wordCount": "{count, plural, =0 {0 palabras} one {# palabra} other {# palabras}}",
+      "submitLabel": "Enviar"
+    },
+    "feedback": {
+      "processingTitle": "Generando tu retroalimentación...",
+      "timeoutTitle": "Esto está tardando más de lo esperado. Intenta consultar de nuevo.",
+      "retryLabel": "Reintentar",
+      "rewriteLabel": "Reescribir",
+      "continueToReflectionLabel": "Continuar a reflexión",
+      "advancePhaseErrorTitle": "No se pudo continuar a la reflexión",
+      "strengthLabel": "Fortaleza",
+      "weaknessLabel": "Por mejorar",
+      "category": {
+        "COMPREHENSION": "Comprensión",
+        "COMMUNICATIVE_INTENT": "Intención comunicativa",
+        "STRUCTURE": "Estructura",
+        "COHERENCE": "Coherencia",
+        "COHESION": "Cohesión",
+        "ARGUMENTATION": "Argumentación",
+        "REGISTER": "Registro",
+        "VOCABULARY": "Vocabulario",
+        "GRAMMAR": "Gramática",
+        "SPELLING": "Ortografía"
+      }
+    },
+    "reflection": {
+      "responseLabel": "Tu reflexión",
+      "responseRequired": "Este campo es obligatorio.",
+      "submitLabel": "Enviar",
+      "summaryTitle": "¡Unidad completada!",
+      "backToMapLabel": "Volver al mapa",
+      "repeatLabel": "Repetir esta unidad"
+    },
+    "teacherPanel": {
+      "title": "Panel de Profesor",
+      "forbiddenTitle": "No tienes acceso a este estudiante",
+      "studentErrorTitle": "No pudimos cargar los datos del estudiante",
+      "removeStudentLabel": "Quitar",
+      "totalUnitsLabel": "{count} unidades en total",
+      "viewDetailLink": "Ver detalle",
+      "addStudentLabel": "ID del estudiante",
+      "addStudentPlaceholder": "Ingresa el ID del estudiante",
+      "addStudentButton": "Añadir",
+      "emptyTitle": "Ningún estudiante añadido todavía",
+      "emptyDescription": "Añade el ID de un estudiante para ver su progreso.",
+      "retryLabel": "Reintentar",
+      "byStateTitle": "Unidades por estado",
+      "progressLabel": "Progreso general",
+      "viewUnitHistoryLabel": "ID de la unidad",
+      "unitIdPlaceholder": "Ingresa el ID de la unidad",
+      "viewUnitHistoryButton": "Ver historial",
+      "unitHistoryTitle": "Historial de la unidad {unitId}",
+      "versionLabel": "Versión {number}",
+      "noFeedbackYet": "Todavía no hay retroalimentación para esta versión.",
+      "noAttemptsTitle": "Sin intentos registrados",
+      "noAttemptsDescription": "Este estudiante todavía no tiene intentos en esta unidad."
+    }
   }
 }

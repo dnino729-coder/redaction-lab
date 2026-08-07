@@ -1,7 +1,8 @@
-// Placeholder de infraestructura — ruta: Academia / Conoce el DELF (sección 6.4, resolución 18.6).
-// Sin lógica de producto. El contenido real se implementará en
-// features/ y se importará aquí (sección 5.4: "app/ ... Toda la lógica
-// deberá residir fuera de esta carpeta").
-export default function Page() {
-  return null;
-}
+// Ruta: Academia / P-01 Mapa de unidades (Blueprint §4/§12). Sin lógica de
+// producto en app/ (sección 5.4) — solo importa y renderiza la superficie
+// pública de la feature (features/academy/pages), tal como exige
+// .eslintrc.cjs (import/no-restricted-paths), mismo patrón que
+// app/[locale]/(app)/dashboard/page.tsx.
+import UnitMapPage from "@/features/academy/pages";
+
+export default UnitMapPage;

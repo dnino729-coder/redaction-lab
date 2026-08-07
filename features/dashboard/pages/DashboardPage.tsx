@@ -18,24 +18,38 @@ import { getDashboardReadModel } from "../services";
 import { DashboardView } from "./DashboardView";
 
 export async function DashboardPage() {
+  console.log("1️⃣ Entré a DashboardPage");
+
   let studentId: string;
+
   try {
+    console.log("2️⃣ Voy a requireAuthenticatedStudentId");
+
     studentId = await requireAuthenticatedStudentId();
-  } catch {
-    // Sesión inválida o perfil inexistente: middleware.ts ya debería haber
-    // protegido esta ruta — este redirect es una salvaguarda adicional, no
-    // el mecanismo primario de protección (sección 12.9). Se usa el
-    // `redirect` sin localizar de next/navigation (no el de i18n/navigation)
-    // a propósito: la petición vuelve a pasar por middleware.ts, que aplica
-    // el prefijo de idioma correcto según la preferencia real de la sesión
-    // en vez de asumir un locale fijo aquí.
+
+    console.log("3️⃣ studentId:", studentId);
+  } catch (error) {
+    console.error("❌ ERROR requireAuthenticatedStudentId");
+    console.error(error);
+
     redirect("/sign-in");
-    return null;
   }
 
-  const readModel = await getDashboardReadModel(studentId);
+  console.log("4️⃣ Voy a getDashboardReadModel");
+
+  let readModel;
+
+  try {
+    readModel = await getDashboardReadModel(studentId);
+    console.log("5️⃣ ReadModel obtenido");
+  } catch (error) {
+    console.error("❌ ERROR getDashboardReadModel");
+    console.error(error);
+    throw error;
+  }
+
+  console.log("6️⃣ Voy a renderizar DashboardView");
 
   return <DashboardView initialData={readModel} />;
 }
-
 export default DashboardPage;

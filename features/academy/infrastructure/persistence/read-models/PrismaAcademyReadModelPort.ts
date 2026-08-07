@@ -111,13 +111,17 @@ export class PrismaAcademyReadModelPort implements AcademyReadModelPort {
     const attemptRow = await withActiveClient((client) =>
       client.attempt.findFirst({
         where: { isCurrent: true, academyUnit: { studentId } },
-        include: { draft: true, academyUnit: { include: { _count: { select: { teacherOverrides: true } } } } },
+        include: {
+          draft: true,
+          academyUnit: { include: { _count: { select: { teacherOverrides: true } } } },
+          _count: { select: { versions: true } },
+        },
         orderBy: { startedAt: "desc" },
       }),
     );
     if (!attemptRow) return null;
 
-    const { academyUnit, draft, ...attempt } = attemptRow;
+    const { academyUnit, draft, _count, ...attempt } = attemptRow;
     const unitRow = academyUnit as unknown as UnitRowWithCount;
     const predecessor = await withActiveClient((client) =>
       client.academyUnit.findUnique({
@@ -134,7 +138,7 @@ export class PrismaAcademyReadModelPort implements AcademyReadModelPort {
 
     return {
       unit: this.toDetailDto(unitRow, (predecessor as unknown as UnitRowWithCount) ?? null),
-      attempt: this.toAttemptSummaryDto({ ...attempt, studentId: unitRow.studentId }),
+      attempt: this.toAttemptSummaryDto({ ...attempt, studentId: unitRow.studentId, versionCount: _count.versions }),
       draft: draft ? { content: draft.content, lastSavedAt: draft.lastSavedAt.toISOString() } : null,
     };
   }
@@ -149,13 +153,13 @@ export class PrismaAcademyReadModelPort implements AcademyReadModelPort {
     const rows = await withActiveClient((client) =>
       client.attempt.findMany({
         where: { academyUnitId: unitId, academyUnit: { studentId } },
-        include: { academyUnit: { select: { studentId: true } } },
+        include: { academyUnit: { select: { studentId: true } }, _count: { select: { versions: true } } },
         orderBy: { attemptNumber: "asc" },
       }),
     );
     return rows.map((row) => {
-      const { academyUnit, ...attempt } = row;
-      return this.toAttemptSummaryDto({ ...attempt, studentId: academyUnit!.studentId });
+      const { academyUnit, _count, ...attempt } = row;
+      return this.toAttemptSummaryDto({ ...attempt, studentId: academyUnit!.studentId, versionCount: _count.versions });
     });
   }
 
@@ -318,7 +322,11 @@ export class PrismaAcademyReadModelPort implements AcademyReadModelPort {
       (attempt) => {
         const { versions, ...attemptScalar } = attempt;
         return {
-          ...this.toAttemptSummaryDto({ ...attemptScalar, studentId: unitRow.studentId }),
+          ...this.toAttemptSummaryDto({
+            ...attemptScalar,
+            studentId: unitRow.studentId,
+            versionCount: versions.length,
+          }),
           versions: versions.map((version) => ({
             version: this.toVersionDto(version),
             feedback: version.feedback ? this.toFeedbackDto(version.feedback) : null,
@@ -368,6 +376,11 @@ export class PrismaAcademyReadModelPort implements AcademyReadModelPort {
     };
   }
 
+  // ACP-004: `versionCount` se deriva del conteo de la relación `versions`
+  // ya existente en el esquema (`Attempt.versions`, Domain Model v1.1,
+  // Sección 3) -- cada llamador resuelve ese conteo según los datos que ya
+  // tiene disponibles (ver `getContinuationState`/`listAttemptsByUnit`/
+  // `getStudentUnitHistory`).
   private toAttemptSummaryDto(row: {
     id: string;
     academyUnitId: string;
@@ -378,6 +391,7 @@ export class PrismaAcademyReadModelPort implements AcademyReadModelPort {
     isCurrent: boolean;
     startedAt: Date;
     completedAt: Date | null;
+    versionCount: number;
   }): AttemptSummaryResponseDto {
     return {
       id: row.id,
@@ -389,6 +403,7 @@ export class PrismaAcademyReadModelPort implements AcademyReadModelPort {
       isCurrent: row.isCurrent,
       startedAt: row.startedAt.toISOString(),
       completedAt: toIso(row.completedAt),
+      versionCount: row.versionCount,
     };
   }
 
