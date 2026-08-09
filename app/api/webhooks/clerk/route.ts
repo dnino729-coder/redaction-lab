@@ -63,6 +63,9 @@ export async function POST(request: Request): Promise<Response> {
   console.log("svix-signature:", request.headers.get("svix-signature"));
   console.log("================");
   const webhookSecret = process.env.CLERK_WEBHOOK_SECRET;
+
+  console.log("SECRET LENGTH:", webhookSecret?.length);
+  console.log("SECRET PREFIX:", webhookSecret?.substring(0, 12));
   if (!webhookSecret) {
     // eslint-disable-next-line no-console -- sin logging estructurado todavía (fuera de alcance de este módulo)
     console.error("[clerk-webhook] CLERK_WEBHOOK_SECRET no configurado — se rechaza la petición.");
@@ -73,6 +76,10 @@ export async function POST(request: Request): Promise<Response> {
   // cualquier cambio, incluso a un re-serializado JSON->JSON que preserve el
   // mismo contenido semántico (docs.svix.com/receiving/verifying-payloads).
   const payload = await request.text();
+
+  console.log("PAYLOAD LENGTH:", payload.length);
+  console.log("PAYLOAD START:", payload.substring(0, 120));
+
   const svixId = request.headers.get("svix-id");
   const svixTimestamp = request.headers.get("svix-timestamp");
   const svixSignature = request.headers.get("svix-signature");
@@ -90,6 +97,14 @@ export async function POST(request: Request): Promise<Response> {
       "svix-signature": svixSignature,
     }) as ClerkWebhookEvent;
   } catch (error) {
+    if (error instanceof Error) {
+      console.error("SVIX ERROR:", error.name);
+      console.error("SVIX MESSAGE:", error.message);
+      console.error("SVIX STACK:", error.stack);
+    } else {
+      console.error("SVIX UNKNOWN ERROR:", error);
+    }
+
     return NextResponse.json(
       {
         error: "invalid signature",
