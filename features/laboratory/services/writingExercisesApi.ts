@@ -46,7 +46,9 @@ function idempotencyKey(): string {
   return crypto.randomUUID();
 }
 
-export async function getWritingExercises(mode?: ExerciseMode): Promise<PaginatedResponse<WritingExerciseHttp>> {
+export async function getWritingExercises(
+  mode?: ExerciseMode,
+): Promise<PaginatedResponse<WritingExerciseHttp>> {
   const query = mode ? `?mode=${encodeURIComponent(mode)}` : "";
   return apiFetch<PaginatedResponse<WritingExerciseHttp>>(`${BASE}/exercises${query}`);
 }
@@ -65,7 +67,9 @@ export interface CreateWritingExerciseInput {
   guidedPrompt?: string | null;
 }
 
-export async function createWritingExercise(input: CreateWritingExerciseInput): Promise<WritingExerciseHttp> {
+export async function createWritingExercise(
+  input: CreateWritingExerciseInput,
+): Promise<WritingExerciseHttp> {
   return apiFetch<WritingExerciseHttp>(`${BASE}/exercises`, {
     method: "POST",
     headers: { "Idempotency-Key": idempotencyKey() },
@@ -80,14 +84,23 @@ export async function startExerciseAttempt(exerciseId: string): Promise<Exercise
   });
 }
 
-export async function autosaveExerciseDraft(attemptId: string, content: string): Promise<ExerciseAttemptDetailHttp> {
+export async function autosaveExerciseDraft(
+  attemptId: string,
+  content: string,
+): Promise<ExerciseAttemptDetailHttp> {
   return apiFetch<ExerciseAttemptDetailHttp>(`${BASE}/attempts/${attemptId}/draft`, {
     method: "PATCH",
     body: { content },
   });
 }
 
-export async function completeExerciseAttempt(attemptId: string): Promise<ExerciseAttemptDetailHttp> {
+export async function getExerciseAttempt(attemptId: string): Promise<ExerciseAttemptDetailHttp> {
+  return apiFetch<ExerciseAttemptDetailHttp>(`${BASE}/attempts/${attemptId}`);
+}
+
+export async function completeExerciseAttempt(
+  attemptId: string,
+): Promise<ExerciseAttemptDetailHttp> {
   return apiFetch<ExerciseAttemptDetailHttp>(`${BASE}/attempts/${attemptId}/complete`, {
     method: "POST",
     headers: { "Idempotency-Key": idempotencyKey() },

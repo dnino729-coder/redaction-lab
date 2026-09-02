@@ -12,6 +12,7 @@ import type { RepeatWritingExerciseRequestDto } from "../commands/RepeatWritingE
 import type { ListWritingExercisesForStudentRequestDto } from "../queries/ListWritingExercisesForStudentQuery";
 import type { GetWritingExerciseDetailRequestDto } from "../queries/GetWritingExerciseDetailQuery";
 import type { GetExerciseAttemptHistoryRequestDto } from "../queries/GetExerciseAttemptHistoryQuery";
+import type { GetExerciseAttemptDetailRequestDto } from "../queries/GetExerciseAttemptDetailQuery";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -22,7 +23,11 @@ function requireUuid(value: unknown, fieldName: string): string | null {
   return null;
 }
 
-function requireOneOf<T extends string>(value: unknown, fieldName: string, allowed: readonly T[]): string | null {
+function requireOneOf<T extends string>(
+  value: unknown,
+  fieldName: string,
+  allowed: readonly T[],
+): string | null {
   if (typeof value !== "string" || !allowed.includes(value as T)) {
     return `${fieldName} debe ser uno de [${allowed.join(", ")}] (recibido: ${JSON.stringify(value)}).`;
   }
@@ -40,7 +45,9 @@ function collectErrors(...errors: ReadonlyArray<string | null>): string[] {
   return errors.filter((error): error is string => error !== null);
 }
 
-export function validateCreateWritingExerciseRequest(request: CreateWritingExerciseRequestDto): void {
+export function validateCreateWritingExerciseRequest(
+  request: CreateWritingExerciseRequestDto,
+): void {
   const errors = collectErrors(
     requireUuid(request.studentId, "studentId"),
     requireOneOf(request.mode, "mode", Object.values(ExerciseMode)),
@@ -55,7 +62,8 @@ export function validateCreateWritingExerciseRequest(request: CreateWritingExerc
     errors.push("guidedPrompt no aplica cuando mode = AUTONOMOUS.");
   }
 
-  if (errors.length > 0) throw new ValidationException("LABORATORY_VALIDATION_INVALID_REQUEST", errors);
+  if (errors.length > 0)
+    throw new ValidationException("LABORATORY_VALIDATION_INVALID_REQUEST", errors);
 }
 
 export function validateStartExerciseAttemptRequest(request: StartExerciseAttemptRequestDto): void {
@@ -63,32 +71,42 @@ export function validateStartExerciseAttemptRequest(request: StartExerciseAttemp
     requireUuid(request.exerciseId, "exerciseId"),
     requireUuid(request.studentId, "studentId"),
   );
-  if (errors.length > 0) throw new ValidationException("LABORATORY_VALIDATION_INVALID_REQUEST", errors);
+  if (errors.length > 0)
+    throw new ValidationException("LABORATORY_VALIDATION_INVALID_REQUEST", errors);
 }
 
-export function validateAutosaveExerciseDraftRequest(request: AutosaveExerciseDraftRequestDto): void {
+export function validateAutosaveExerciseDraftRequest(
+  request: AutosaveExerciseDraftRequestDto,
+): void {
   const errors = collectErrors(
     requireUuid(request.attemptId, "attemptId"),
     requireUuid(request.studentId, "studentId"),
     requireString(request.content, "content"),
   );
-  if (errors.length > 0) throw new ValidationException("LABORATORY_VALIDATION_INVALID_REQUEST", errors);
+  if (errors.length > 0)
+    throw new ValidationException("LABORATORY_VALIDATION_INVALID_REQUEST", errors);
 }
 
-export function validateCompleteExerciseAttemptRequest(request: CompleteExerciseAttemptRequestDto): void {
+export function validateCompleteExerciseAttemptRequest(
+  request: CompleteExerciseAttemptRequestDto,
+): void {
   const errors = collectErrors(
     requireUuid(request.attemptId, "attemptId"),
     requireUuid(request.studentId, "studentId"),
   );
-  if (errors.length > 0) throw new ValidationException("LABORATORY_VALIDATION_INVALID_REQUEST", errors);
+  if (errors.length > 0)
+    throw new ValidationException("LABORATORY_VALIDATION_INVALID_REQUEST", errors);
 }
 
-export function validateRepeatWritingExerciseRequest(request: RepeatWritingExerciseRequestDto): void {
+export function validateRepeatWritingExerciseRequest(
+  request: RepeatWritingExerciseRequestDto,
+): void {
   const errors = collectErrors(
     requireUuid(request.exerciseId, "exerciseId"),
     requireUuid(request.studentId, "studentId"),
   );
-  if (errors.length > 0) throw new ValidationException("LABORATORY_VALIDATION_INVALID_REQUEST", errors);
+  if (errors.length > 0)
+    throw new ValidationException("LABORATORY_VALIDATION_INVALID_REQUEST", errors);
 }
 
 export function validateListWritingExercisesForStudentRequest(
@@ -96,23 +114,43 @@ export function validateListWritingExercisesForStudentRequest(
 ): void {
   const errors = collectErrors(
     requireUuid(request.studentId, "studentId"),
-    request.mode !== undefined ? requireOneOf(request.mode, "mode", Object.values(ExerciseMode)) : null,
+    request.mode !== undefined
+      ? requireOneOf(request.mode, "mode", Object.values(ExerciseMode))
+      : null,
   );
-  if (errors.length > 0) throw new ValidationException("LABORATORY_VALIDATION_INVALID_REQUEST", errors);
+  if (errors.length > 0)
+    throw new ValidationException("LABORATORY_VALIDATION_INVALID_REQUEST", errors);
 }
 
-export function validateGetWritingExerciseDetailRequest(request: GetWritingExerciseDetailRequestDto): void {
+export function validateGetWritingExerciseDetailRequest(
+  request: GetWritingExerciseDetailRequestDto,
+): void {
   const errors = collectErrors(
     requireUuid(request.exerciseId, "exerciseId"),
     requireUuid(request.studentId, "studentId"),
   );
-  if (errors.length > 0) throw new ValidationException("LABORATORY_VALIDATION_INVALID_REQUEST", errors);
+  if (errors.length > 0)
+    throw new ValidationException("LABORATORY_VALIDATION_INVALID_REQUEST", errors);
 }
 
-export function validateGetExerciseAttemptHistoryRequest(request: GetExerciseAttemptHistoryRequestDto): void {
+export function validateGetExerciseAttemptHistoryRequest(
+  request: GetExerciseAttemptHistoryRequestDto,
+): void {
   const errors = collectErrors(
     requireUuid(request.exerciseId, "exerciseId"),
     requireUuid(request.studentId, "studentId"),
   );
-  if (errors.length > 0) throw new ValidationException("LABORATORY_VALIDATION_INVALID_REQUEST", errors);
+  if (errors.length > 0)
+    throw new ValidationException("LABORATORY_VALIDATION_INVALID_REQUEST", errors);
+}
+
+export function validateGetExerciseAttemptDetailRequest(
+  request: GetExerciseAttemptDetailRequestDto,
+): void {
+  const errors = collectErrors(
+    requireUuid(request.attemptId, "attemptId"),
+    requireUuid(request.studentId, "studentId"),
+  );
+  if (errors.length > 0)
+    throw new ValidationException("LABORATORY_VALIDATION_INVALID_REQUEST", errors);
 }

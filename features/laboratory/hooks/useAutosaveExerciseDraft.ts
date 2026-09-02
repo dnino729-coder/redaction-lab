@@ -13,9 +13,11 @@ export function useAutosaveExerciseDraft() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ attemptId, content }: AutosaveExerciseDraftInput) => autosaveExerciseDraft(attemptId, content),
-    onSuccess: (_data, { exerciseId }) => {
+    mutationFn: ({ attemptId, content }: AutosaveExerciseDraftInput) =>
+      autosaveExerciseDraft(attemptId, content),
+    onSuccess: (_data, { attemptId, exerciseId }) => {
       queryClient.invalidateQueries({ queryKey: laboratoryKeys.exerciseHistory(exerciseId) });
+      queryClient.invalidateQueries({ queryKey: laboratoryKeys.attempt(attemptId) });
     },
   });
 }

@@ -7,8 +7,26 @@ import { jsonSuccess, jsonError } from "../http/response";
 import { StartExerciseAttemptCommand } from "@/features/laboratory/application/commands/StartExerciseAttemptCommand";
 import { AutosaveExerciseDraftCommand } from "@/features/laboratory/application/commands/AutosaveExerciseDraftCommand";
 import { CompleteExerciseAttemptCommand } from "@/features/laboratory/application/commands/CompleteExerciseAttemptCommand";
+import { GetExerciseAttemptDetailQuery } from "@/features/laboratory/application/queries/GetExerciseAttemptDetailQuery";
 
-export async function startExerciseAttempt(request: Request, exerciseId: string): Promise<NextResponse> {
+export async function getExerciseAttempt(attemptId: string): Promise<NextResponse> {
+  try {
+    const actor = await resolveLaboratoryActor();
+    const container = createLaboratoryContainer();
+
+    const dto = await container.queryHandlers.getExerciseAttemptDetail.handle(
+      GetExerciseAttemptDetailQuery.fromRequest({ attemptId, studentId: actor.studentId }),
+    );
+    return jsonSuccess(dto, 200);
+  } catch (error) {
+    return jsonError(error);
+  }
+}
+
+export async function startExerciseAttempt(
+  request: Request,
+  exerciseId: string,
+): Promise<NextResponse> {
   try {
     requireIdempotencyKey(request);
     const actor = await resolveLaboratoryActor();
@@ -23,7 +41,10 @@ export async function startExerciseAttempt(request: Request, exerciseId: string)
   }
 }
 
-export async function autosaveExerciseDraft(request: Request, attemptId: string): Promise<NextResponse> {
+export async function autosaveExerciseDraft(
+  request: Request,
+  attemptId: string,
+): Promise<NextResponse> {
   try {
     const actor = await resolveLaboratoryActor();
     const container = createLaboratoryContainer();
@@ -42,7 +63,10 @@ export async function autosaveExerciseDraft(request: Request, attemptId: string)
   }
 }
 
-export async function completeExerciseAttempt(request: Request, attemptId: string): Promise<NextResponse> {
+export async function completeExerciseAttempt(
+  request: Request,
+  attemptId: string,
+): Promise<NextResponse> {
   try {
     requireIdempotencyKey(request);
     const actor = await resolveLaboratoryActor();

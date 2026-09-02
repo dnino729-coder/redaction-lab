@@ -18,6 +18,7 @@ import { RepeatWritingExerciseHandler } from "@/features/laboratory/application/
 import { ListWritingExercisesForStudentHandler } from "@/features/laboratory/application/handlers/ListWritingExercisesForStudentHandler";
 import { GetWritingExerciseDetailHandler } from "@/features/laboratory/application/handlers/GetWritingExerciseDetailHandler";
 import { GetExerciseAttemptHistoryHandler } from "@/features/laboratory/application/handlers/GetExerciseAttemptHistoryHandler";
+import { GetExerciseAttemptDetailHandler } from "@/features/laboratory/application/handlers/GetExerciseAttemptDetailHandler";
 
 export interface LaboratoryContainer {
   readonly repositories: {
@@ -42,6 +43,7 @@ export interface LaboratoryContainer {
     readonly listWritingExercisesForStudent: ListWritingExercisesForStudentHandler;
     readonly getWritingExerciseDetail: GetWritingExerciseDetailHandler;
     readonly getExerciseAttemptHistory: GetExerciseAttemptHistoryHandler;
+    readonly getExerciseAttemptDetail: GetExerciseAttemptDetailHandler;
   };
 }
 
@@ -110,6 +112,7 @@ export function createLaboratoryContainer(): LaboratoryContainer {
     listWritingExercisesForStudent: new ListWritingExercisesForStudentHandler(ports.readModel),
     getWritingExerciseDetail: new GetWritingExerciseDetailHandler(ports.readModel),
     getExerciseAttemptHistory: new GetExerciseAttemptHistoryHandler(ports.readModel),
+    getExerciseAttemptDetail: new GetExerciseAttemptDetailHandler(ports.readModel),
   };
 
   cachedContainer = { repositories, ports, commandHandlers, queryHandlers };

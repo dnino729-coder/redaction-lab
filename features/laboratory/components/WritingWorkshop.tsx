@@ -11,27 +11,32 @@ import { ExerciseAttemptEditor } from "./writing-workshop/ExerciseAttemptEditor"
 import { ExerciseAttemptHistoryList } from "./writing-workshop/ExerciseAttemptHistoryList";
 import { useStartExerciseAttempt } from "../hooks/useStartExerciseAttempt";
 import { useExerciseAttemptHistory } from "../hooks/useExerciseAttemptHistory";
+import { useExerciseAttempt } from "../hooks/useExerciseAttempt";
 
 export function WritingWorkshop() {
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const [activeAttemptId, setActiveAttemptId] = useState<string | null>(null);
-  const [activeAttemptContent, setActiveAttemptContent] = useState("");
 
   const startMutation = useStartExerciseAttempt();
   const historyQuery = useExerciseAttemptHistory(selectedExerciseId);
 
   // "Continuar": el intento IN_PROGRESS se localiza en el propio
-  // historial ya cargado del ejercicio (no existe un endpoint de lectura
-  // de un único intento — fuera de alcance de este paso).
+  // historial ya cargado del ejercicio.
   useEffect(() => {
     if (activeAttemptId) return;
-    const inProgress = historyQuery.data?.attempts.find((attempt) => attempt.status === "IN_PROGRESS");
+    const inProgress = historyQuery.data?.attempts.find(
+      (attempt) => attempt.status === "IN_PROGRESS",
+    );
     if (inProgress) setActiveAttemptId(inProgress.id);
   }, [historyQuery.data, activeAttemptId]);
 
+  // El draft/autosave guardado se recupera vía GET /attempts/{attemptId}
+  // (contenido real, no expuesto por el historial) — cubre tanto un
+  // attempt recién creado (content = "") como uno recuperado con borrador.
+  const attemptQuery = useExerciseAttempt(activeAttemptId);
+
   function handleStartOrRepeat(exerciseId: string) {
     setSelectedExerciseId(exerciseId);
-    setActiveAttemptContent("");
     startMutation.mutate(exerciseId, {
       onSuccess: (attempt) => setActiveAttemptId(attempt.id),
     });
@@ -39,7 +44,6 @@ export function WritingWorkshop() {
 
   function handleContinue(exerciseId: string) {
     setSelectedExerciseId(exerciseId);
-    setActiveAttemptContent("");
     setActiveAttemptId(null);
   }
 
@@ -56,11 +60,12 @@ export function WritingWorkshop() {
         pendingExerciseId={startMutation.isPending ? selectedExerciseId : null}
       />
 
-      {selectedExerciseId && activeAttemptId && (
+      {selectedExerciseId && activeAttemptId && attemptQuery.data && (
         <ExerciseAttemptEditor
+          key={activeAttemptId}
           attemptId={activeAttemptId}
           exerciseId={selectedExerciseId}
-          initialContent={activeAttemptContent}
+          initialContent={attemptQuery.data.content}
           onCompleted={handleCompleted}
         />
       )}

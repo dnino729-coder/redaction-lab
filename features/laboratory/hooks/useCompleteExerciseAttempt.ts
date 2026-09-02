@@ -13,10 +13,11 @@ export function useCompleteExerciseAttempt() {
 
   return useMutation({
     mutationFn: ({ attemptId }: CompleteExerciseAttemptInput) => completeExerciseAttempt(attemptId),
-    onSuccess: (_data, { exerciseId }) => {
+    onSuccess: (_data, { attemptId, exerciseId }) => {
       queryClient.invalidateQueries({ queryKey: [...laboratoryKeys.all, "exercises"] });
       queryClient.invalidateQueries({ queryKey: laboratoryKeys.exercise(exerciseId) });
       queryClient.invalidateQueries({ queryKey: laboratoryKeys.exerciseHistory(exerciseId) });
+      queryClient.invalidateQueries({ queryKey: laboratoryKeys.attempt(attemptId) });
     },
   });
 }

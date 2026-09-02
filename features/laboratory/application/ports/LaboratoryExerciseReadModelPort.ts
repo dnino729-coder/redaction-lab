@@ -21,6 +21,10 @@ export interface ExerciseAttemptSummary {
   completedAt: Date | null;
 }
 
+export interface ExerciseAttemptDetail extends ExerciseAttemptSummary {
+  content: string;
+}
+
 // Puerto — Read Model dedicado de CQRS: todo Query Handler de Laboratoire
 // usa exclusivamente este puerto, nunca carga Aggregates ni invoca
 // Repositories de escritura.
@@ -28,4 +32,6 @@ export interface LaboratoryExerciseReadModelPort {
   listExercisesForStudent(studentId: string, mode?: string): Promise<WritingExerciseListItem[]>;
   getExerciseDetail(exerciseId: string, studentId: string): Promise<WritingExerciseDetail | null>;
   getAttemptHistory(exerciseId: string, studentId: string): Promise<ExerciseAttemptSummary[]>;
+  /** Ownership derivado siempre del `where` (attemptId + studentId del propio ejercicio) — nunca de un parámetro confiado del cliente. */
+  getAttemptDetail(attemptId: string, studentId: string): Promise<ExerciseAttemptDetail | null>;
 }

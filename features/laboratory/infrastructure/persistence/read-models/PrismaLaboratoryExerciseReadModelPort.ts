@@ -4,6 +4,7 @@ import type {
   WritingExerciseListItem,
   WritingExerciseDetail,
   ExerciseAttemptSummary,
+  ExerciseAttemptDetail,
 } from "@/features/laboratory/application/ports/LaboratoryExerciseReadModelPort";
 
 import { withActiveClient } from "../PrismaClientContext";
@@ -20,7 +21,10 @@ function deriveStatus(latestAttemptStatus: string | undefined): string {
 // (Paso 4) — nunca reconstituye Aggregates de dominio, solo usa
 // writing_exercise/exercise_attempt.
 export class PrismaLaboratoryExerciseReadModelPort implements LaboratoryExerciseReadModelPort {
-  public async listExercisesForStudent(studentId: string, mode?: string): Promise<WritingExerciseListItem[]> {
+  public async listExercisesForStudent(
+    studentId: string,
+    mode?: string,
+  ): Promise<WritingExerciseListItem[]> {
     const rows = await withActiveClient((client) =>
       client.writingExercise.findMany({
         where: {
@@ -42,7 +46,10 @@ export class PrismaLaboratoryExerciseReadModelPort implements LaboratoryExercise
     }));
   }
 
-  public async getExerciseDetail(exerciseId: string, studentId: string): Promise<WritingExerciseDetail | null> {
+  public async getExerciseDetail(
+    exerciseId: string,
+    studentId: string,
+  ): Promise<WritingExerciseDetail | null> {
     const row = await withActiveClient((client) =>
       client.writingExercise.findFirst({
         where: { id: exerciseId, studentId },
@@ -61,7 +68,10 @@ export class PrismaLaboratoryExerciseReadModelPort implements LaboratoryExercise
     };
   }
 
-  public async getAttemptHistory(exerciseId: string, studentId: string): Promise<ExerciseAttemptSummary[]> {
+  public async getAttemptHistory(
+    exerciseId: string,
+    studentId: string,
+  ): Promise<ExerciseAttemptSummary[]> {
     const rows = await withActiveClient((client) =>
       client.exerciseAttempt.findMany({
         where: { writingExerciseId: exerciseId, writingExercise: { studentId } },
@@ -77,5 +87,27 @@ export class PrismaLaboratoryExerciseReadModelPort implements LaboratoryExercise
       startedAt: row.startedAt,
       completedAt: row.completedAt,
     }));
+  }
+
+  public async getAttemptDetail(
+    attemptId: string,
+    studentId: string,
+  ): Promise<ExerciseAttemptDetail | null> {
+    const row = await withActiveClient((client) =>
+      client.exerciseAttempt.findFirst({
+        where: { id: attemptId, writingExercise: { studentId } },
+      }),
+    );
+    if (!row) return null;
+
+    return {
+      id: row.id,
+      attemptNumber: row.attemptNumber,
+      status: row.status,
+      wordCount: row.wordCount,
+      startedAt: row.startedAt,
+      completedAt: row.completedAt,
+      content: row.content,
+    };
   }
 }
