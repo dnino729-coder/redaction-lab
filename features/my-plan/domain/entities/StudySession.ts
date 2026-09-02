@@ -1,8 +1,8 @@
 import { Entity } from "../shared/Entity";
-import { StudySessionId } from "../value-objects/StudySessionId";
-import { StudentId } from "../value-objects/StudentId";
-import { LearningTaskId } from "../value-objects/LearningTaskId";
-import { SessionDuration } from "../value-objects/SessionDuration";
+import type { StudySessionId } from "../value-objects/StudySessionId";
+import type { StudentId } from "../value-objects/StudentId";
+import type { LearningTaskId } from "../value-objects/LearningTaskId";
+import type { SessionDuration } from "../value-objects/SessionDuration";
 import { DomainInvariantViolationException } from "../exceptions/DomainInvariantViolationException";
 
 interface StudySessionProps {

@@ -1,7 +1,7 @@
-import { AcademyUnit } from "../aggregates/AcademyUnit";
-import { AcademyUnitId } from "../value-objects/AcademyUnitId";
-import { StudentId } from "../value-objects/StudentId";
-import { TextType } from "../enums/TextType";
+import type { AcademyUnit } from "../aggregates/AcademyUnit";
+import type { AcademyUnitId } from "../value-objects/AcademyUnitId";
+import type { StudentId } from "../value-objects/StudentId";
+import type { TextType } from "../enums/TextType";
 
 // Puerto de repositorio (Domain Model v1.1 / Persistence Layer v1.0 §2) —
 // implementado por PrismaAcademyUnitRepository en infraestructura.

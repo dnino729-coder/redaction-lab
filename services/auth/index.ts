@@ -48,10 +48,20 @@ export async function getAuthenticatedStudentId(): Promise<string | null> {
 /** Igual que `getAuthenticatedStudentId`, pero lanza si falta sesión o perfil. */
 export async function requireAuthenticatedStudentId(): Promise<string> {
   const { userId } = await auth();
-  if (!userId) throw new UnauthenticatedError();
+
+  console.log("🔥 Clerk userId:", userId);
+
+  if (!userId) {
+    throw new UnauthenticatedError();
+  }
 
   const studentId = await findStudentIdByClerkId(userId);
-  if (!studentId) throw new StudentProfileNotFoundError();
+
+  console.log("🔥 studentId:", studentId);
+
+  if (!studentId) {
+    throw new StudentProfileNotFoundError();
+  }
 
   return studentId;
 }

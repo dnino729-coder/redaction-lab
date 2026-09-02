@@ -14,11 +14,40 @@
 
 import { redirect } from "next/navigation";
 import { requireAuthenticatedStudentId } from "@/services/auth";
-import { getDashboardReadModel } from "../services";
+import {
+  getDashboardReadModel,
+  isDashboardDevModeEnabled,
+  buildMockDashboardReadModel,
+} from "../services";
 import { DashboardView } from "./DashboardView";
 
 export async function DashboardPage() {
   console.log("1️⃣ Entré a DashboardPage");
+
+  // Modo temporal de desarrollo (DASHBOARD_DEV_MODE=true) — visualiza el
+  // Dashboard con un DashboardReadModel simulado, sin llamar a
+  // requireAuthenticatedStudentId() ni a getDashboardReadModel() (sin
+  // sesión, sin base de datos). Guard de retorno anticipado: el flujo de
+  // producción de abajo queda intacto, sin modificar; reversible por
+  // completo quitando la variable de entorno.
+  if (isDashboardDevModeEnabled()) {
+    console.log(
+      "🧪 DASHBOARD_DEV_MODE=true: usando DashboardReadModel simulado (sin sesión, sin base de datos)",
+    );
+
+    return (
+      <>
+        <div
+          role="status"
+          className="mx-auto mb-0 mt-4 max-w-5xl rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:mx-6 lg:mx-8"
+        >
+          <p className="font-semibold uppercase tracking-wide">Modo desarrollo</p>
+          <p>Datos simulados</p>
+        </div>
+        <DashboardView initialData={buildMockDashboardReadModel()} />
+      </>
+    );
+  }
 
   let studentId: string;
 

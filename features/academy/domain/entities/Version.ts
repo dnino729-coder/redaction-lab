@@ -1,7 +1,7 @@
 import { Entity } from "../shared/Entity";
-import { VersionId } from "../value-objects/VersionId";
-import { VersionNumber } from "../value-objects/VersionNumber";
-import { DraftContent } from "../value-objects/DraftContent";
+import type { VersionId } from "../value-objects/VersionId";
+import type { VersionNumber } from "../value-objects/VersionNumber";
+import type { DraftContent } from "../value-objects/DraftContent";
 import type { Feedback } from "./Feedback";
 
 // Entity (Domain Model v1.1, Sección 4) — snapshot inmutable de una

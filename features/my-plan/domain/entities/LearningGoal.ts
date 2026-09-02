@@ -1,8 +1,8 @@
 import { Entity } from "../shared/Entity";
 import { assertTransitionAllowed } from "../shared/statusTransitions";
 import { AutoCompletionStatusCalculator } from "../services/AutoCompletionStatusCalculator";
-import { LearningGoalId } from "../value-objects/LearningGoalId";
-import { LearningPlanId } from "../value-objects/LearningPlanId";
+import type { LearningGoalId } from "../value-objects/LearningGoalId";
+import type { LearningPlanId } from "../value-objects/LearningPlanId";
 import { LearningGoalStatus } from "../enums/LearningGoalStatus";
 import { GoalPriority } from "../enums/GoalPriority";
 import type { LearningObjectiveStatus } from "../enums/LearningObjectiveStatus";

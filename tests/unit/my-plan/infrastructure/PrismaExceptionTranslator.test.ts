@@ -6,17 +6,17 @@ import { ConflictException } from "@/features/my-plan/application/exceptions/Con
 
 describe("translatePrismaError", () => {
   it("P2025 (registro no encontrado) -> ResourceNotFoundException", () => {
-    const error = new Prisma.PrismaClientKnownRequestError("Not found", { code: "P2025" });
+    const error = new Prisma.PrismaClientKnownRequestError("Not found", { code: "P2025", clientVersion: "5.22.0" });
     expect(() => translatePrismaError(error, "LearningPlan", "id-1")).toThrow(ResourceNotFoundException);
   });
 
   it("P2002 (violación de unicidad) -> ConflictException", () => {
-    const error = new Prisma.PrismaClientKnownRequestError("Unique constraint", { code: "P2002" });
+    const error = new Prisma.PrismaClientKnownRequestError("Unique constraint", { code: "P2002", clientVersion: "5.22.0" });
     expect(() => translatePrismaError(error, "LearningPlan", "id-1")).toThrow(ConflictException);
   });
 
   it("código Prisma no clasificado -> ConflictException genérico (nunca deja escapar el error nativo)", () => {
-    const error = new Prisma.PrismaClientKnownRequestError("FK violation", { code: "P2003" });
+    const error = new Prisma.PrismaClientKnownRequestError("FK violation", { code: "P2003", clientVersion: "5.22.0" });
     expect(() => translatePrismaError(error, "LearningPlan", "id-1")).toThrow(ConflictException);
   });
 

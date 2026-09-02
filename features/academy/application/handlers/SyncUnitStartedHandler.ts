@@ -4,7 +4,7 @@ import { AttemptId } from "@/features/academy/domain/value-objects/AttemptId";
 import type { UnitStartedEvent } from "@/features/academy/domain/events/UnitStartedEvent";
 
 import type { UnitOfWork } from "../ports/UnitOfWork";
-import { DomainEventPublisher } from "../services/DomainEventPublisher";
+import type { DomainEventPublisher } from "../services/DomainEventPublisher";
 
 // Regla de Consistencia Eventual 8.1 (Domain Model v1.1) — reacciona a
 // `UnitStarted` (CMD-01, transacción 1: creación del `Attempt`) para

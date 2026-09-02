@@ -1,7 +1,7 @@
 import type { Prisma, AcademyTextType } from "@prisma/client";
 import type { ModelExampleRepository } from "@/features/academy/domain/repositories/ModelExampleRepository";
-import { ModelExample } from "@/features/academy/domain/aggregates/ModelExample";
-import { ModelExampleId } from "@/features/academy/domain/value-objects/ModelExampleId";
+import type { ModelExample } from "@/features/academy/domain/aggregates/ModelExample";
+import type { ModelExampleId } from "@/features/academy/domain/value-objects/ModelExampleId";
 import { ModelExampleStatus } from "@/features/academy/domain/enums/ModelExampleStatus";
 import type { TextType } from "@/features/academy/domain/enums/TextType";
 

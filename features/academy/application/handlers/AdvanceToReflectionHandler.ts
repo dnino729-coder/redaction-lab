@@ -7,8 +7,8 @@ import { AttemptMapper } from "../mappers/AttemptMapper";
 import { validateAdvanceToReflectionRequest } from "../validators/attemptValidators";
 import type { UnitOfWork } from "../ports/UnitOfWork";
 import type { Logger } from "../ports/Logger";
-import { DomainEventPublisher } from "../services/DomainEventPublisher";
-import { AcademyAuthorizationGuard } from "../services/AcademyAuthorizationGuard";
+import type { DomainEventPublisher } from "../services/DomainEventPublisher";
+import type { AcademyAuthorizationGuard } from "../services/AcademyAuthorizationGuard";
 
 // CMD-06 AdvanceToReflection — idempotencia semántica: reintento sobre un
 // Attempt ya en REFLECT retorna el mismo resultado sin re-ejecutar

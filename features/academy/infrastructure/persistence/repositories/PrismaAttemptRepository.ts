@@ -1,8 +1,8 @@
 import type { Prisma } from "@prisma/client";
 import type { AttemptRepository } from "@/features/academy/domain/repositories/AttemptRepository";
-import { Attempt } from "@/features/academy/domain/aggregates/Attempt";
-import { AttemptId } from "@/features/academy/domain/value-objects/AttemptId";
-import { AcademyUnitId } from "@/features/academy/domain/value-objects/AcademyUnitId";
+import type { Attempt } from "@/features/academy/domain/aggregates/Attempt";
+import type { AttemptId } from "@/features/academy/domain/value-objects/AttemptId";
+import type { AcademyUnitId } from "@/features/academy/domain/value-objects/AcademyUnitId";
 
 import { withActiveClient } from "../PrismaClientContext";
 import { AttemptPersistenceMapper, type AttemptRow } from "../mappers/AttemptPersistenceMapper";

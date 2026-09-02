@@ -6,5 +6,5 @@ import type { DomainEvent } from "@/features/academy/domain/events/DomainEvent";
 // se reserva para la publicación efectiva tras el poller de
 // infraestructura, fuera de alcance de este Sprint.
 export interface EventBus {
-  publish(events: readonly DomainEvent<any>[]): Promise<void>;
+  publish(events: readonly DomainEvent<unknown>[]): Promise<void>;
 }

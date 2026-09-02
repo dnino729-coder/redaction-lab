@@ -16,6 +16,8 @@
 import { NextResponse } from "next/server";
 import { Webhook } from "svix";
 import { deactivateUserFromClerkWebhook, provisionOrSyncUserFromClerk } from "@/services/auth";
+import { findStudentIdByClerkId } from "@/database/repositories";
+import { createAcademyContainer, ProvisionAcademyUnitsForStudentCommand } from "@/features/academy/api/composition/academyContainer";
 
 interface ClerkEmailAddress {
   id: string;
@@ -113,7 +115,8 @@ export async function POST(request: Request): Promise<Response> {
       { status: 400 },
     );
   }
-
+  console.log("[WEBHOOK] Verificado");
+  console.log("[WEBHOOK] Evento:", event.type);
   try {
     switch (event.type) {
       case "user.created":
@@ -131,6 +134,20 @@ export async function POST(request: Request): Promise<Response> {
           avatarUrl: data.image_url ?? null,
           emailVerified: emailInfo.verified,
         });
+
+        // Aprovisionamiento automático de Academia — solo en el alta
+        // (user.created), no en cada sincronización de perfil
+        // (user.updated). El handler es idempotente: un studentId con
+        // unidades ya provisionadas se devuelve sin recrear (ver
+        // ProvisionAcademyUnitsForStudentHandler).
+        if (event.type === "user.created") {
+          const studentId = await findStudentIdByClerkId(data.id);
+          if (studentId) {
+            await createAcademyContainer().commandHandlers.provisionAcademyUnitsForStudent.handle(
+              ProvisionAcademyUnitsForStudentCommand.fromRequest({ studentId }),
+            );
+          }
+        }
         break;
       }
       case "user.deleted": {

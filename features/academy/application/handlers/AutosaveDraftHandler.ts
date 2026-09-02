@@ -8,7 +8,7 @@ import { AttemptMapper } from "../mappers/AttemptMapper";
 import { validateAutosaveDraftRequest } from "../validators/attemptValidators";
 import type { UnitOfWork } from "../ports/UnitOfWork";
 import type { UuidGenerator } from "../ports/UuidGenerator";
-import { AcademyAuthorizationGuard } from "../services/AcademyAuthorizationGuard";
+import type { AcademyAuthorizationGuard } from "../services/AcademyAuthorizationGuard";
 
 // CMD-03 AutosaveDraft — sin Outbox, sin eventos (Application Layer
 // Spec v1.0, mismo criterio de granularidad ya fijado).

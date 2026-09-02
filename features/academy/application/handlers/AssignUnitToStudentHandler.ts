@@ -10,7 +10,7 @@ import { TeacherRecommendationMapper } from "../mappers/TeacherRecommendationMap
 import { validateAssignUnitToStudentRequest } from "../validators/teacherRecommendationValidators";
 import { ResourceNotFoundException } from "../exceptions/ResourceNotFoundException";
 import type { UuidGenerator } from "../ports/UuidGenerator";
-import { AcademyAuthorizationGuard } from "../services/AcademyAuthorizationGuard";
+import type { AcademyAuthorizationGuard } from "../services/AcademyAuthorizationGuard";
 
 // CMD-11 AssignUnitToStudent (recomendar) — "sin efecto de estado"
 // (resolución ARB, ACP-002-A). **Sin Aggregate involucrado, sin

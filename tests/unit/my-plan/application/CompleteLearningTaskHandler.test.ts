@@ -25,7 +25,7 @@ import {
 } from "./mocks";
 import { APP_FIXTURE_IDS } from "./fixtures";
 
-function buildFixtures(source: LearningTaskSource = LearningTaskSource.SELF_DIRECTED, studentId = APP_FIXTURE_IDS.student) {
+function buildFixtures(source: LearningTaskSource = LearningTaskSource.SELF_DIRECTED, studentId: string = APP_FIXTURE_IDS.student) {
   const plan = LearningPlan.create({
     id: LearningPlanId.create(APP_FIXTURE_IDS.plan),
     studentId: StudentId.create(studentId),
@@ -97,7 +97,7 @@ describe("CompleteLearningTaskHandler", () => {
     expect(learningPhaseRepository.save).toHaveBeenCalledWith(phase);
     expect(phase.status).toBe("COMPLETED");
     expect(eventBus.publish).toHaveBeenCalledTimes(1);
-    expect(eventBus.publish.mock.calls[0]![0][0].eventName).toBe("PLAN_TASK_COMPLETED");
+    expect(eventBus.publish.mock.calls[0]![0][0]!.eventName).toBe("PLAN_TASK_COMPLETED");
   });
 
   it("rechaza con ConflictException una tarea no SELF_DIRECTED (18.20.5, source guard)", async () => {

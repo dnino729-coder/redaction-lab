@@ -31,8 +31,15 @@ export type ClerkUserSyncPayload = z.infer<typeof clerkUserSyncSchema>;
  * — ver database/queries/user.ts, `upsertUserFromClerk`.
  */
 export async function provisionOrSyncUserFromClerk(payload: ClerkUserSyncPayload): Promise<void> {
+  console.log("🔥 provisionOrSyncUserFromClerk");
+
   const data = clerkUserSyncSchema.parse(payload);
+
+  console.log("🔥 payload validado", data);
+
   await saveUserFromClerk(data);
+
+  console.log("🔥 usuario guardado");
 }
 
 /** Desactiva (soft delete) un `User` a partir del evento `user.deleted` de Clerk. */

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import type { NextResponse } from "next/server";
 import { AttemptId } from "@/features/academy/domain/value-objects/AttemptId";
 import { AttemptMapper } from "@/features/academy/application/mappers/AttemptMapper";
 import { ResourceNotFoundException } from "@/features/academy/application/exceptions/ResourceNotFoundException";

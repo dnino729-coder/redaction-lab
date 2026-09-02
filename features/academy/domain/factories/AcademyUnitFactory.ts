@@ -1,7 +1,7 @@
 import { AcademyUnit } from "../aggregates/AcademyUnit";
 import { AcademyUnitId } from "../value-objects/AcademyUnitId";
 import { StudentId } from "../value-objects/StudentId";
-import { TextType } from "../enums/TextType";
+import type { TextType } from "../enums/TextType";
 import type { UnitState } from "../enums/UnitState";
 
 // Factory (Domain Model v1.1, Sección 3) — punto único de construcción de

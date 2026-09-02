@@ -5,7 +5,7 @@ import type { AttemptSummaryResponseDto } from "../dto/AttemptDto";
 import { AttemptMapper } from "../mappers/AttemptMapper";
 import { validateVerifyComprehensionRequest } from "../validators/attemptValidators";
 import type { UnitOfWork } from "../ports/UnitOfWork";
-import { AcademyAuthorizationGuard } from "../services/AcademyAuthorizationGuard";
+import type { AcademyAuthorizationGuard } from "../services/AcademyAuthorizationGuard";
 
 // CMD-17 VerifyComprehension — RN-2. Si la verificación no es
 // satisfactoria, `Attempt.verifyComprehension()` retorna `false` sin

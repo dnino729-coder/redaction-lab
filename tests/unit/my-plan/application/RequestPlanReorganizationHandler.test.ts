@@ -8,7 +8,7 @@ import { StudentId } from "@/features/my-plan/domain/value-objects/StudentId";
 import { makeLearningPlanRepository, makeEventBus, makeUnitOfWork, makeClock, makeLogger } from "./mocks";
 import { APP_FIXTURE_IDS } from "./fixtures";
 
-function buildPlan(studentId = APP_FIXTURE_IDS.student) {
+function buildPlan(studentId: string = APP_FIXTURE_IDS.student) {
   return LearningPlan.create({
     id: LearningPlanId.create(APP_FIXTURE_IDS.plan),
     studentId: StudentId.create(studentId),
@@ -46,7 +46,7 @@ describe("RequestPlanReorganizationHandler", () => {
     expect(result.requestedAt).toBe(fixedNow.toISOString());
     expect(eventBus.publish).toHaveBeenCalledTimes(1);
     const [events] = eventBus.publish.mock.calls[0]!;
-    expect(events[0].eventName).toBe("PLAN_REORGANIZATION_REQUESTED");
+    expect(events[0]!.eventName).toBe("PLAN_REORGANIZATION_REQUESTED");
     expect(learningPlanRepository.save).not.toHaveBeenCalled();
     expect(unitOfWork.execute).toHaveBeenCalledWith(expect.any(Function), APP_FIXTURE_IDS.student);
   });

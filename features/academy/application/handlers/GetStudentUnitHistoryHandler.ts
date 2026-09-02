@@ -3,7 +3,7 @@ import type { StudentUnitHistoryResponseDto } from "../dto/QueryDto";
 import { validateGetStudentUnitHistoryRequest } from "../validators/queryValidators";
 import { ResourceNotFoundException } from "../exceptions/ResourceNotFoundException";
 import type { AcademyReadModelPort } from "../ports/AcademyReadModelPort";
-import { AcademyAuthorizationGuard } from "../services/AcademyAuthorizationGuard";
+import type { AcademyAuthorizationGuard } from "../services/AcademyAuthorizationGuard";
 
 // QRY-10 GetStudentUnitHistory (CU-12) — Profesor, relación
 // docente-estudiante verificada.

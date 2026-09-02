@@ -7,7 +7,8 @@
 // este wrapper) para leer datos de un estudiante — ver
 // docs/modules/dashboard.md, sección 10, "Seguridad de datos".
 
-import { Prisma, type PrismaClient } from "@prisma/client";
+import type { Prisma} from "@prisma/client";
+import { type PrismaClient } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export type StudentScopedClient = Prisma.TransactionClient;

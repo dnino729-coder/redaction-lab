@@ -1,7 +1,7 @@
 import { Entity } from "../shared/Entity";
 import { assertTransitionAllowed } from "../shared/statusTransitions";
-import { LearningObjectiveId } from "../value-objects/LearningObjectiveId";
-import { LearningGoalId } from "../value-objects/LearningGoalId";
+import type { LearningObjectiveId } from "../value-objects/LearningObjectiveId";
+import type { LearningGoalId } from "../value-objects/LearningGoalId";
 import { LearningObjectiveStatus } from "../enums/LearningObjectiveStatus";
 import { DomainInvariantViolationException } from "../exceptions/DomainInvariantViolationException";
 import { assertCompletedAtInvariant } from "../shared/completedAtInvariant";

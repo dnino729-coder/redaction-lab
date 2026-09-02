@@ -1,6 +1,6 @@
 import type { AcademyUnitRepository } from "@/features/academy/domain/repositories/AcademyUnitRepository";
 import type { AttemptRepository } from "@/features/academy/domain/repositories/AttemptRepository";
-import { AttemptFactory } from "@/features/academy/domain/factories/AttemptFactory";
+import type { AttemptFactory } from "@/features/academy/domain/factories/AttemptFactory";
 import { AcademyUnitId } from "@/features/academy/domain/value-objects/AcademyUnitId";
 import { TeacherOverrideId } from "@/features/academy/domain/value-objects/TeacherOverrideId";
 import { TeacherOverride } from "@/features/academy/domain/entities/TeacherOverride";
@@ -15,8 +15,8 @@ import { ResourceNotFoundException } from "../exceptions/ResourceNotFoundExcepti
 import type { UnitOfWork } from "../ports/UnitOfWork";
 import type { UuidGenerator } from "../ports/UuidGenerator";
 import type { Logger } from "../ports/Logger";
-import { DomainEventPublisher } from "../services/DomainEventPublisher";
-import { AcademyAuthorizationGuard } from "../services/AcademyAuthorizationGuard";
+import type { DomainEventPublisher } from "../services/DomainEventPublisher";
+import type { AcademyAuthorizationGuard } from "../services/AcademyAuthorizationGuard";
 
 // CMD-10 ApplyTeacherOverride — RN-13, invariante 10 ("el Attempt activo
 // nunca se toca directamente"). `FORCE_RESTART` reutiliza internamente el

@@ -10,8 +10,8 @@ import type { UnitOfWork } from "../ports/UnitOfWork";
 import type { UuidGenerator } from "../ports/UuidGenerator";
 import type { Logger } from "../ports/Logger";
 import type { FeedbackGatewayPort } from "../ports/FeedbackGatewayPort";
-import { DomainEventPublisher } from "../services/DomainEventPublisher";
-import { AcademyAuthorizationGuard } from "../services/AcademyAuthorizationGuard";
+import type { DomainEventPublisher } from "../services/DomainEventPublisher";
+import type { AcademyAuthorizationGuard } from "../services/AcademyAuthorizationGuard";
 
 // CMD-05 SubmitRevision. Emite RevisionStarted+ProductionSubmitted+
 // FeedbackRequested en la misma invocación (nota de precisión R-06, ver

@@ -7,7 +7,7 @@
 interface V8ErrorConstructor {
   captureStackTrace?: (
     targetObject: object,
-    constructorOpt?: Function
+    constructorOpt?: unknown
   ) => void;
 }
 export abstract class DomainException extends Error {

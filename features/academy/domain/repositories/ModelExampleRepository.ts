@@ -1,6 +1,6 @@
-import { ModelExample } from "../aggregates/ModelExample";
-import { ModelExampleId } from "../value-objects/ModelExampleId";
-import { TextType } from "../enums/TextType";
+import type { ModelExample } from "../aggregates/ModelExample";
+import type { ModelExampleId } from "../value-objects/ModelExampleId";
+import type { TextType } from "../enums/TextType";
 
 // Puerto de repositorio (Domain Model v1.1 / Persistence Layer v1.0 §4) —
 // implementado por PrismaModelExampleRepository en infraestructura.

@@ -25,7 +25,7 @@ import { withActiveClient } from "../PrismaClientContext";
 export class PrismaAcademyOutboxPort implements OutboxPort {
   constructor(private readonly uuidGenerator: UuidGenerator) {}
 
-  public async append(event: DomainEvent<any>, aggregateType: string): Promise<void> {
+  public async append(event: DomainEvent<unknown>, aggregateType: string): Promise<void> {
     const mappedAggregateType = this.mapAggregateType(aggregateType);
     await withActiveClient((client) =>
       client.academyOutbox.create({
@@ -53,7 +53,7 @@ private mapAggregateType(aggregateType: string): AcademyOutboxAggregateType {
     throw new Error(`PrismaAcademyOutboxPort: aggregateType "${aggregateType}" no reconocido.`);
   }
 
-  private toJsonPayload(event: DomainEvent<any>): Prisma.InputJsonValue {
+  private toJsonPayload(event: DomainEvent<unknown>): Prisma.InputJsonValue {
     return {
       eventName: event.eventName,
       aggregateId: event.aggregateId,

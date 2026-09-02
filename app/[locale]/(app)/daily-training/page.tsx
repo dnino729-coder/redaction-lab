@@ -1,7 +1,7 @@
-// Placeholder de infraestructura — ruta: Centro de Entrenamiento / Desafíos (sección 6.8, resolución 18.6).
-// Sin lógica de producto. El contenido real se implementará en
-// features/ y se importará aquí (sección 5.4: "app/ ... Toda la lógica
-// deberá residir fuera de esta carpeta").
-export default function Page() {
-  return null;
-}
+// Ruta: Centro de Entrenamiento / Desafíos (sección 6.8, resolución 18.6).
+// Sin lógica de producto en app/ (sección 5.4) — solo importa y renderiza la
+// superficie pública de la feature (features/daily-training/pages), mismo
+// patrón que app/[locale]/(app)/laboratory/page.tsx.
+import DailyTrainingPage from "@/features/daily-training/pages";
+
+export default DailyTrainingPage;

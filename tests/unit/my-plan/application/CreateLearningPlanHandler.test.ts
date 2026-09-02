@@ -68,7 +68,7 @@ describe("CreateLearningPlanHandler", () => {
     expect(eventBus.publish).toHaveBeenCalledTimes(1);
     const publishedEvents = eventBus.publish.mock.calls[0]![0];
     expect(publishedEvents).toHaveLength(1);
-    expect(publishedEvents[0].eventName).toBe("PLAN_CREATED");
+    expect(publishedEvents[0]!.eventName).toBe("PLAN_CREATED");
   });
 
   it("rechaza con ConflictException si el estudiante ya tiene un plan activo (13.4 MUST)", async () => {

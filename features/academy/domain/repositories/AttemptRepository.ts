@@ -1,6 +1,6 @@
-import { Attempt } from "../aggregates/Attempt";
-import { AttemptId } from "../value-objects/AttemptId";
-import { AcademyUnitId } from "../value-objects/AcademyUnitId";
+import type { Attempt } from "../aggregates/Attempt";
+import type { AttemptId } from "../value-objects/AttemptId";
+import type { AcademyUnitId } from "../value-objects/AcademyUnitId";
 
 // Puerto de repositorio (Domain Model v1.1 / Persistence Layer v1.0 §3) —
 // implementado por PrismaAttemptRepository en infraestructura. H-06:

@@ -1,6 +1,6 @@
 import type { AcademyUnitRepository } from "@/features/academy/domain/repositories/AcademyUnitRepository";
-import { AcademyUnitFactory } from "@/features/academy/domain/factories/AcademyUnitFactory";
-import { UnitSequenceService } from "@/features/academy/domain/services/UnitSequenceService";
+import type { AcademyUnitFactory } from "@/features/academy/domain/factories/AcademyUnitFactory";
+import type { UnitSequenceService } from "@/features/academy/domain/services/UnitSequenceService";
 import { StudentId } from "@/features/academy/domain/value-objects/StudentId";
 
 import type { ProvisionAcademyUnitsForStudentCommand } from "../commands/ProvisionAcademyUnitsForStudentCommand";

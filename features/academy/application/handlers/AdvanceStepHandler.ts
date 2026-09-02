@@ -5,7 +5,7 @@ import type { AttemptSummaryResponseDto } from "../dto/AttemptDto";
 import { AttemptMapper } from "../mappers/AttemptMapper";
 import { validateAdvanceStepRequest } from "../validators/attemptValidators";
 import type { UnitOfWork } from "../ports/UnitOfWork";
-import { AcademyAuthorizationGuard } from "../services/AcademyAuthorizationGuard";
+import type { AcademyAuthorizationGuard } from "../services/AcademyAuthorizationGuard";
 
 // CMD-16 AdvanceStep — sin Outbox, sin eventos (mismo criterio que
 // CMD-03).

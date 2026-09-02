@@ -1,7 +1,4 @@
-import type {
-  Prisma,
-  AcademyTextType,
-} from "@prisma/client";
+import type { AcademyTextType } from "@prisma/client";
 import type { AcademyReadModelPort } from "@/features/academy/application/ports/AcademyReadModelPort";
 import type {
   AcademyUnitListItemDto,

@@ -1,8 +1,8 @@
 import { Entity } from "../shared/Entity";
 import { assertTransitionAllowed } from "../shared/statusTransitions";
 import { AutoCompletionStatusCalculator } from "../services/AutoCompletionStatusCalculator";
-import { LearningPhaseId } from "../value-objects/LearningPhaseId";
-import { LearningPlanId } from "../value-objects/LearningPlanId";
+import type { LearningPhaseId } from "../value-objects/LearningPhaseId";
+import type { LearningPlanId } from "../value-objects/LearningPlanId";
 import { LearningPhaseStatus } from "../enums/LearningPhaseStatus";
 import type { LearningTaskStatus } from "../enums/LearningTaskStatus";
 import { DomainInvariantViolationException } from "../exceptions/DomainInvariantViolationException";

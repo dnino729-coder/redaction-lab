@@ -1,12 +1,11 @@
 import { AggregateRoot } from "../shared/AggregateRoot";
-import { AcademyUnitId } from "../value-objects/AcademyUnitId";
-import { StudentId } from "../value-objects/StudentId";
-import { AttemptId } from "../value-objects/AttemptId";
-import { TeacherOverrideId } from "../value-objects/TeacherOverrideId";
+import type { AcademyUnitId } from "../value-objects/AcademyUnitId";
+import type { StudentId } from "../value-objects/StudentId";
+import type { AttemptId } from "../value-objects/AttemptId";
 import { UnitState } from "../enums/UnitState";
-import { TextType } from "../enums/TextType";
+import type { TextType } from "../enums/TextType";
 import { OverrideAction } from "../enums/OverrideAction";
-import { TeacherOverride } from "../entities/TeacherOverride";
+import type { TeacherOverride } from "../entities/TeacherOverride";
 import { UnlockPolicy } from "../policies/UnlockPolicy";
 import { MasteryPolicy } from "../policies/MasteryPolicy";
 import { RepetitionPolicy } from "../policies/RepetitionPolicy";

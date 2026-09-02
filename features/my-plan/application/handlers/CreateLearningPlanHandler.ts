@@ -21,7 +21,7 @@ import { ConflictException } from "../exceptions/ConflictException";
 import type { UnitOfWork } from "../ports/UnitOfWork";
 import type { UuidGenerator } from "../ports/UuidGenerator";
 import type { Logger } from "../ports/Logger";
-import { DomainEventPublisher } from "../services/DomainEventPublisher";
+import type { DomainEventPublisher } from "../services/DomainEventPublisher";
 
 // Caso de uso: CreateLearningPlan.
 //

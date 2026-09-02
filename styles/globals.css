@@ -6,3 +6,19 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Fondo/color base del documento (14.12.3, tokens Neutral) — sin esto, el
+   lienzo hereda el fondo por defecto del navegador (oscuro si el SO está en
+   modo oscuro), dejando el texto Neutral-900 casi invisible fuera de las
+   tarjetas blancas. darkMode aquí es "class" (tailwind.config.ts) y no hay
+   ningún toggle que añada esa clase todavía, así que el lienzo debe fijarse
+   explícitamente en modo claro (16, WCAG 2.2 AA — contraste). */
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    @apply bg-neutral-50 text-neutral-900;
+  }
+}

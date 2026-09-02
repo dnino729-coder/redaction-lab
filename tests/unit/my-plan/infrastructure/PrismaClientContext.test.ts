@@ -27,7 +27,7 @@ describe("PrismaClientContext", () => {
     const { withActiveClient } = await import("@/features/my-plan/infrastructure/persistence/PrismaClientContext");
 
     const client = await withActiveClient(async (c) => c);
-    expect((client as { marker: string }).marker).toBe("service-context-tx");
+    expect((client as unknown as { marker: string }).marker).toBe("service-context-tx");
     expect(withServiceContextMock).toHaveBeenCalledTimes(1);
   });
 });

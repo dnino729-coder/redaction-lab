@@ -26,7 +26,10 @@ export function EvolutionSummaryPanel({ evolution }: EvolutionSummaryPanelProps)
   const visibleCompetencies = evolution.competencies.slice(0, visibleCount);
 
   const hasAnyData =
-    visibleCompetencies.length > 0 || evolution.studyFrequency || evolution.performance;
+    visibleCompetencies.length > 0 ||
+    evolution.studyFrequency ||
+    evolution.performance ||
+    evolution.analytics;
 
   return (
     <Card>
@@ -61,6 +64,42 @@ export function EvolutionSummaryPanel({ evolution }: EvolutionSummaryPanelProps)
                 </span>
               ) : null}
             </div>
+
+            {evolution.analytics ? (
+              <div className="flex flex-col gap-3 border-t border-neutral-200 pt-4">
+                <p className="text-sm font-medium text-neutral-700">{t("analyticsTitle")}</p>
+                <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <li>
+                    <ProgressBar
+                      label={t("productivityIndex")}
+                      value={clampPercentage(evolution.analytics.productivityIndex * 100)}
+                      tone="primary"
+                    />
+                  </li>
+                  <li>
+                    <ProgressBar
+                      label={t("engagementIndex")}
+                      value={clampPercentage(evolution.analytics.engagementIndex * 100)}
+                      tone="primary"
+                    />
+                  </li>
+                  <li>
+                    <ProgressBar
+                      label={t("consistencyIndex")}
+                      value={clampPercentage(evolution.analytics.consistencyIndex * 100)}
+                      tone="success"
+                    />
+                  </li>
+                  <li>
+                    <ProgressBar
+                      label={t("progressionIndex")}
+                      value={clampPercentage(evolution.analytics.progressionIndex * 100)}
+                      tone="success"
+                    />
+                  </li>
+                </ul>
+              </div>
+            ) : null}
           </>
         )}
       </CardContent>

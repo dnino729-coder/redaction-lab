@@ -1,6 +1,6 @@
 import type { AcademyUnitRepository } from "@/features/academy/domain/repositories/AcademyUnitRepository";
 import type { AttemptRepository } from "@/features/academy/domain/repositories/AttemptRepository";
-import { AttemptFactory } from "@/features/academy/domain/factories/AttemptFactory";
+import type { AttemptFactory } from "@/features/academy/domain/factories/AttemptFactory";
 import { AcademyUnitId } from "@/features/academy/domain/value-objects/AcademyUnitId";
 import { UnitState } from "@/features/academy/domain/enums/UnitState";
 
@@ -13,8 +13,8 @@ import { ConflictException } from "../exceptions/ConflictException";
 import type { UnitOfWork } from "../ports/UnitOfWork";
 import type { UuidGenerator } from "../ports/UuidGenerator";
 import type { Logger } from "../ports/Logger";
-import { DomainEventPublisher } from "../services/DomainEventPublisher";
-import { AcademyAuthorizationGuard } from "../services/AcademyAuthorizationGuard";
+import type { DomainEventPublisher } from "../services/DomainEventPublisher";
+import type { AcademyAuthorizationGuard } from "../services/AcademyAuthorizationGuard";
 
 // CMD-01 StartUnit (Application Layer Spec v1.0). La transición
 // `AcademyUnit` UNLOCKED->IN_PROGRESS ocurre en una segunda transacción

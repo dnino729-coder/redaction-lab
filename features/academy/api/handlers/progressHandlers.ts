@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import type { NextResponse } from "next/server";
 import { createAcademyContainer } from "../composition/academyContainer";
 import { resolveAcademyActor, requireRole } from "../http/auth";
 import { jsonSuccess, jsonNoContent, type AcademyResponseHeaders } from "../http/response";

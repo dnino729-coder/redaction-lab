@@ -2,7 +2,7 @@ import type { DomainEvent } from "@/features/academy/domain/events/DomainEvent";
 import type { OutboxPort } from "../ports/OutboxPort";
 
 interface EventSource {
-  pullDomainEvents(): DomainEvent<any>[];
+  pullDomainEvents(): DomainEvent<unknown>[];
 }
 
 // Servicio de aplicación — helper delgado sobre `OutboxPort` (mismo

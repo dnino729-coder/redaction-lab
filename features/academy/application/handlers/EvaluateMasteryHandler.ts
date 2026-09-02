@@ -1,6 +1,6 @@
 import type { AcademyUnitRepository } from "@/features/academy/domain/repositories/AcademyUnitRepository";
 import { AcademyUnitId } from "@/features/academy/domain/value-objects/AcademyUnitId";
-import { MasteryEvaluationService } from "@/features/academy/domain/services/MasteryEvaluationService";
+import type { MasteryEvaluationService } from "@/features/academy/domain/services/MasteryEvaluationService";
 
 import type { EvaluateMasteryCommand } from "../commands/EvaluateMasteryCommand";
 import type { AcademyUnitDetailResponseDto } from "../dto/AcademyUnitDto";
@@ -9,7 +9,7 @@ import { validateEvaluateMasteryRequest } from "../validators/provisioningValida
 import { ResourceNotFoundException } from "../exceptions/ResourceNotFoundException";
 import type { UnitOfWork } from "../ports/UnitOfWork";
 import type { Logger } from "../ports/Logger";
-import { DomainEventPublisher } from "../services/DomainEventPublisher";
+import type { DomainEventPublisher } from "../services/DomainEventPublisher";
 
 // CMD-08 EvaluateMastery — exclusivamente `SYSTEM`, sin endpoint público
 // (Application Layer Spec v1.0). No-elegible es no-op silencioso, nunca

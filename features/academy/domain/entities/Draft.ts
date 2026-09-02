@@ -1,6 +1,6 @@
 import { Entity } from "../shared/Entity";
-import { DraftId } from "../value-objects/DraftId";
-import { DraftContent } from "../value-objects/DraftContent";
+import type { DraftId } from "../value-objects/DraftId";
+import type { DraftContent } from "../value-objects/DraftContent";
 
 // Entity (Domain Model v1.1) — el borrador mutable, en curso, de un
 // Attempt antes de convertirse en una Version inmutable al enviarse

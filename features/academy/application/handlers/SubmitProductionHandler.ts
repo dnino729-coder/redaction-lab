@@ -10,8 +10,8 @@ import type { UnitOfWork } from "../ports/UnitOfWork";
 import type { UuidGenerator } from "../ports/UuidGenerator";
 import type { Logger } from "../ports/Logger";
 import type { FeedbackGatewayPort } from "../ports/FeedbackGatewayPort";
-import { DomainEventPublisher } from "../services/DomainEventPublisher";
-import { AcademyAuthorizationGuard } from "../services/AcademyAuthorizationGuard";
+import type { DomainEventPublisher } from "../services/DomainEventPublisher";
+import type { AcademyAuthorizationGuard } from "../services/AcademyAuthorizationGuard";
 
 // CMD-02 SubmitProduction (Application Layer Spec v1.0). El
 // `FeedbackGatewayPort` se invoca **fuera** de la transacción de

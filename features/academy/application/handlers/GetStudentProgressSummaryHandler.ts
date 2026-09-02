@@ -2,7 +2,7 @@ import type { GetStudentProgressSummaryQuery } from "../queries/GetStudentProgre
 import type { StudentProgressSummaryResponseDto } from "../dto/QueryDto";
 import { validateGetStudentProgressSummaryRequest } from "../validators/queryValidators";
 import type { AcademyReadModelPort } from "../ports/AcademyReadModelPort";
-import { AcademyAuthorizationGuard } from "../services/AcademyAuthorizationGuard";
+import type { AcademyAuthorizationGuard } from "../services/AcademyAuthorizationGuard";
 
 // QRY-07 GetStudentProgressSummary — Profesor, relación docente-estudiante
 // verificada (A-10).

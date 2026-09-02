@@ -49,6 +49,7 @@ model User {
   academyTeacherOverrides     TeacherOverride[]       @relation("AcademyTeacherOverrides")
   academyRecommendationsForMe TeacherRecommendation[] @relation("AcademyRecommendationsForStudent")
   academyRecommendationsByMe  TeacherRecommendation[] @relation("AcademyRecommendationsByTeacher")
+  writingExercises            WritingExercise[]       @relation("WritingExercisesForStudent")
   writingSubmissions          WritingSubmission[]
   xpTransactions              XPTransaction[]
 
@@ -713,6 +714,47 @@ model AcademyOutbox {
   @@map("academy_outbox")
 }
 
+/// Laboratoire — ejercicios guiados y autónomos de producción escrita.
+/// Bounded context independiente de Academia: sin FK ni relación hacia
+/// academy_unit/attempt/draft/version/feedback.
+model WritingExercise {
+  id           String                  @id(map: "pk_writing_exercise") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  studentId    String                  @map("student_id") @db.Uuid
+  mode         ExerciseMode
+  textType     WritingExerciseTextType @map("text_type")
+  guidedPrompt String?                 @map("guided_prompt")
+  createdAt    DateTime                @default(now()) @map("created_at")
+  updatedAt    DateTime                @updatedAt @map("updated_at")
+  student      User                    @relation("WritingExercisesForStudent", fields: [studentId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "fk_writing_exercise_student_id")
+  attempts     ExerciseAttempt[]
+
+  @@index([studentId], map: "idx_writing_exercise_student_id")
+  @@index([studentId, mode], map: "idx_writing_exercise_student_id_mode")
+  @@map("writing_exercise")
+}
+
+/// Un solo intento IN_PROGRESS por ejercicio se refuerza con un índice
+/// único parcial creado en SQL crudo en la migración (no expresable en
+/// schema.prisma) — ver 202608160300_writing_exercise_schema/migration.sql.
+model ExerciseAttempt {
+  id                String                @id(map: "pk_exercise_attempt") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  writingExerciseId String                @map("writing_exercise_id") @db.Uuid
+  attemptNumber     Int                   @map("attempt_number")
+  status            ExerciseAttemptStatus @default(IN_PROGRESS)
+  content           String                @default("")
+  wordCount         Int                   @default(0) @map("word_count")
+  startedAt         DateTime              @default(now()) @map("started_at")
+  completedAt       DateTime?             @map("completed_at")
+  createdAt         DateTime              @default(now()) @map("created_at")
+  updatedAt         DateTime              @updatedAt @map("updated_at")
+  writingExercise   WritingExercise       @relation(fields: [writingExerciseId], references: [id], onDelete: Restrict, onUpdate: Cascade, map: "fk_exercise_attempt_writing_exercise_id")
+
+  @@unique([writingExerciseId, attemptNumber], map: "uq_exercise_attempt_writing_exercise_id_attempt_number")
+  @@index([writingExerciseId], map: "idx_exercise_attempt_writing_exercise_id")
+  @@index([writingExerciseId, status], map: "idx_exercise_attempt_writing_exercise_id_status")
+  @@map("exercise_attempt")
+}
+
 /// Sección 13.1 — Tabla `User`, columna `status`.
 enum UserStatus {
   ACTIVE
@@ -953,4 +995,23 @@ enum AcademyOutboxStatus {
 enum AcademyOutboxAggregateType {
   ACADEMY_UNIT
   ATTEMPT
+}
+
+enum ExerciseMode {
+  GUIDED
+  AUTONOMOUS
+}
+
+enum ExerciseAttemptStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum WritingExerciseTextType {
+  LETTER
+  ARTICLE
+  ESSAY
+  EMAIL
+  REPORT
 }

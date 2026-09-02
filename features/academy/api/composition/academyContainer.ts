@@ -104,6 +104,13 @@ import {
   MiPlanTaskLookupAdapter,
 } from "./adapters";
 
+// Re-exportado (no solo importado) porque este es el único punto bajo
+// features/academy/api/ — la fachada que app/api/ tiene permitido importar
+// (import/no-restricted-paths) — desde el que el webhook de Clerk puede
+// construir el comando CMD-15 sin alcanzar application/commands
+// directamente.
+export { ProvisionAcademyUnitsForStudentCommand } from "@/features/academy/application/commands/ProvisionAcademyUnitsForStudentCommand";
+
 export interface AcademyContainer {
   readonly repositories: {
     readonly academyUnit: PrismaAcademyUnitRepository;

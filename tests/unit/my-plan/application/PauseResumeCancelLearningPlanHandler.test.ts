@@ -14,7 +14,7 @@ import { StudentId } from "@/features/my-plan/domain/value-objects/StudentId";
 import { makeLearningPlanRepository, makeUnitOfWork, makeClock, makeLogger } from "./mocks";
 import { APP_FIXTURE_IDS } from "./fixtures";
 
-function activePlan(studentId = APP_FIXTURE_IDS.student) {
+function activePlan(studentId: string = APP_FIXTURE_IDS.student) {
   return LearningPlan.create({
     id: LearningPlanId.create(APP_FIXTURE_IDS.plan),
     studentId: StudentId.create(studentId),

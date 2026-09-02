@@ -1,6 +1,6 @@
 import { Entity } from "../shared/Entity";
-import { TeacherOverrideId } from "../value-objects/TeacherOverrideId";
-import { OverrideAction } from "../enums/OverrideAction";
+import type { TeacherOverrideId } from "../value-objects/TeacherOverrideId";
+import type { OverrideAction } from "../enums/OverrideAction";
 
 // Entity (Domain Model v1.1) — registro histórico e inmutable de una
 // intervención manual de un Teacher sobre un AcademyUnit. `teacherId` es

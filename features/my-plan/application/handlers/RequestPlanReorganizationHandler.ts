@@ -2,7 +2,7 @@ import { StudentId } from "@/features/my-plan/domain/value-objects/StudentId";
 import { LearningPlanId } from "@/features/my-plan/domain/value-objects/LearningPlanId";
 import type { LearningPlanRepository } from "@/features/my-plan/domain/repositories/LearningPlanRepository";
 import { PlanReorganizationRequestedEvent } from "@/features/my-plan/domain/events/PlanReorganizationRequestedEvent";
-import { ReprogrammingReason } from "@/features/my-plan/domain/enums/ReprogrammingReason";
+import type { ReprogrammingReason } from "@/features/my-plan/domain/enums/ReprogrammingReason";
 
 import type { RequestPlanReorganizationCommand } from "../commands/RequestPlanReorganizationCommand";
 import type { RequestPlanReorganizationResponseDto } from "../dto/PlanReorganizationDto";

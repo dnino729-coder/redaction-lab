@@ -1,8 +1,8 @@
 import { AggregateRoot } from "../shared/AggregateRoot";
 import { assertTransitionAllowed } from "../shared/statusTransitions";
-import { LearningTaskId } from "../value-objects/LearningTaskId";
-import { LearningPhaseId } from "../value-objects/LearningPhaseId";
-import { StudentId } from "../value-objects/StudentId";
+import type { LearningTaskId } from "../value-objects/LearningTaskId";
+import type { LearningPhaseId } from "../value-objects/LearningPhaseId";
+import type { StudentId } from "../value-objects/StudentId";
 import { LearningTaskStatus } from "../enums/LearningTaskStatus";
 import { LearningTaskSource } from "../enums/LearningTaskSource";
 import { LearningTaskDifficulty } from "../enums/LearningTaskDifficulty";

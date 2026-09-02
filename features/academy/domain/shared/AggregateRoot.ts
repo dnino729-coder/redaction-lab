@@ -10,25 +10,28 @@ import type { DomainEvent } from "../events/DomainEvent";
 // (Domain Model v1.1, AR-3), aunque en la práctica nunca acumula eventos
 // (sin Domain Event definido para su ciclo editorial).
 //
-// Nota técnica: `addDomainEvent`/`pullDomainEvents` usan `DomainEvent<any>`
+// Nota técnica: `addDomainEvent`/`pullDomainEvents` usan `DomainEvent<unknown>`
 // (no el `DomainEvent` desnudo, que resolvería a
 // `DomainEvent<Record<string, unknown>>` por el default del parámetro de
 // tipo) porque cada evento concreto declara su propio `Payload` con
 // forma cerrada (sin index signature); exigir esa index signature en el
 // tipo del parámetro rompería la asignabilidad de todo evento concreto.
+// `unknown` (a diferencia de `any`) preserva la verificación de tipos en
+// el resto del archivo y sigue aceptando cualquier `DomainEvent<X>`
+// concreto, porque `X` siempre es asignable a `unknown`.
 export abstract class AggregateRoot<
   TId extends { equals(other: TId): boolean },
 > extends Entity<TId> {
-  private _domainEvents: DomainEvent<any>[] = [];
+  private _domainEvents: DomainEvent<unknown>[] = [];
 
-  protected addDomainEvent(event: DomainEvent<any>): void {
+  protected addDomainEvent(event: DomainEvent<unknown>): void {
     this._domainEvents.push(event);
   }
 
   /** Extrae y limpia los Domain Events acumulados — Application Layer
    * (Sprint 6.1) los lee tras cada operación y los despacha al Outbox
    * (Sprint 6.2), dentro de la misma transacción que persiste el Aggregate. */
-  public pullDomainEvents(): DomainEvent<any>[] {
+  public pullDomainEvents(): DomainEvent<unknown>[] {
     const events = this._domainEvents;
     this._domainEvents = [];
     return events;

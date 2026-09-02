@@ -1,6 +1,6 @@
-import { TeacherRecommendation } from "../entities/TeacherRecommendation";
-import { TeacherRecommendationId } from "../value-objects/TeacherRecommendationId";
-import { StudentId } from "../value-objects/StudentId";
+import type { TeacherRecommendation } from "../entities/TeacherRecommendation";
+import type { TeacherRecommendationId } from "../value-objects/TeacherRecommendationId";
+import type { StudentId } from "../value-objects/StudentId";
 
 // Puerto de repositorio (Persistence Layer v1.0 §5; Application Layer
 // Spec v1.0, CMD-11) — implementado por

@@ -6,7 +6,7 @@ import type { ReflectionCompletedEvent } from "@/features/academy/domain/events/
 import type { UnitOfWork } from "../ports/UnitOfWork";
 import type { Logger } from "../ports/Logger";
 import type { MiPlanTaskLookupPort } from "@/features/academy/domain/ports/MiPlanTaskLookupPort";
-import { DomainEventPublisher } from "../services/DomainEventPublisher";
+import type { DomainEventPublisher } from "../services/DomainEventPublisher";
 
 // CMD-07 CompleteReflection — **transacción 2** (Application Layer Spec
 // v1.0, Sección 7.18): reacciona a `ReflectionCompleted` (publicado desde

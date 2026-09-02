@@ -1,7 +1,7 @@
 import { AggregateRoot } from "../shared/AggregateRoot";
-import { ModelExampleId } from "../value-objects/ModelExampleId";
-import { TextType } from "../enums/TextType";
-import { ModelExampleRating } from "../enums/ModelExampleRating";
+import type { ModelExampleId } from "../value-objects/ModelExampleId";
+import type { TextType } from "../enums/TextType";
+import type { ModelExampleRating } from "../enums/ModelExampleRating";
 import { ModelExampleStatus } from "../enums/ModelExampleStatus";
 import { ModelExampleAlreadyRetiredException } from "../exceptions/ModelExampleAlreadyRetiredException";
 

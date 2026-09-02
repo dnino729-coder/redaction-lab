@@ -1,8 +1,8 @@
 import type { Prisma } from "@prisma/client";
 import type { TeacherRecommendationRepository } from "@/features/academy/domain/repositories/TeacherRecommendationRepository";
-import { TeacherRecommendation } from "@/features/academy/domain/entities/TeacherRecommendation";
-import { TeacherRecommendationId } from "@/features/academy/domain/value-objects/TeacherRecommendationId";
-import { StudentId } from "@/features/academy/domain/value-objects/StudentId";
+import type { TeacherRecommendation } from "@/features/academy/domain/entities/TeacherRecommendation";
+import type { TeacherRecommendationId } from "@/features/academy/domain/value-objects/TeacherRecommendationId";
+import type { StudentId } from "@/features/academy/domain/value-objects/StudentId";
 
 import { withActiveClient } from "../PrismaClientContext";
 import { TeacherRecommendationPersistenceMapper } from "../mappers/TeacherRecommendationPersistenceMapper";

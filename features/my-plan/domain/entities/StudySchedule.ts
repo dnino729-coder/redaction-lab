@@ -1,8 +1,8 @@
 import { Entity } from "../shared/Entity";
-import { StudyScheduleId } from "../value-objects/StudyScheduleId";
-import { LearningPlanId } from "../value-objects/LearningPlanId";
-import { StudyFrequency } from "../value-objects/StudyFrequency";
-import { ReminderTime } from "../value-objects/ReminderTime";
+import type { StudyScheduleId } from "../value-objects/StudyScheduleId";
+import type { LearningPlanId } from "../value-objects/LearningPlanId";
+import type { StudyFrequency } from "../value-objects/StudyFrequency";
+import type { ReminderTime } from "../value-objects/ReminderTime";
 
 interface StudyScheduleProps {
   learningPlanId: LearningPlanId;

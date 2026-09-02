@@ -1,7 +1,7 @@
-// Placeholder de infraestructura — ruta: Evolución / Mi Evolución (sección 6.11).
-// Sin lógica de producto. El contenido real se implementará en
-// features/ y se importará aquí (sección 5.4: "app/ ... Toda la lógica
-// deberá residir fuera de esta carpeta").
-export default function Page() {
-  return null;
-}
+// Ruta: Evolución / Mi Evolución (sección 6.11). Sin lógica de producto en
+// app/ (sección 5.4) — solo importa y renderiza la superficie pública de la
+// feature (features/analytics/pages), mismo patrón que
+// app/[locale]/(app)/daily-training/page.tsx.
+import EvolutionPage from "@/features/analytics/pages";
+
+export default EvolutionPage;

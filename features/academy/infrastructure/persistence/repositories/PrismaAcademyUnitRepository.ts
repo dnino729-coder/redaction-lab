@@ -1,11 +1,11 @@
-import {
+import type {
   Prisma,
   AcademyTextType,
 } from "@prisma/client";
 import type { AcademyUnitRepository } from "@/features/academy/domain/repositories/AcademyUnitRepository";
-import { AcademyUnit } from "@/features/academy/domain/aggregates/AcademyUnit";
-import { AcademyUnitId } from "@/features/academy/domain/value-objects/AcademyUnitId";
-import { StudentId } from "@/features/academy/domain/value-objects/StudentId";
+import type { AcademyUnit } from "@/features/academy/domain/aggregates/AcademyUnit";
+import type { AcademyUnitId } from "@/features/academy/domain/value-objects/AcademyUnitId";
+import type { StudentId } from "@/features/academy/domain/value-objects/StudentId";
 import type { TextType } from "@/features/academy/domain/enums/TextType";
 
 import { withActiveClient } from "../PrismaClientContext";

@@ -15,8 +15,8 @@ import { ConflictException } from "../exceptions/ConflictException";
 import type { UnitOfWork } from "../ports/UnitOfWork";
 import type { Clock } from "../ports/Clock";
 import type { Logger } from "../ports/Logger";
-import { OwnershipVerificationService } from "../services/OwnershipVerificationService";
-import { DomainEventPublisher } from "../services/DomainEventPublisher";
+import type { OwnershipVerificationService } from "../services/OwnershipVerificationService";
+import type { DomainEventPublisher } from "../services/DomainEventPublisher";
 
 // Caso de uso: CompleteLearningTask — completa manualmente una
 // LearningTask (siempre por la vía `complete()`, nunca

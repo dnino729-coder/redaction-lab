@@ -21,7 +21,7 @@ import type { MiPlanTaskLookupPort } from "@/features/academy/domain/ports/MiPla
 // están diseñados para tolerar ausencia de vínculo. Comportamiento honesto
 // dado el estado real del schema — no se fabrica un enlace inexistente.
 export class MiPlanTaskLookupAdapter implements MiPlanTaskLookupPort {
-  public async findLinkedTaskId(_studentId: string, _unitId: string): Promise<string | null> {
+  public async findLinkedTaskId(): Promise<string | null> {
     return null;
   }
 }

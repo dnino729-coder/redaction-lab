@@ -25,7 +25,7 @@ import type {
 // fabricada — se documenta como placeholder explícito, a sustituir cuando
 // Platform Core resuelva el Riesgo 2 del Domain Model v1.1.
 export class CompetencyEvidenceAdapter implements CompetencyEvidencePort {
-  public async getEvidence(_studentId: string, _textType: string): Promise<CompetencyEvidenceSnapshot> {
+  public async getEvidence(): Promise<CompetencyEvidenceSnapshot> {
     return {
       noSustainedCriticalWeakness: true,
       independentEncountersWithoutScaffolding: 0,

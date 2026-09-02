@@ -1,5 +1,5 @@
 import { Entity } from "../shared/Entity";
-import { TeacherRecommendationId } from "../value-objects/TeacherRecommendationId";
+import type { TeacherRecommendationId } from "../value-objects/TeacherRecommendationId";
 
 // Entity raíz de agregado minimalista (Persistence Layer v1.0, Sección 5;
 // Application Layer Spec v1.0, CMD-11 AssignUnitToStudent) — registro

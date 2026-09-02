@@ -13,7 +13,7 @@ import { ResourceNotFoundException } from "../exceptions/ResourceNotFoundExcepti
 import type { UnitOfWork } from "../ports/UnitOfWork";
 import type { UuidGenerator } from "../ports/UuidGenerator";
 import type { Logger } from "../ports/Logger";
-import { DomainEventPublisher } from "../services/DomainEventPublisher";
+import type { DomainEventPublisher } from "../services/DomainEventPublisher";
 
 // CMD-04 RecordFeedbackDelivered — exclusivamente `AI_SERVICE`/`SYSTEM`
 // (Application Layer Spec v1.0: nunca un actor humano; verificación de

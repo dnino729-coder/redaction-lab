@@ -12,7 +12,7 @@ import { StudentId } from "@/features/my-plan/domain/value-objects/StudentId";
 import { makeStudyScheduleRepository, makeLearningPlanRepository, makeUnitOfWork, makeLogger } from "./mocks";
 import { APP_FIXTURE_IDS } from "./fixtures";
 
-function buildFixtures(studentId = APP_FIXTURE_IDS.student) {
+function buildFixtures(studentId: string = APP_FIXTURE_IDS.student) {
   const plan = LearningPlan.create({
     id: LearningPlanId.create(APP_FIXTURE_IDS.plan),
     studentId: StudentId.create(studentId),

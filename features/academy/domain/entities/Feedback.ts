@@ -1,7 +1,7 @@
 import { Entity } from "../shared/Entity";
-import { FeedbackId } from "../value-objects/FeedbackId";
-import { VersionId } from "../value-objects/VersionId";
-import { FeedbackObservation } from "../value-objects/FeedbackObservation";
+import type { FeedbackId } from "../value-objects/FeedbackId";
+import type { VersionId } from "../value-objects/VersionId";
+import type { FeedbackObservation } from "../value-objects/FeedbackObservation";
 
 // Entity (Domain Model v1.1, Sección 4) — retroalimentación formativa
 // asociada 1:1 a la `Version` que evalúa (Coach IA o Profesor, CMD-04

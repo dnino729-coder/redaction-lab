@@ -1,7 +1,6 @@
-// Placeholder de infraestructura — ruta: Mi Plan (sección 6.12).
-// Sin lógica de producto. El contenido real se implementará en
-// features/ y se importará aquí (sección 5.4: "app/ ... Toda la lógica
-// deberá residir fuera de esta carpeta").
-export default function Page() {
-  return null;
-}
+// Ruta: Mi Plan (sección 6.12). Sin lógica de producto en app/ (sección
+// 5.4) — solo importa y renderiza la superficie pública de la feature
+// (features/my-plan/pages), igual que app/[locale]/(app)/dashboard/page.tsx.
+import MyPlanPage from "@/features/my-plan/pages";
+
+export default MyPlanPage;

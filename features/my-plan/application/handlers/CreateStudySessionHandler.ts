@@ -14,7 +14,7 @@ import type { UnitOfWork } from "../ports/UnitOfWork";
 import type { Clock } from "../ports/Clock";
 import type { UuidGenerator } from "../ports/UuidGenerator";
 import type { Logger } from "../ports/Logger";
-import { OwnershipVerificationService } from "../services/OwnershipVerificationService";
+import type { OwnershipVerificationService } from "../services/OwnershipVerificationService";
 
 // Caso de uso: CreateStudySession. `StudySession.start()` nace siempre
 // abierta (`finishedAt = null`, `completed = false`, 13.4) — no existe un

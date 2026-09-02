@@ -1,8 +1,8 @@
 import { AggregateRoot } from "../shared/AggregateRoot";
-import { LearningPlanId } from "../value-objects/LearningPlanId";
-import { StudentId } from "../value-objects/StudentId";
+import type { LearningPlanId } from "../value-objects/LearningPlanId";
+import type { StudentId } from "../value-objects/StudentId";
 import { LearningPlanStatus } from "../enums/LearningPlanStatus";
-import { CefrLevel } from "../enums/CefrLevel";
+import type { CefrLevel } from "../enums/CefrLevel";
 import { DomainInvariantViolationException } from "../exceptions/DomainInvariantViolationException";
 import { InvalidStatusTransitionException } from "../exceptions/InvalidStatusTransitionException";
 import { PlanCreatedEvent } from "../events/PlanCreatedEvent";

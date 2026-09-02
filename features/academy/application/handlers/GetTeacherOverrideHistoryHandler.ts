@@ -2,7 +2,7 @@ import type { GetTeacherOverrideHistoryQuery } from "../queries/GetTeacherOverri
 import type { TeacherOverrideResponseDto } from "../dto/TeacherOverrideDto";
 import { validateGetTeacherOverrideHistoryRequest } from "../validators/queryValidators";
 import type { AcademyReadModelPort } from "../ports/AcademyReadModelPort";
-import { AcademyAuthorizationGuard } from "../services/AcademyAuthorizationGuard";
+import type { AcademyAuthorizationGuard } from "../services/AcademyAuthorizationGuard";
 import { ForbiddenException } from "../exceptions/ForbiddenException";
 
 // QRY-09 GetTeacherOverrideHistory — sin endpoint de API propio en el API

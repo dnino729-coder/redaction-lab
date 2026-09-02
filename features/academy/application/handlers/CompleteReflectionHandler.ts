@@ -8,8 +8,8 @@ import { validateCompleteReflectionRequest } from "../validators/attemptValidato
 import { ConflictException } from "../exceptions/ConflictException";
 import type { UnitOfWork } from "../ports/UnitOfWork";
 import type { Logger } from "../ports/Logger";
-import { DomainEventPublisher } from "../services/DomainEventPublisher";
-import { AcademyAuthorizationGuard } from "../services/AcademyAuthorizationGuard";
+import type { DomainEventPublisher } from "../services/DomainEventPublisher";
+import type { AcademyAuthorizationGuard } from "../services/AcademyAuthorizationGuard";
 
 // CMD-07 CompleteReflection — **transacción 1** del patrón de dos
 // transacciones (Application Layer Spec v1.0): cierra el `Attempt`

@@ -1,5 +1,5 @@
-import { FeedbackCategory } from "../enums/FeedbackCategory";
-import { FeedbackStrength } from "../enums/FeedbackStrength";
+import type { FeedbackCategory } from "../enums/FeedbackCategory";
+import type { FeedbackStrength } from "../enums/FeedbackStrength";
 
 // Value Object (Domain Model v1.1, Sección 5) — una observación formativa
 // dentro de una `Feedback`: categoría (una de las 10 `FeedbackCategory`),

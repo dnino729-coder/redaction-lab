@@ -1,7 +1,7 @@
 import type { AcademyUnitRepository } from "@/features/academy/domain/repositories/AcademyUnitRepository";
 import type { AttemptRepository } from "@/features/academy/domain/repositories/AttemptRepository";
 import { AcademyUnitId } from "@/features/academy/domain/value-objects/AcademyUnitId";
-import { AttemptFactory } from "@/features/academy/domain/factories/AttemptFactory";
+import type { AttemptFactory } from "@/features/academy/domain/factories/AttemptFactory";
 
 import type { RepeatUnitCommand } from "../commands/RepeatUnitCommand";
 import type { AttemptSummaryResponseDto } from "../dto/AttemptDto";
@@ -11,8 +11,8 @@ import { ResourceNotFoundException } from "../exceptions/ResourceNotFoundExcepti
 import type { UnitOfWork } from "../ports/UnitOfWork";
 import type { UuidGenerator } from "../ports/UuidGenerator";
 import type { Logger } from "../ports/Logger";
-import { DomainEventPublisher } from "../services/DomainEventPublisher";
-import { AcademyAuthorizationGuard } from "../services/AcademyAuthorizationGuard";
+import type { DomainEventPublisher } from "../services/DomainEventPublisher";
+import type { AcademyAuthorizationGuard } from "../services/AcademyAuthorizationGuard";
 
 // CMD-09 RepeatUnit — H-03: `UnitState` no cambia. Única transacción
 // (junto con CMD-10), sin sincronización eventual (Application Layer

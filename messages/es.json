@@ -48,7 +48,10 @@
       "examIn": "{days, plural, =0 {Examen hoy} one {# día para el examen} other {# días para el examen}}",
       "noExamDate": "Todavía no hay una fecha de examen definida",
       "preparation": "Preparación general",
-      "estimatedPerformance": "Rendimiento estimado: {score}/25"
+      "estimatedPerformance": "Rendimiento estimado: {score}/25",
+      "examDate": "Fecha del examen: {date}",
+      "performancePassed": "En camino de aprobar",
+      "performanceAtRisk": "Todavía por debajo del umbral para aprobar"
     },
     "plan": {
       "title": "Mi plan",
@@ -61,7 +64,16 @@
       "title": "Continúa donde te quedaste",
       "empty": "No hay nada pendiente por retomar — ¡buen trabajo!",
       "wordsWritten": "{count, plural, =0 {Borrador vacío} one {# palabra escrita} other {# palabras escritas}}",
-      "cta": "Continuar"
+      "cta": "Continuar",
+      "lastActivity": "Última actividad: {date}",
+      "status": {
+        "DRAFT": "Borrador",
+        "IN_PROGRESS": "En progreso",
+        "SUBMITTED": "Enviado",
+        "UNDER_REVIEW": "En corrección",
+        "CORRECTED": "Corregido",
+        "ARCHIVED": "Archivado"
+      }
     },
     "recommendation": {
       "title": "Recomendación del Coach IA",
@@ -75,7 +87,12 @@
       "empty": "Sigue entrenando para ver aquí tu evolución.",
       "activeDays": "{count, plural, =0 {Sin días activos recientes} one {# día activo} other {# días activos}}",
       "streak": "{count, plural, =0 {Todavía sin racha activa} one {# día seguido} other {# días seguidos}}",
-      "performance": "Tasa de éxito"
+      "performance": "Tasa de éxito",
+      "analyticsTitle": "Analíticas",
+      "productivityIndex": "Productividad",
+      "engagementIndex": "Compromiso",
+      "consistencyIndex": "Constancia",
+      "progressionIndex": "Progresión"
     },
     "ecosystems": {
       "title": "Acceder a los espacios"
@@ -87,6 +104,383 @@
       "title": "Un pequeño inconveniente técnico",
       "description": "No pudimos cargar tu panel principal. Inténtalo de nuevo en un momento.",
       "retry": "Reintentar"
+    }
+  },
+  "myPlan": {
+    "devMode": {
+      "title": "Modo desarrollo",
+      "description": "Datos simulados"
+    },
+    "summary": {
+      "title": "Resumen general",
+      "currentLevel": "Nivel actual: {level}",
+      "targetLevel": "Nivel objetivo: {level}",
+      "examIn": "{days, plural, =0 {Examen hoy} one {# día para el examen} other {# días para el examen}}",
+      "noExamDate": "Todavía no hay una fecha de examen definida",
+      "examDate": "Fecha del examen: {date}",
+      "progress": "Avance del plan",
+      "hoursStudied": "{done} h estudiadas de {weekly} h recomendadas por semana"
+    },
+    "calendar": {
+      "title": "Calendario de entrenamiento",
+      "dailyTitle": "Plan de hoy",
+      "dailyEmpty": "No hay nada planificado para hoy.",
+      "weeklyTitle": "Plan de la semana",
+      "weeklyEmpty": "No hay actividades planificadas esta semana.",
+      "minutes": "{count} min",
+      "done": "Completado",
+      "pending": "Pendiente"
+    },
+    "goals": {
+      "title": "Objetivos y metas",
+      "activeTitle": "{count, plural, =0 {Objetivos activos} one {# objetivo activo} other {# objetivos activos}}",
+      "activeEmpty": "No hay objetivos activos por el momento.",
+      "completedTitle": "{count, plural, =0 {Objetivos alcanzados} one {# objetivo alcanzado} other {# objetivos alcanzados}}",
+      "completedEmpty": "Todavía no hay objetivos alcanzados.",
+      "priority": {
+        "LOW": "Prioridad baja",
+        "MEDIUM": "Prioridad media",
+        "HIGH": "Prioridad alta"
+      }
+    },
+    "phases": {
+      "title": "Fases y tareas",
+      "empty": "Todavía no hay fases.",
+      "sessions": "{count, plural, =0 {Sin sesiones} one {# sesión} other {# sesiones}}",
+      "status": {
+        "NOT_STARTED": "Sin empezar",
+        "IN_PROGRESS": "En progreso",
+        "COMPLETED": "Completado",
+        "CANCELLED": "Cancelado"
+      },
+      "source": {
+        "SELF_DIRECTED": "Autónomo",
+        "ACADEMY": "Academia",
+        "LABORATORY": "Laboratorio",
+        "DAILY_TRAINING": "Entrenamiento",
+        "SIMULATOR": "Simulador"
+      }
+    },
+    "configuration": {
+      "title": "Configuración del plan",
+      "daysPerWeek": "Días por semana",
+      "sessionsPerDay": "Sesiones por día",
+      "minutesPerSession": "Minutos por sesión",
+      "reminder": "Recordatorio a las {time}",
+      "reorganizeCta": "Solicitar reprogramación",
+      "reorganizeDisabledHint": "Próximamente — requiere el Learning Planner (docs/modules/mi-plan.md, Vacío 8), todavía no implementado."
+    },
+    "empty": {
+      "title": "No hay un plan activo por el momento",
+      "description": "Tu próximo plan se creará automáticamente — no tienes que hacer nada aquí."
+    },
+    "error": {
+      "title": "Un pequeño inconveniente técnico",
+      "description": "No pudimos cargar tu plan. Inténtalo de nuevo en un momento.",
+      "retry": "Reintentar"
+    },
+    "skeleton": {
+      "loading": "Cargando Mi Plan..."
+    }
+  },
+  "laboratory": {
+    "devMode": {
+      "title": "Modo desarrollo",
+      "description": "Datos simulados"
+    },
+    "textType": {
+      "LETTER": "Carta formal",
+      "ARTICLE": "Artículo",
+      "ESSAY": "Ensayo",
+      "EMAIL": "Correo electrónico",
+      "REPORT": "Informe"
+    },
+    "summary": {
+      "title": "Resumen del laboratorio",
+      "currentLevel": "Nivel actual: {level}",
+      "targetLevel": "Nivel objetivo: {level}",
+      "progress": "Avance",
+      "textsCompleted": "{count, plural, =0 {Ningún texto terminado} one {# texto terminado} other {# textos terminados}}",
+      "streak": "{count, plural, =0 {Todavía sin racha} one {# día seguido} other {# días seguidos}}",
+      "lastTextType": "Último tipo trabajado: {type}"
+    },
+    "modelAnalysis": {
+      "title": "Análisis de modelos",
+      "empty": "Todavía no hay modelos disponibles.",
+      "loading": "Cargando modelos...",
+      "error": "No se pudieron cargar los modelos.",
+      "rating": {
+        "EXCELLENT": "Excelente",
+        "HAS_ERRORS": "Contiene errores"
+      }
+    },
+    "writingWorkshop": {
+      "title": "Taller de escritura",
+      "guidedTitle": "Redacción guiada",
+      "guidedEmpty": "Todavía no hay ejercicios guiados.",
+      "autonomousTitle": "Redacción autónoma",
+      "autonomousEmpty": "Todavía no hay ejercicios autónomos.",
+      "wordCount": "{count} palabras",
+      "error": "No se pudieron cargar los ejercicios.",
+      "status": {
+        "NOT_STARTED": "Sin empezar",
+        "IN_PROGRESS": "En progreso",
+        "COMPLETED": "Completado"
+      },
+      "action": {
+        "START": "Comenzar",
+        "CONTINUE": "Continuar",
+        "REPEAT": "Repetir"
+      },
+      "createForm": {
+        "modeLabel": "Modo",
+        "mode": {
+          "GUIDED": "Guiado",
+          "AUTONOMOUS": "Autónomo"
+        },
+        "textTypeLabel": "Tipo de texto",
+        "guidedPromptLabel": "Consigna",
+        "submit": "Crear ejercicio",
+        "submitting": "Creando...",
+        "error": "No se pudo crear el ejercicio."
+      },
+      "editor": {
+        "placeholder": "Redacta tu texto aquí...",
+        "saving": "Guardando...",
+        "saved": "Borrador guardado",
+        "complete": "Finalizar",
+        "completing": "Finalizando..."
+      },
+      "history": {
+        "title": "Historial de intentos",
+        "empty": "Todavía no hay intentos.",
+        "error": "No se pudo cargar el historial.",
+        "attemptNumber": "Intento {number}"
+      }
+    },
+    "feedback": {
+      "title": "Corrección y retroalimentación",
+      "empty": "Todavía no hay retroalimentación.",
+      "reviewed": "Vista",
+      "pending": "Por revisar",
+      "category": {
+        "GRAMMAR": "Gramática",
+        "LEXICAL": "Léxico",
+        "COHESION": "Cohesión",
+        "STRUCTURE": "Estructura"
+      }
+    },
+    "revision": {
+      "title": "Revisión gramatical y léxica",
+      "empty": "Todavía no hay revisiones sugeridas.",
+      "grammarTitle": "Gramática",
+      "lexicalTitle": "Léxico"
+    },
+    "selfAssessment": {
+      "title": "Autoevaluación",
+      "empty": "Todavía no hay autoevaluaciones.",
+      "met": "Logrado",
+      "notMet": "Por trabajar"
+    }
+  },
+  "dailyTraining": {
+    "devMode": {
+      "title": "Modo desarrollo",
+      "description": "Datos simulados"
+    },
+    "summary": {
+      "title": "Resumen del entrenamiento",
+      "streak": "{count, plural, =0 {Todavía sin racha} one {# día seguido} other {# días seguidos}}",
+      "dailyGoal": "Meta de hoy",
+      "completedToday": "{count, plural, =0 {Ningún desafío hoy} one {# desafío completado hoy} other {# desafíos completados hoy}}",
+      "completedThisWeek": "{count, plural, =0 {Ningún desafío esta semana} one {# desafío esta semana} other {# desafíos esta semana}}"
+    },
+    "dailyChallenge": {
+      "title": "Desafío del día",
+      "pending": "Pendiente",
+      "completed": "Completado",
+      "minutes": "{count} min",
+      "cta": "Comenzar el desafío",
+      "type": {
+        "SENTENCE": "Frase",
+        "PARAGRAPH": "Párrafo",
+        "TIMED_SHORT_TEXT": "Texto breve cronometrado"
+      }
+    },
+    "quickDrills": {
+      "title": "Ejercicios rápidos",
+      "empty": "Todavía no hay ejercicios en este nivel.",
+      "minutes": "{count} min",
+      "done": "Completado",
+      "pending": "Pendiente",
+      "level": {
+        "EASY": "Fácil",
+        "INTERMEDIATE": "Intermedio",
+        "ADVANCED": "Avanzado"
+      }
+    },
+    "history": {
+      "title": "Historial de desafíos",
+      "empty": "Todavía no hay historial.",
+      "done": "Hecho",
+      "missed": "No hecho",
+      "weeklyStreak": "{count, plural, =0 {Todavía sin racha esta semana} one {# día seguido esta semana} other {# días seguidos esta semana}}"
+    },
+    "focus": {
+      "title": "Progreso por competencia",
+      "empty": "Todavía no hay datos de práctica.",
+      "category": {
+        "GRAMMAR": "Gramática",
+        "LEXICAL": "Léxico",
+        "COHESION": "Cohesión",
+        "CONNECTORS": "Conectores",
+        "TEXT_ORGANIZATION": "Organización textual"
+      }
+    },
+    "goals": {
+      "title": "Objetivos de entrenamiento",
+      "dailyChallengeGoal": "Meta diaria",
+      "weeklyMinutesGoal": "Meta semanal",
+      "challengeCount": "{count, plural, =0 {Ningún desafío} one {# desafío por día} other {# desafíos por día}}",
+      "minutes": "{count} min por semana",
+      "suggestion": "Sugerencia",
+      "suggestedChallengeGoal": "{count, plural, one {# desafío por día} other {# desafíos por día}}",
+      "controlHint": "Conservas el control — las sugerencias nunca se aplican automáticamente."
+    }
+  },
+  "simulator": {
+    "devMode": {
+      "title": "Modo desarrollo",
+      "description": "Datos simulados"
+    },
+    "textType": {
+      "LETTER": "Carta formal",
+      "ARTICLE": "Artículo",
+      "ESSAY": "Ensayo",
+      "EMAIL": "Correo electrónico",
+      "REPORT": "Informe"
+    },
+    "overview": {
+      "title": "Resumen del simulador",
+      "empty": "Todavía no hay simulaciones realizadas.",
+      "attemptsCompleted": "{count, plural, =0 {Ninguna simulación} one {# simulación realizada} other {# simulaciones realizadas}}",
+      "bestScore": "Mejor nota: {score}/{max}",
+      "scoreBadge": "{score}/{max}"
+    },
+    "subjectSelection": {
+      "title": "Elección del tema",
+      "empty": "Todavía no hay temas disponibles.",
+      "duration": "{minutes} min",
+      "wordRange": "{min} a {max} palabras"
+    },
+    "prompt": {
+      "title": "Consigna",
+      "duration": "{minutes} min",
+      "wordRange": "{min} a {max} palabras"
+    },
+    "timer": {
+      "remaining": "{minutes} min de {total}"
+    },
+    "planning": {
+      "title": "Planificación",
+      "hint": "Tiempo recomendado para esta etapa: {minutes} min. Anota tu plan antes de empezar a redactar."
+    },
+    "writing": {
+      "title": "Redacción",
+      "wordCount": "{count, plural, =0 {Ninguna palabra escrita} one {# palabra escrita} other {# palabras escritas}}"
+    },
+    "submission": {
+      "title": "Entrega",
+      "wordCount": "{count} palabras",
+      "timeUsed": "{minutes} min de {total} utilizados",
+      "submittedAt": "Enviado el {date}",
+      "notSubmitted": "Todavía no enviado"
+    },
+    "evaluation": {
+      "title": "Evaluación",
+      "totalScore": "Nota: {score}/{max}",
+      "criterionScore": "{score}/{max}"
+    },
+    "analysis": {
+      "title": "Análisis de resultados",
+      "comparedToPrevious": "Tu mejor nota anterior: {score}/{max}"
+    }
+  },
+  "analytics": {
+    "devMode": {
+      "title": "Modo desarrollo",
+      "description": "Datos simulados"
+    },
+    "overview": {
+      "title": "Resumen de progreso",
+      "currentLevel": "Nivel actual: {level}",
+      "targetLevel": "Nivel objetivo: {level}",
+      "averageScore": "Nota media reciente: {score}/{max}",
+      "strongest": "Punto fuerte: {competency}",
+      "weakest": "Punto por trabajar: {competency}"
+    },
+    "competencies": {
+      "title": "Evolución de competencias",
+      "empty": "Todavía no hay datos de progreso.",
+      "category": {
+        "GRAMMAR": "Gramática",
+        "LEXICAL": "Léxico",
+        "COHESION": "Cohesión",
+        "CONNECTORS": "Conectores",
+        "TEXT_ORGANIZATION": "Organización textual"
+      },
+      "trend": {
+        "UP": "Al alza (+{percentage}%)",
+        "DOWN": "A la baja (-{percentage}%)",
+        "STABLE": "Estable"
+      }
+    },
+    "textType": {
+      "LETTER": "Carta formal",
+      "ARTICLE": "Artículo",
+      "ESSAY": "Ensayo",
+      "EMAIL": "Correo electrónico",
+      "REPORT": "Informe"
+    },
+    "productions": {
+      "title": "Historial de producciones",
+      "empty": "Todavía no hay producciones.",
+      "score": "{score}/{max}",
+      "status": {
+        "EVALUATED": "Evaluado",
+        "PENDING": "Pendiente"
+      }
+    },
+    "errors": {
+      "title": "Análisis de errores",
+      "empty": "Todavía no se detectaron errores recurrentes.",
+      "category": {
+        "GRAMMAR": "Gramática",
+        "LEXICAL": "Léxico",
+        "COHESION": "Cohesión",
+        "CONNECTORS": "Conectores",
+        "TEXT_ORGANIZATION": "Organización textual"
+      }
+    },
+    "performance": {
+      "title": "Comparación de resultados",
+      "empty": "Todavía no hay historial reciente.",
+      "latestScore": "Último resultado: {score}/{max}",
+      "bestScore": "Mejor resultado: {score}/{max}",
+      "attemptScore": "{score}/{max}"
+    },
+    "recommendations": {
+      "title": "Recomendaciones personalizadas",
+      "mainWeakness": "Prioridad: {weakness}",
+      "priority": {
+        "LOW": "Prioridad baja",
+        "MEDIUM": "Prioridad media",
+        "HIGH": "Prioridad alta"
+      },
+      "destination": {
+        "LABORATORY": "Ir al Laboratorio",
+        "DAILY_TRAINING": "Ir a Entrenamiento"
+      }
     }
   },
   "academy": {

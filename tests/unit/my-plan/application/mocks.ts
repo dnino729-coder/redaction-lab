@@ -3,6 +3,17 @@
 // implementa el contrato mínimo necesario para que los handlers bajo
 // prueba compilen y se comporten como con un adaptador real en memoria.
 import { vi } from "vitest";
+import type { LearningPlan } from "@/features/my-plan/domain/entities/LearningPlan";
+import type { LearningGoal } from "@/features/my-plan/domain/entities/LearningGoal";
+import type { LearningObjective } from "@/features/my-plan/domain/entities/LearningObjective";
+import type { LearningPhase } from "@/features/my-plan/domain/entities/LearningPhase";
+import type { LearningTask } from "@/features/my-plan/domain/entities/LearningTask";
+import type { StudySchedule } from "@/features/my-plan/domain/entities/StudySchedule";
+import type { StudySession } from "@/features/my-plan/domain/entities/StudySession";
+import type { DomainEvent } from "@/features/my-plan/domain/events/DomainEvent";
+import type { DailyPlanReadModel } from "@/features/my-plan/application/dto/DailyPlanDto";
+import type { WeeklyPlanReadModel } from "@/features/my-plan/application/dto/WeeklyPlanDto";
+import type { LearningProgressReadModel } from "@/features/my-plan/application/dto/LearningProgressDto";
 
 export function makeUnitOfWork() {
   return {
@@ -35,75 +46,84 @@ export function makeLogger() {
 }
 
 export function makeEventBus() {
-  return { publish: vi.fn(async () => undefined) };
+  return {
+    publish: vi.fn(async (_events: readonly DomainEvent[]): Promise<void> => {
+      void _events;
+    }),
+  };
 }
 
 function makeRepoBase<T>() {
   return {
-    findById: vi.fn(async (_id: unknown): Promise<T | null> => null),
-    save: vi.fn(async (_entity: T): Promise<void> => undefined),
+    findById: vi.fn(async (_id: unknown): Promise<T | null> => {
+      void _id;
+      return null;
+    }),
+    save: vi.fn(async (_entity: T): Promise<void> => {
+      void _entity;
+    }),
   };
 }
 
 export function makeLearningPlanRepository() {
   return {
-    ...makeRepoBase(),
-    findActiveByStudentId: vi.fn(async () => null),
+    ...makeRepoBase<LearningPlan>(),
+    findActiveByStudentId: vi.fn(async (): Promise<LearningPlan | null> => null),
   };
 }
 
 export function makeLearningGoalRepository() {
   return {
-    ...makeRepoBase(),
-    findByLearningPlanId: vi.fn(async () => []),
-    findByLearningPlanIds: vi.fn(async () => []),
+    ...makeRepoBase<LearningGoal>(),
+    findByLearningPlanId: vi.fn(async (): Promise<LearningGoal[]> => []),
+    findByLearningPlanIds: vi.fn(async (): Promise<LearningGoal[]> => []),
   };
 }
 
 export function makeLearningObjectiveRepository() {
   return {
-    ...makeRepoBase(),
-    findByLearningGoalId: vi.fn(async () => []),
+    ...makeRepoBase<LearningObjective>(),
+    findByLearningGoalId: vi.fn(async (): Promise<LearningObjective[]> => []),
   };
 }
 
 export function makeLearningPhaseRepository() {
   return {
-    ...makeRepoBase(),
-    findByLearningPlanId: vi.fn(async () => []),
+    ...makeRepoBase<LearningPhase>(),
+    findByLearningPlanId: vi.fn(async (): Promise<LearningPhase[]> => []),
   };
 }
 
 export function makeLearningTaskRepository() {
   return {
-    ...makeRepoBase(),
-    findByLearningPhaseId: vi.fn(async () => []),
+    ...makeRepoBase<LearningTask>(),
+    findByLearningPhaseId: vi.fn(async (): Promise<LearningTask[]> => []),
   };
 }
 
 export function makeStudyScheduleRepository() {
   return {
-    ...makeRepoBase(),
-    findByLearningPlanId: vi.fn(async () => null),
+    ...makeRepoBase<StudySchedule>(),
+    findByLearningPlanId: vi.fn(async (): Promise<StudySchedule | null> => null),
   };
 }
 
 export function makeStudySessionRepository() {
   return {
-    ...makeRepoBase(),
-    findByLearningTaskId: vi.fn(async () => []),
-    findLastCompletedByStudentId: vi.fn(async () => null),
+    ...makeRepoBase<StudySession>(),
+    findByLearningTaskId: vi.fn(async (): Promise<StudySession[]> => []),
+    findLastCompletedByStudentId: vi.fn(async (): Promise<StudySession | null> => null),
   };
 }
 
 export function makeDailyPlanReadPort() {
-  return { findByLearningPlanIdAndDate: vi.fn(async () => null) };
+  return { findByLearningPlanIdAndDate: vi.fn(async (): Promise<DailyPlanReadModel | null> => null) };
 }
 
 export function makeWeeklyPlanReadPort() {
-  return { findByLearningPlanIdAndWeekNumber: vi.fn(async () => null) };
+  return { findByLearningPlanIdAndWeekNumber: vi.fn(async (): Promise<WeeklyPlanReadModel | null> => null) };
 }
 
 export function makeLearningProgressReadPort() {
-  return { findByLearningPlanId: vi.fn(async () => null) };
+  return { findByLearningPlanId: vi.fn(async (): Promise<LearningProgressReadModel | null> => null) };
 }
