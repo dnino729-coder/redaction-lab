@@ -7,7 +7,7 @@
 // este wrapper) para leer datos de un estudiante — ver
 // docs/modules/dashboard.md, sección 10, "Seguridad de datos".
 
-import type { Prisma} from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import { type PrismaClient } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
@@ -38,14 +38,22 @@ export async function withStudentContext<T>(
   callback: (tx: StudentScopedClient) => Promise<T>,
   client: PrismaClient = prisma,
 ): Promise<T> {
-  return client.$transaction(async (tx) => {
-    // SET LOCAL ROLE debe ejecutarse antes de fijar app.current_student_id:
-    // ambos son SQL crudo porque ni el nombre de rol ni las variables de
-    // sesión son parametrizables como un valor normal de consulta.
-    await tx.$executeRawUnsafe("SET LOCAL ROLE dashboard_app_role");
-    await tx.$executeRaw`SELECT set_config('app.current_student_id', ${studentId}, true)`;
-    return callback(tx);
-  });
+  return client.$transaction(
+    async (tx) => {
+      // SET LOCAL ROLE debe ejecutarse antes de fijar app.current_student_id:
+      // ambos son SQL crudo porque ni el nombre de rol ni las variables de
+      // sesión son parametrizables como un valor normal de consulta.
+      await tx.$executeRawUnsafe("SET LOCAL ROLE dashboard_app_role");
+      await tx.$executeRaw`SELECT set_config('app.current_student_id', ${studentId}, true)`;
+      return callback(tx);
+    },
+    // maxWait/timeout por defecto de Prisma (2s/5s) son insuficientes contra
+    // el pooler compartido de Supabase (pgbouncer, modo transacción) —
+    // producían P2028 "Unable to start a transaction in the given time"
+    // de forma intermitente en todos los módulos (Dashboard/Academia/My
+    // Plan/Laboratory comparten este helper).
+    { maxWait: 10_000, timeout: 15_000 },
+  );
 }
 
 /**
@@ -70,8 +78,11 @@ export async function withServiceContext<T>(
   callback: (tx: StudentScopedClient) => Promise<T>,
   client: PrismaClient = prisma,
 ): Promise<T> {
-  return client.$transaction(async (tx) => {
-    await tx.$executeRawUnsafe("SET LOCAL ROLE dashboard_service_role");
-    return callback(tx);
-  });
+  return client.$transaction(
+    async (tx) => {
+      await tx.$executeRawUnsafe("SET LOCAL ROLE dashboard_service_role");
+      return callback(tx);
+    },
+    { maxWait: 10_000, timeout: 15_000 },
+  );
 }

@@ -1,6 +1,15 @@
 "use client";
 import { useTranslations } from "next-intl";
-import { Card, CardContent, CardHeader, CardTitle, Badge, Button, Skeleton, ErrorState } from "@/components/ui";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Badge,
+  Button,
+  Skeleton,
+  ErrorState,
+} from "@/components/ui";
 import { useWritingExercises } from "../../hooks/useWritingExercises";
 import type { WritingExerciseHttp } from "../../services/writingExercisesApi";
 
@@ -23,10 +32,15 @@ function actionFor(status: string): "START" | "CONTINUE" | "REPEAT" {
   return "START";
 }
 
-export function WritingExerciseList({ onStart, onContinue, onRepeat, pendingExerciseId }: WritingExerciseListProps) {
+export function WritingExerciseList({
+  onStart,
+  onContinue,
+  onRepeat,
+  pendingExerciseId,
+}: WritingExerciseListProps) {
   const t = useTranslations("laboratory.writingWorkshop");
   const tTextType = useTranslations("laboratory.textType");
-  const { data, isLoading, isError, refetch } = useWritingExercises();
+  const { data, isLoading, isFetching, isError, refetch } = useWritingExercises();
 
   const exercises = data?.data ?? [];
   const guided = exercises.filter((exercise) => exercise.mode === "GUIDED");
@@ -49,7 +63,9 @@ export function WritingExerciseList({ onStart, onContinue, onRepeat, pendingExer
           <li key={exercise.id} className="flex items-center justify-between gap-3 text-sm">
             <div className="flex flex-col gap-1">
               <span className="text-neutral-700">{tTextType(exercise.textType)}</span>
-              <Badge variant={statusVariant(exercise.status)}>{t(`status.${exercise.status}`)}</Badge>
+              <Badge variant={statusVariant(exercise.status)}>
+                {t(`status.${exercise.status}`)}
+              </Badge>
             </div>
             <Button
               size="sm"
@@ -69,6 +85,11 @@ export function WritingExerciseList({ onStart, onContinue, onRepeat, pendingExer
     <Card>
       <CardHeader>
         <CardTitle>{t("title")}</CardTitle>
+        {/* Refetch en segundo plano tras invalidateQueries (ej. al crear un
+            ejercicio) — sin esto, la actualización automática de la lista
+            es real pero invisible mientras tarda (~1-2s por el round-trip
+            a la base de datos), y parece que "no pasó nada". */}
+        {isFetching && !isLoading && <p className="text-xs text-neutral-500">{t("refreshing")}</p>}
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
         {isLoading ? (

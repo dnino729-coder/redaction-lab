@@ -11,11 +11,16 @@ import { translatePersistenceError } from "@/features/laboratory/infrastructure/
 
 export class PrismaWritingExerciseRepository implements WritingExerciseRepository {
   public async findById(id: WritingExerciseId): Promise<WritingExercise | null> {
-    const row = await withActiveClient((client) => client.writingExercise.findUnique({ where: { id: id.value } }));
+    const row = await withActiveClient((client) =>
+      client.writingExercise.findUnique({ where: { id: id.value } }),
+    );
     return row ? WritingExercisePersistenceMapper.toDomain(row) : null;
   }
 
-  public async findAllByStudentId(studentId: StudentId, mode?: ExerciseMode): Promise<WritingExercise[]> {
+  public async findAllByStudentId(
+    studentId: StudentId,
+    mode?: ExerciseMode,
+  ): Promise<WritingExercise[]> {
     const rows = await withActiveClient((client) =>
       client.writingExercise.findMany({
         where: {
@@ -32,10 +37,8 @@ export class PrismaWritingExerciseRepository implements WritingExerciseRepositor
     const data = WritingExercisePersistenceMapper.toPersistence(exercise);
     try {
       await withActiveClient((client) =>
-        client.writingExercise.upsert({
-          where: { id: exercise.id.value },
-          create: data as Prisma.WritingExerciseUncheckedCreateInput,
-          update: data as Prisma.WritingExerciseUncheckedUpdateInput,
+        client.writingExercise.create({
+          data: data as Prisma.WritingExerciseUncheckedCreateInput,
         }),
       );
     } catch (error) {

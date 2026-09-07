@@ -216,6 +216,7 @@
     },
     "writingWorkshop": {
       "title": "Taller de escritura",
+      "refreshing": "Actualizando...",
       "guidedTitle": "Redacción guiada",
       "guidedEmpty": "Todavía no hay ejercicios guiados.",
       "autonomousTitle": "Redacción autónoma",
