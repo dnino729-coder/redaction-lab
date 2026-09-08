@@ -196,6 +196,24 @@
       "loading": "Chargement de Mon plan..."
     }
   },
+  "profile": {
+    "onboarding": {
+      "title": "Configure ton plan",
+      "description": "Dis-nous en un peu plus sur toi pour créer ton premier plan d'étude.",
+      "currentLevelLabel": "Niveau actuel",
+      "targetLevelLabel": "Niveau visé",
+      "nativeLanguageLabel": "Langue maternelle",
+      "learningGoalLabel": "Quel est ton objectif principal ?",
+      "daysPerWeekLabel": "Jours par semaine",
+      "sessionsPerDayLabel": "Sessions par jour",
+      "minutesPerSessionLabel": "Minutes par session",
+      "reminderLabel": "Rappel (optionnel)",
+      "targetExamDateLabel": "Date de l'examen (optionnelle)",
+      "submit": "Créer mon plan",
+      "submitting": "Création de ton plan...",
+      "error": "Nous n'avons pas pu terminer ton onboarding. Vérifie les informations et réessaie."
+    }
+  },
   "laboratory": {
     "devMode": {
       "title": "Mode développement",

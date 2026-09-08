@@ -65,7 +65,19 @@ module.exports = {
         zones: FEATURES.map((feature) => ({
           target: `./features/${feature}`,
           from: "./features",
-          except: [`./${feature}`],
+          // Excepción mínima y explícita: profile ↔ my-plan. El onboarding
+          // de perfil (features/profile) coordina, por diseño ya aprobado,
+          // la creación de StudentProfile y de LearningPlan reutilizando
+          // tal cual CreateLearningPlanHandler/CreateLearningPlanCommand de
+          // My Plan (sin duplicar esa lógica) — y My Plan (PlanSummaryOverview)
+          // monta el formulario de onboarding de Profile cuando no hay plan
+          // activo. Ninguna otra feature tiene ni necesita esta excepción.
+          except:
+            feature === "my-plan"
+              ? [`./${feature}`, "./profile"]
+              : feature === "profile"
+                ? [`./${feature}`, "./my-plan"]
+                : [`./${feature}`],
           message:
             "Una feature nunca debe importar directamente de otra feature (sección 5.4). Comunícate mediante services/ compartidos o, cuando exista, el Motor de Orquestación (sección 5.7).",
         })),

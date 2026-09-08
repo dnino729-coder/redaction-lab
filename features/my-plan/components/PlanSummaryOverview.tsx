@@ -7,13 +7,21 @@
 // cuenta regresiva al examen / horas estudiadas / % de avance quedan
 // pendientes de GetLearningProgressHandler (fuera de alcance de este
 // sprint).
+//
+// Cuando no hay plan activo (404), en vez del MyPlanEmptyState pasivo se
+// muestra el onboarding real (StudentOnboardingForm, features/profile/) —
+// único punto de composición cross-feature de este slice: Profile no
+// importa nada de My Plan, solo expone `onSuccess` como prop genérica;
+// aquí es donde se invalidan las queries propias de My Plan al terminar.
 import { useTranslations, useFormatter } from "next-intl";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, Badge } from "@/components/ui";
 import { ApiError } from "@/lib/apiClient";
+import { StudentOnboardingForm } from "@/features/profile/components";
 import { useActiveLearningPlan } from "../hooks/useActiveLearningPlan";
+import { myPlanKeys } from "../constants";
 import { MyPlanSkeleton } from "./MyPlanSkeleton";
 import { MyPlanErrorState } from "./MyPlanErrorState";
-import { MyPlanEmptyState } from "./MyPlanEmptyState";
 
 function statusVariant(status: string): "success" | "primary" | "neutral" {
   if (status === "COMPLETED") return "success";
@@ -24,10 +32,17 @@ function statusVariant(status: string): "success" | "primary" | "neutral" {
 export function PlanSummaryOverview() {
   const t = useTranslations("myPlan.summary");
   const format = useFormatter();
+  const queryClient = useQueryClient();
   const { data: plan, isLoading, isError, error, refetch } = useActiveLearningPlan();
 
   if (isLoading) return <MyPlanSkeleton />;
-  if (error instanceof ApiError && error.status === 404) return <MyPlanEmptyState />;
+  if (error instanceof ApiError && error.status === 404) {
+    return (
+      <StudentOnboardingForm
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: myPlanKeys.all })}
+      />
+    );
+  }
   if (isError || !plan) return <MyPlanErrorState onRetry={() => refetch()} />;
 
   return (
