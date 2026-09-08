@@ -177,6 +177,12 @@
       "reorganizeCta": "Demander une reprogrammation",
       "reorganizeDisabledHint": "Bientôt disponible — nécessite le Learning Planner (docs/modules/mi-plan.md, Vacío 8), pas encore implémenté."
     },
+    "progress": {
+      "title": "Progrès",
+      "completionLabel": "Avancement du plan",
+      "tasksCompleted": "{completed} tâches sur {total} terminées",
+      "currentStreak": "{count, plural, =0 {Aucune série active} one {# jour de série} other {# jours de série}}"
+    },
     "empty": {
       "title": "Aucun plan actif pour le moment",
       "description": "Ton prochain plan sera créé automatiquement — tu n'as rien à faire ici."

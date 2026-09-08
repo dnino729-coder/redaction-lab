@@ -3,6 +3,7 @@ export { TrainingCalendar } from "./TrainingCalendar";
 export { GoalsAndObjectives } from "./GoalsAndObjectives";
 export { PhasesAndTasks } from "./PhasesAndTasks";
 export { PlanConfiguration } from "./PlanConfiguration";
+export { LearningProgressOverview } from "./LearningProgressOverview";
 export { MyPlanEmptyState } from "./MyPlanEmptyState";
 export { MyPlanErrorState } from "./MyPlanErrorState";
 export { MyPlanSkeleton } from "./MyPlanSkeleton";

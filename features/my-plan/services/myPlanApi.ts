@@ -27,6 +27,16 @@ export interface StudyScheduleHttp {
   reminderMinute: number | null;
 }
 
+export interface LearningProgressHttp {
+  id: string;
+  learningPlanId: string;
+  completedTasks: number;
+  totalTasks: number;
+  completionPercentage: number;
+  currentStreak: number;
+  updatedAt: string;
+}
+
 const BASE = "/api/v1/my-plan";
 
 export async function getActiveLearningPlan(): Promise<LearningPlanHttp> {
@@ -35,4 +45,8 @@ export async function getActiveLearningPlan(): Promise<LearningPlanHttp> {
 
 export async function getStudySchedule(): Promise<StudyScheduleHttp> {
   return apiFetch<StudyScheduleHttp>(`${BASE}/study-schedule`);
+}
+
+export async function getLearningProgress(): Promise<LearningProgressHttp> {
+  return apiFetch<LearningProgressHttp>(`${BASE}/progress`);
 }
