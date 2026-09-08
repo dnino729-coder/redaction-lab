@@ -37,6 +37,29 @@ export interface LearningProgressHttp {
   updatedAt: string;
 }
 
+// 4 valores, no 3: el dominio (`GoalPriority`, features/my-plan/domain/
+// enums/GoalPriority.ts) y la columna Prisma (`Priority`) sí incluyen
+// `CRITICAL` — a diferencia del tipo de presentación previo
+// (`features/my-plan/types/myPlan.types.ts`, usado por el mock, que solo
+// declaraba 3) que nunca lo ejercitó porque el mock jamás generaba ese
+// valor. Con datos reales, `CRITICAL` es alcanzable (aunque hoy el único
+// productor, el onboarding, siempre usa MEDIUM) — se completa aquí para
+// no dejar un valor de dominio real sin representar en la capa HTTP.
+export type LearningGoalPriorityHttp = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+export type LearningGoalStatusHttp = "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+
+export interface LearningGoalSummaryHttp {
+  id: string;
+  title: string;
+  priority: LearningGoalPriorityHttp;
+  status: LearningGoalStatusHttp;
+}
+
+export interface LearningGoalsHttp {
+  active: LearningGoalSummaryHttp[];
+  completed: LearningGoalSummaryHttp[];
+}
+
 const BASE = "/api/v1/my-plan";
 
 export async function getActiveLearningPlan(): Promise<LearningPlanHttp> {
@@ -49,4 +72,8 @@ export async function getStudySchedule(): Promise<StudyScheduleHttp> {
 
 export async function getLearningProgress(): Promise<LearningProgressHttp> {
   return apiFetch<LearningProgressHttp>(`${BASE}/progress`);
+}
+
+export async function getLearningGoals(): Promise<LearningGoalsHttp> {
+  return apiFetch<LearningGoalsHttp>(`${BASE}/goals`);
 }

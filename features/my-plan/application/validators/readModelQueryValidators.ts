@@ -2,6 +2,7 @@ import { ValidationException } from "../exceptions/ValidationException";
 import type { GetDailyPlanRequestDto } from "../dto/DailyPlanDto";
 import type { GetWeeklyPlanRequestDto } from "../dto/WeeklyPlanDto";
 import type { GetLearningProgressRequestDto } from "../dto/LearningProgressDto";
+import type { GetLearningGoalsRequestDto } from "../dto/LearningGoalDto";
 import { requireUuid, requireIsoDate, requireIntegerInRange, collectErrors } from "./primitives";
 
 export function validateGetDailyPlanRequest(request: GetDailyPlanRequestDto): void {
@@ -21,6 +22,11 @@ export function validateGetWeeklyPlanRequest(request: GetWeeklyPlanRequestDto): 
 }
 
 export function validateGetLearningProgressRequest(request: GetLearningProgressRequestDto): void {
+  const errors = collectErrors(requireUuid(request.studentId, "studentId"));
+  if (errors.length > 0) throw new ValidationException(errors);
+}
+
+export function validateGetLearningGoalsRequest(request: GetLearningGoalsRequestDto): void {
   const errors = collectErrors(requireUuid(request.studentId, "studentId"));
   if (errors.length > 0) throw new ValidationException(errors);
 }

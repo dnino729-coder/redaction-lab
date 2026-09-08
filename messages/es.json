@@ -147,7 +147,8 @@
       "priority": {
         "LOW": "Prioridad baja",
         "MEDIUM": "Prioridad media",
-        "HIGH": "Prioridad alta"
+        "HIGH": "Prioridad alta",
+        "CRITICAL": "Prioridad crítica"
       }
     },
     "phases": {

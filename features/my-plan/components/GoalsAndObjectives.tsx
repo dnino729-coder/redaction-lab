@@ -1,22 +1,38 @@
 "use client";
 // GoalsAndObjectives — bloque 3 "Objetivos y metas" (docs/modules/mi-plan.md,
-// Vacío 1). LearningGoal (con prioridad) — activos y completados.
+// Vacío 1). Se autoalimenta desde GetLearningGoalsHandler vía
+// useLearningGoals() (mismo patrón que PlanSummaryOverview/PlanConfiguration/
+// LearningProgressOverview) — ya no recibe `goals` como prop/mock. Muestra
+// LearningGoal (con prioridad) reales, activos y completados.
+//
+// LearningObjective NO se consume aquí — la auditoría confirmó que esta UI
+// nunca los renderizó, pese al nombre del componente (fuera de alcance de
+// este slice).
 import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle, Badge } from "@/components/ui";
-import type { GoalsBlock, LearningGoalItem } from "../types";
+import { ApiError } from "@/lib/apiClient";
+import type { LearningGoalPriorityHttp } from "../services/myPlanApi";
+import { useLearningGoals } from "../hooks/useLearningGoals";
+import { MyPlanSkeleton } from "./MyPlanSkeleton";
+import { MyPlanErrorState } from "./MyPlanErrorState";
+import { MyPlanEmptyState } from "./MyPlanEmptyState";
 
-export interface GoalsAndObjectivesProps {
-  goals: GoalsBlock;
-}
-
-function priorityVariant(priority: LearningGoalItem["priority"]): "danger" | "warning" | "neutral" {
-  if (priority === "HIGH") return "danger";
+function priorityVariant(priority: LearningGoalPriorityHttp): "danger" | "warning" | "neutral" {
+  // CRITICAL comparte el tier visual más alto con HIGH — el primitivo
+  // Badge no distingue un quinto nivel ("danger" es su variante más
+  // fuerte), y no se justifica crear uno nuevo solo para este slice.
+  if (priority === "HIGH" || priority === "CRITICAL") return "danger";
   if (priority === "MEDIUM") return "warning";
   return "neutral";
 }
 
-export function GoalsAndObjectives({ goals }: GoalsAndObjectivesProps) {
+export function GoalsAndObjectives() {
   const t = useTranslations("myPlan.goals");
+  const { data: goals, isLoading, isError, error, refetch } = useLearningGoals();
+
+  if (isLoading) return <MyPlanSkeleton />;
+  if (error instanceof ApiError && error.status === 404) return <MyPlanEmptyState />;
+  if (isError || !goals) return <MyPlanErrorState onRetry={() => refetch()} />;
 
   return (
     <Card>
@@ -35,7 +51,9 @@ export function GoalsAndObjectives({ goals }: GoalsAndObjectivesProps) {
               {goals.active.map((goal) => (
                 <li key={goal.id} className="flex items-center justify-between gap-3 text-sm">
                   <span className="text-neutral-700">{goal.title}</span>
-                  <Badge variant={priorityVariant(goal.priority)}>{t(`priority.${goal.priority}`)}</Badge>
+                  <Badge variant={priorityVariant(goal.priority)}>
+                    {t(`priority.${goal.priority}`)}
+                  </Badge>
                 </li>
               ))}
             </ul>
@@ -51,7 +69,10 @@ export function GoalsAndObjectives({ goals }: GoalsAndObjectivesProps) {
           ) : (
             <ul className="flex flex-col gap-2">
               {goals.completed.map((goal) => (
-                <li key={goal.id} className="flex items-center gap-2 text-sm text-neutral-400 line-through">
+                <li
+                  key={goal.id}
+                  className="flex items-center gap-2 text-sm text-neutral-400 line-through"
+                >
                   {goal.title}
                 </li>
               ))}

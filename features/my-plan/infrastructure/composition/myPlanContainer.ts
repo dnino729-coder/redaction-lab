@@ -58,6 +58,7 @@ import { GetDailyPlanHandler } from "@/features/my-plan/application/handlers/Get
 import { GetWeeklyPlanHandler } from "@/features/my-plan/application/handlers/GetWeeklyPlanHandler";
 import { GetLearningProgressHandler } from "@/features/my-plan/application/handlers/GetLearningProgressHandler";
 import { GetStudyScheduleHandler } from "@/features/my-plan/application/handlers/GetStudyScheduleHandler";
+import { GetLearningGoalsHandler } from "@/features/my-plan/application/handlers/GetLearningGoalsHandler";
 
 export interface MyPlanContainer {
   readonly repositories: {
@@ -97,6 +98,7 @@ export interface MyPlanContainer {
     readonly getWeeklyPlan: GetWeeklyPlanHandler;
     readonly getLearningProgress: GetLearningProgressHandler;
     readonly getStudySchedule: GetStudyScheduleHandler;
+    readonly getLearningGoals: GetLearningGoalsHandler;
   };
 }
 
@@ -143,8 +145,16 @@ export function createMyPlanContainer(): MyPlanContainer {
       domainEventPublisher,
       ports.logger,
     ),
-    pauseLearningPlan: new PauseLearningPlanHandler(repositories.learningPlan, ports.unitOfWork, ports.logger),
-    resumeLearningPlan: new ResumeLearningPlanHandler(repositories.learningPlan, ports.unitOfWork, ports.logger),
+    pauseLearningPlan: new PauseLearningPlanHandler(
+      repositories.learningPlan,
+      ports.unitOfWork,
+      ports.logger,
+    ),
+    resumeLearningPlan: new ResumeLearningPlanHandler(
+      repositories.learningPlan,
+      ports.unitOfWork,
+      ports.logger,
+    ),
     cancelLearningPlan: new CancelLearningPlanHandler(
       repositories.learningPlan,
       ports.unitOfWork,
@@ -216,6 +226,12 @@ export function createMyPlanContainer(): MyPlanContainer {
     getStudySchedule: new GetStudyScheduleHandler(
       repositories.learningPlan,
       repositories.studySchedule,
+      ports.unitOfWork,
+      ports.logger,
+    ),
+    getLearningGoals: new GetLearningGoalsHandler(
+      repositories.learningPlan,
+      repositories.learningGoal,
       ports.unitOfWork,
       ports.logger,
     ),

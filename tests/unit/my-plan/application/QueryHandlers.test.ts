@@ -9,15 +9,22 @@ import { GetLearningProgressHandler } from "@/features/my-plan/application/handl
 import { GetLearningProgressQuery } from "@/features/my-plan/application/queries/GetLearningProgressQuery";
 import { GetStudyScheduleHandler } from "@/features/my-plan/application/handlers/GetStudyScheduleHandler";
 import { GetStudyScheduleQuery } from "@/features/my-plan/application/queries/GetStudyScheduleQuery";
+import { GetLearningGoalsHandler } from "@/features/my-plan/application/handlers/GetLearningGoalsHandler";
+import { GetLearningGoalsQuery } from "@/features/my-plan/application/queries/GetLearningGoalsQuery";
 import { ResourceNotFoundException } from "@/features/my-plan/application/exceptions/ResourceNotFoundException";
+import { ValidationException } from "@/features/my-plan/application/exceptions/ValidationException";
 import { LearningPlan } from "@/features/my-plan/domain/entities/LearningPlan";
+import { LearningGoal } from "@/features/my-plan/domain/entities/LearningGoal";
 import { StudySchedule } from "@/features/my-plan/domain/entities/StudySchedule";
 import { StudyFrequency } from "@/features/my-plan/domain/value-objects/StudyFrequency";
 import { LearningPlanId } from "@/features/my-plan/domain/value-objects/LearningPlanId";
+import { LearningGoalId } from "@/features/my-plan/domain/value-objects/LearningGoalId";
 import { StudyScheduleId } from "@/features/my-plan/domain/value-objects/StudyScheduleId";
 import { StudentId } from "@/features/my-plan/domain/value-objects/StudentId";
+import { GoalPriority } from "@/features/my-plan/domain/enums/GoalPriority";
 import {
   makeLearningPlanRepository,
+  makeLearningGoalRepository,
   makeStudyScheduleRepository,
   makeDailyPlanReadPort,
   makeWeeklyPlanReadPort,
@@ -64,7 +71,9 @@ describe("GetActiveLearningPlanHandler", () => {
     );
 
     await expect(
-      handler.handle(GetActiveLearningPlanQuery.fromRequest({ studentId: APP_FIXTURE_IDS.student })),
+      handler.handle(
+        GetActiveLearningPlanQuery.fromRequest({ studentId: APP_FIXTURE_IDS.student }),
+      ),
     ).rejects.toBeInstanceOf(ResourceNotFoundException);
   });
 });
@@ -170,7 +179,11 @@ describe("GetStudyScheduleHandler", () => {
     const schedule = StudySchedule.create({
       id: StudyScheduleId.create(APP_FIXTURE_IDS.schedule),
       learningPlanId: plan.id,
-      frequency: StudyFrequency.create({ daysPerWeek: 4, sessionsPerDay: 1, minutesPerSession: 25 }),
+      frequency: StudyFrequency.create({
+        daysPerWeek: 4,
+        sessionsPerDay: 1,
+        minutesPerSession: 25,
+      }),
     });
     studyScheduleRepository.findByLearningPlanId.mockResolvedValue(schedule);
     const unitOfWork = makeUnitOfWork();
@@ -181,8 +194,176 @@ describe("GetStudyScheduleHandler", () => {
       makeLogger() as never,
     );
 
-    const result = await handler.handle(GetStudyScheduleQuery.fromRequest({ studentId: APP_FIXTURE_IDS.student }));
+    const result = await handler.handle(
+      GetStudyScheduleQuery.fromRequest({ studentId: APP_FIXTURE_IDS.student }),
+    );
     expect(result.daysPerWeek).toBe(4);
     expect(unitOfWork.execute).toHaveBeenCalledWith(expect.any(Function), APP_FIXTURE_IDS.student);
+  });
+});
+
+function buildGoal(
+  idSuffix: string,
+  title: string,
+  status: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED",
+) {
+  const goal = LearningGoal.create({
+    id: LearningGoalId.create(`22222222-2222-4222-8222-2222222222${idSuffix}`),
+    learningPlanId: LearningPlanId.create(APP_FIXTURE_IDS.plan),
+    title,
+    priority: GoalPriority.MEDIUM,
+  });
+  if (status === "IN_PROGRESS") goal.recalculateStatus(["IN_PROGRESS" as never], new Date());
+  if (status === "COMPLETED") goal.recalculateStatus(["COMPLETED" as never], new Date());
+  if (status === "CANCELLED") goal.cancel();
+  return goal;
+}
+
+describe("GetLearningGoalsHandler", () => {
+  it("1. plan activo con un único goal activo: lo devuelve en `active`, `completed` vacío", async () => {
+    const learningPlanRepository = makeLearningPlanRepository();
+    learningPlanRepository.findActiveByStudentId.mockResolvedValue(buildActivePlan());
+    const learningGoalRepository = makeLearningGoalRepository();
+    learningGoalRepository.findByLearningPlanId.mockResolvedValue([
+      buildGoal("01", "Meta 1", "NOT_STARTED"),
+    ]);
+    const unitOfWork = makeUnitOfWork();
+    const handler = new GetLearningGoalsHandler(
+      learningPlanRepository as never,
+      learningGoalRepository as never,
+      unitOfWork as never,
+      makeLogger() as never,
+    );
+
+    const result = await handler.handle(
+      GetLearningGoalsQuery.fromRequest({ studentId: APP_FIXTURE_IDS.student }),
+    );
+    expect(result.active).toHaveLength(1);
+    expect(result.completed).toHaveLength(0);
+    expect(result.active[0]).toEqual({
+      id: expect.any(String),
+      title: "Meta 1",
+      priority: "MEDIUM",
+      status: "NOT_STARTED",
+    });
+    expect(unitOfWork.execute).toHaveBeenCalledWith(expect.any(Function), APP_FIXTURE_IDS.student);
+  });
+
+  it("2/6. separa correctamente goals activos y completados, y excluye CANCELLED de ambos grupos", async () => {
+    const learningPlanRepository = makeLearningPlanRepository();
+    const plan = buildActivePlan();
+    learningPlanRepository.findActiveByStudentId.mockResolvedValue(plan);
+    const learningGoalRepository = makeLearningGoalRepository();
+    learningGoalRepository.findByLearningPlanId.mockResolvedValue([
+      buildGoal("01", "Not started", "NOT_STARTED"),
+      buildGoal("02", "In progress", "IN_PROGRESS"),
+      buildGoal("03", "Completed", "COMPLETED"),
+      buildGoal("04", "Cancelled", "CANCELLED"),
+    ]);
+    const handler = new GetLearningGoalsHandler(
+      learningPlanRepository as never,
+      learningGoalRepository as never,
+      makeUnitOfWork() as never,
+      makeLogger() as never,
+    );
+
+    const result = await handler.handle(
+      GetLearningGoalsQuery.fromRequest({ studentId: APP_FIXTURE_IDS.student }),
+    );
+    expect(result.active.map((g) => g.title)).toEqual(["Not started", "In progress"]);
+    expect(result.completed.map((g) => g.title)).toEqual(["Completed"]);
+    // El goal CANCELLED no aparece en ninguno de los dos grupos.
+    expect([...result.active, ...result.completed].some((g) => g.title === "Cancelled")).toBe(
+      false,
+    );
+  });
+
+  it("3. sin plan activo: lanza ResourceNotFoundException y no consulta el repositorio de goals", async () => {
+    const learningPlanRepository = makeLearningPlanRepository();
+    const learningGoalRepository = makeLearningGoalRepository();
+    const handler = new GetLearningGoalsHandler(
+      learningPlanRepository as never,
+      learningGoalRepository as never,
+      makeUnitOfWork() as never,
+      makeLogger() as never,
+    );
+
+    await expect(
+      handler.handle(GetLearningGoalsQuery.fromRequest({ studentId: APP_FIXTURE_IDS.student })),
+    ).rejects.toBeInstanceOf(ResourceNotFoundException);
+    expect(learningGoalRepository.findByLearningPlanId).not.toHaveBeenCalled();
+  });
+
+  it("4. el repositorio devuelve una lista vacía: responde con ambos grupos vacíos, sin lanzar", async () => {
+    const learningPlanRepository = makeLearningPlanRepository();
+    learningPlanRepository.findActiveByStudentId.mockResolvedValue(buildActivePlan());
+    const learningGoalRepository = makeLearningGoalRepository();
+    learningGoalRepository.findByLearningPlanId.mockResolvedValue([]);
+    const handler = new GetLearningGoalsHandler(
+      learningPlanRepository as never,
+      learningGoalRepository as never,
+      makeUnitOfWork() as never,
+      makeLogger() as never,
+    );
+
+    const result = await handler.handle(
+      GetLearningGoalsQuery.fromRequest({ studentId: APP_FIXTURE_IDS.student }),
+    );
+    expect(result).toEqual({ active: [], completed: [] });
+  });
+
+  it("5. error del repositorio de goals: se propaga sin ser capturado", async () => {
+    const learningPlanRepository = makeLearningPlanRepository();
+    learningPlanRepository.findActiveByStudentId.mockResolvedValue(buildActivePlan());
+    const learningGoalRepository = makeLearningGoalRepository();
+    learningGoalRepository.findByLearningPlanId.mockRejectedValue(new Error("db down"));
+    const handler = new GetLearningGoalsHandler(
+      learningPlanRepository as never,
+      learningGoalRepository as never,
+      makeUnitOfWork() as never,
+      makeLogger() as never,
+    );
+
+    await expect(
+      handler.handle(GetLearningGoalsQuery.fromRequest({ studentId: APP_FIXTURE_IDS.student })),
+    ).rejects.toThrow("db down");
+  });
+
+  it("7. resuelve el learningPlanId server-side desde el plan activo del estudiante — no acepta uno externo", async () => {
+    const learningPlanRepository = makeLearningPlanRepository();
+    const plan = buildActivePlan();
+    learningPlanRepository.findActiveByStudentId.mockResolvedValue(plan);
+    const learningGoalRepository = makeLearningGoalRepository();
+    learningGoalRepository.findByLearningPlanId.mockResolvedValue([]);
+    const handler = new GetLearningGoalsHandler(
+      learningPlanRepository as never,
+      learningGoalRepository as never,
+      makeUnitOfWork() as never,
+      makeLogger() as never,
+    );
+
+    // GetLearningGoalsRequestDto no declara ningún campo learningPlanId —
+    // la única entrada posible es studentId; el plan se resuelve aquí.
+    await handler.handle(GetLearningGoalsQuery.fromRequest({ studentId: APP_FIXTURE_IDS.student }));
+    expect(learningPlanRepository.findActiveByStudentId).toHaveBeenCalledWith(
+      StudentId.create(APP_FIXTURE_IDS.student),
+    );
+    expect(learningGoalRepository.findByLearningPlanId).toHaveBeenCalledWith(plan.id);
+  });
+
+  it("rechaza un studentId inválido antes de tocar cualquier repositorio", async () => {
+    const learningPlanRepository = makeLearningPlanRepository();
+    const learningGoalRepository = makeLearningGoalRepository();
+    const handler = new GetLearningGoalsHandler(
+      learningPlanRepository as never,
+      learningGoalRepository as never,
+      makeUnitOfWork() as never,
+      makeLogger() as never,
+    );
+
+    await expect(
+      handler.handle(GetLearningGoalsQuery.fromRequest({ studentId: "not-a-uuid" })),
+    ).rejects.toBeInstanceOf(ValidationException);
+    expect(learningPlanRepository.findActiveByStudentId).not.toHaveBeenCalled();
   });
 });
