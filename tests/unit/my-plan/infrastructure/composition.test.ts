@@ -8,7 +8,7 @@ describe("createMyPlanContainer (DI)", () => {
     expect(Object.keys(container.repositories)).toHaveLength(7);
     expect(Object.keys(container.queryServices)).toHaveLength(3);
     expect(Object.keys(container.ports)).toHaveLength(6);
-    expect(Object.keys(container.handlers)).toHaveLength(15);
+    expect(Object.keys(container.handlers)).toHaveLength(16);
   });
 
   it("cada llamada produce una instancia nueva e independiente (sin estado compartido accidental)", () => {

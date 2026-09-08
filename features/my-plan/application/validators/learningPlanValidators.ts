@@ -6,6 +6,7 @@ import type {
   CancelLearningPlanRequestDto,
   GetActiveLearningPlanRequestDto,
 } from "../dto/LearningPlanDto";
+import type { GenerateInitialPlanStructureRequestDto } from "../dto/GenerateInitialPlanStructureDto";
 import {
   requireUuid,
   requireNonEmptyString,
@@ -40,7 +41,9 @@ export function validateCreateLearningPlanRequest(request: CreateLearningPlanReq
     // 13.4 MUST: "cada plan debe contener al menos un objetivo" — se
     // valida aquí como requisito sintáctico de completitud de la
     // solicitud (ver informe de entrega, "Ambigüedad reportada").
-    errors.push("initialGoals debe contener al menos 1 meta (13.4 MUST: todo plan requiere ≥1 objetivo).");
+    errors.push(
+      "initialGoals debe contener al menos 1 meta (13.4 MUST: todo plan requiere ≥1 objetivo).",
+    );
   } else {
     request.initialGoals.forEach((goal, index) => {
       errors.push(
@@ -64,14 +67,27 @@ export function validateCreateLearningPlanRequest(request: CreateLearningPlanReq
       ...collectErrors(
         requireIntegerInRange(schedule.daysPerWeek, "studySchedule.daysPerWeek", 1, 7),
         requireIntegerInRange(schedule.sessionsPerDay, "studySchedule.sessionsPerDay", 1, 24),
-        requireIntegerInRange(schedule.minutesPerSession, "studySchedule.minutesPerSession", 1, 1440),
+        requireIntegerInRange(
+          schedule.minutesPerSession,
+          "studySchedule.minutesPerSession",
+          1,
+          1440,
+        ),
       ),
     );
     if (schedule.reminderHour !== undefined) {
-      errors.push(...collectErrors(requireIntegerInRange(schedule.reminderHour, "studySchedule.reminderHour", 0, 23)));
+      errors.push(
+        ...collectErrors(
+          requireIntegerInRange(schedule.reminderHour, "studySchedule.reminderHour", 0, 23),
+        ),
+      );
     }
     if (schedule.reminderMinute !== undefined) {
-      errors.push(...collectErrors(requireIntegerInRange(schedule.reminderMinute, "studySchedule.reminderMinute", 0, 59)));
+      errors.push(
+        ...collectErrors(
+          requireIntegerInRange(schedule.reminderMinute, "studySchedule.reminderMinute", 0, 59),
+        ),
+      );
     }
   }
 
@@ -102,7 +118,19 @@ export function validateCancelLearningPlanRequest(request: CancelLearningPlanReq
   if (errors.length > 0) throw new ValidationException(errors);
 }
 
-export function validateGetActiveLearningPlanRequest(request: GetActiveLearningPlanRequestDto): void {
+export function validateGetActiveLearningPlanRequest(
+  request: GetActiveLearningPlanRequestDto,
+): void {
   const errors = collectErrors(requireUuid(request.studentId, "studentId"));
+  if (errors.length > 0) throw new ValidationException(errors);
+}
+
+// Sin `studentId`: comando interno servidor-a-servidor, nunca invocado
+// directamente por una petición de estudiante (ver
+// GenerateInitialPlanStructureDto.ts).
+export function validateGenerateInitialPlanStructureRequest(
+  request: GenerateInitialPlanStructureRequestDto,
+): void {
+  const errors = collectErrors(requireUuid(request.learningPlanId, "learningPlanId"));
   if (errors.length > 0) throw new ValidationException(errors);
 }

@@ -9,6 +9,7 @@ import { StudentId } from "@/features/profile/domain/value-objects/StudentId";
 import type { StudentProfileRepository } from "@/features/profile/domain/repositories/StudentProfileRepository";
 import type { LearningPlanRepository } from "@/features/my-plan/domain/repositories/LearningPlanRepository";
 import type { CreateLearningPlanHandler } from "@/features/my-plan/application/handlers/CreateLearningPlanHandler";
+import type { GenerateInitialPlanStructureHandler } from "@/features/my-plan/application/handlers/GenerateInitialPlanStructureHandler";
 
 const FIXTURE = {
   student: "b1b1b1b1-0000-4000-8000-000000000001",
@@ -62,29 +63,55 @@ function makeLogger() {
   return { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
 }
 
+function makeGenerateInitialPlanStructureHandler(): GenerateInitialPlanStructureHandler {
+  return {
+    handle: vi.fn(async () => ({
+      learningPlanId: "dddddddd-0000-4000-8000-000000000001",
+      created: true,
+      phasesCreated: 1,
+      tasksCreated: 1,
+    })),
+  } as unknown as GenerateInitialPlanStructureHandler;
+}
+
 function buildHandler(overrides?: {
   studentProfileRepository?: StudentProfileRepository;
   learningPlanRepository?: LearningPlanRepository;
   createLearningPlanHandler?: CreateLearningPlanHandler;
+  generateInitialPlanStructureHandler?: GenerateInitialPlanStructureHandler;
 }) {
   const studentProfileRepository =
     overrides?.studentProfileRepository ?? makeStudentProfileRepository();
   const learningPlanRepository = overrides?.learningPlanRepository ?? makeLearningPlanRepository();
   const createLearningPlanHandler =
     overrides?.createLearningPlanHandler ?? makeCreateLearningPlanHandler();
+  const generateInitialPlanStructureHandler =
+    overrides?.generateInitialPlanStructureHandler ?? makeGenerateInitialPlanStructureHandler();
   const handler = new CompleteStudentOnboardingHandler(
     studentProfileRepository,
     learningPlanRepository,
     createLearningPlanHandler,
+    generateInitialPlanStructureHandler,
     { generate: () => "aaaaaaaa-0000-4000-8000-000000000001" },
     makeLogger() as never,
   );
-  return { handler, studentProfileRepository, learningPlanRepository, createLearningPlanHandler };
+  return {
+    handler,
+    studentProfileRepository,
+    learningPlanRepository,
+    createLearningPlanHandler,
+    generateInitialPlanStructureHandler,
+  };
 }
 
 describe("CompleteStudentOnboardingHandler", () => {
-  it("1. sin perfil + sin plan: crea perfil y plan", async () => {
-    const { handler, studentProfileRepository, createLearningPlanHandler } = buildHandler();
+  it("1. sin perfil + sin plan: crea perfil y plan, y genera la estructura inicial", async () => {
+    const {
+      handler,
+      studentProfileRepository,
+      createLearningPlanHandler,
+      generateInitialPlanStructureHandler,
+    } = buildHandler();
 
     const result = await handler.handle(
       CompleteStudentOnboardingCommand.fromRequest(VALID_REQUEST),
@@ -92,8 +119,24 @@ describe("CompleteStudentOnboardingHandler", () => {
 
     expect(studentProfileRepository.create).toHaveBeenCalledTimes(1);
     expect(createLearningPlanHandler.handle).toHaveBeenCalledTimes(1);
+    expect(generateInitialPlanStructureHandler.handle).toHaveBeenCalledTimes(1);
+    const structureCommand = vi.mocked(generateInitialPlanStructureHandler.handle).mock
+      .calls[0]![0];
+    expect(structureCommand.request.learningPlanId).toBe("dddddddd-0000-4000-8000-000000000001");
     expect(result.learningPlanId).toBe("dddddddd-0000-4000-8000-000000000001");
     expect(result.studentProfile.nativeLanguage).toBe("Español");
+  });
+
+  it("7. si la generación de la estructura inicial falla, el error se propaga (no se silencia)", async () => {
+    const generateInitialPlanStructureHandler = makeGenerateInitialPlanStructureHandler();
+    vi.mocked(generateInitialPlanStructureHandler.handle).mockRejectedValue(
+      new Error("structure generation failed"),
+    );
+    const { handler } = buildHandler({ generateInitialPlanStructureHandler });
+
+    await expect(
+      handler.handle(CompleteStudentOnboardingCommand.fromRequest(VALID_REQUEST)),
+    ).rejects.toThrow("structure generation failed");
   });
 
   it("2. perfil existente + sin plan: NO crea perfil, sí crea plan (recuperación)", async () => {

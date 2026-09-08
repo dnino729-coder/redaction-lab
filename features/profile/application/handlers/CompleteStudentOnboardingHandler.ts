@@ -14,6 +14,17 @@ import type { LearningPlanRepository } from "@/features/my-plan/domain/repositor
 import { StudentId as MyPlanStudentId } from "@/features/my-plan/domain/value-objects/StudentId";
 import type { CreateLearningPlanHandler } from "@/features/my-plan/application/handlers/CreateLearningPlanHandler";
 import { CreateLearningPlanCommand } from "@/features/my-plan/application/commands/CreateLearningPlanCommand";
+// Segunda llamada al mismo módulo My Plan, mismo punto único de
+// acoplamiento ya aprobado arriba — NO es una tercera excepción de
+// .eslintrc.cjs (la zona profile↔my-plan ya permite cualquier import desde
+// "./my-plan"). GenerateInitialPlanStructureHandler es un productor
+// determinista (fases/tareas estructurales), deliberadamente NO llamado
+// "LearningPlanner" — ver su propio archivo para la justificación
+// completa. Se invoca aquí, en una TERCERA transacción independiente,
+// después de que CreateLearningPlanHandler ya confirmó la suya — nunca se
+// anida ninguna transacción.
+import type { GenerateInitialPlanStructureHandler } from "@/features/my-plan/application/handlers/GenerateInitialPlanStructureHandler";
+import { GenerateInitialPlanStructureCommand } from "@/features/my-plan/application/commands/GenerateInitialPlanStructureCommand";
 
 import type { CompleteStudentOnboardingCommand } from "../commands/CompleteStudentOnboardingCommand";
 import type { CompleteStudentOnboardingResponseDto } from "../dto/CompleteStudentOnboardingDto";
@@ -36,6 +47,7 @@ export class CompleteStudentOnboardingHandler {
     private readonly studentProfileRepository: StudentProfileRepository,
     private readonly learningPlanRepository: LearningPlanRepository,
     private readonly createLearningPlanHandler: CreateLearningPlanHandler,
+    private readonly generateInitialPlanStructureHandler: GenerateInitialPlanStructureHandler,
     private readonly uuidGenerator: UuidGenerator,
     private readonly logger: Logger,
   ) {}
@@ -99,6 +111,26 @@ export class CompleteStudentOnboardingHandler {
           reminderMinute: request.reminderMinute ?? undefined,
         },
       }),
+    );
+
+    // Tercera transacción independiente, tras confirmar la del plan.
+    // GenerateInitialPlanStructureHandler es idempotente por diseño (ver
+    // su propio archivo) — no genera duplicados si esta llamada se
+    // reintenta con el mismo learningPlanId.
+    //
+    // Riesgo conocido, documentado deliberadamente en vez de resuelto aquí
+    // (fuera de alcance de este slice, ver auditoría "Learning Planner
+    // Architecture Audit", sección 26): si esta llamada falla, la petición
+    // completa falla (el error se propaga, nunca se silencia) dejando
+    // StudentProfile + LearningPlan ya confirmados pero sin
+    // LearningPhase/LearningTask. Un reintento del onboarding completo NO
+    // repara este caso por sí solo: el Estado C de arriba (perfil + plan
+    // activo ya existen) seguiría respondiendo ConflictException antes de
+    // llegar a esta línea — extender esa comprobación para permitir
+    // reintentar solo la generación de estructura es una decisión
+    // deliberadamente fuera de alcance de este slice.
+    await this.generateInitialPlanStructureHandler.handle(
+      GenerateInitialPlanStructureCommand.fromRequest({ learningPlanId: planDto.id }),
     );
 
     this.logger.info("Onboarding completado", {

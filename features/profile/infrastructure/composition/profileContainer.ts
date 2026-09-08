@@ -44,6 +44,7 @@ export function createProfileContainer(): ProfileContainer {
       repositories.studentProfile,
       myPlan.repositories.learningPlan,
       myPlan.handlers.createLearningPlan,
+      myPlan.handlers.generateInitialPlanStructure,
       ports.uuidGenerator,
       ports.logger,
     ),

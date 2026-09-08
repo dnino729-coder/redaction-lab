@@ -7,3 +7,4 @@ export * from "./UpdateLearningObjectiveCommand";
 export * from "./CreateStudySessionCommand";
 export * from "./UpdateStudyScheduleCommand";
 export * from "./RequestPlanReorganizationCommand";
+export * from "./GenerateInitialPlanStructureCommand";

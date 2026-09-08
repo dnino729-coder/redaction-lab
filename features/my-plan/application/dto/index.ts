@@ -8,3 +8,4 @@ export * from "./PlanReorganizationDto";
 export * from "./DailyPlanDto";
 export * from "./WeeklyPlanDto";
 export * from "./LearningProgressDto";
+export * from "./GenerateInitialPlanStructureDto";

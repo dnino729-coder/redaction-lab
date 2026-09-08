@@ -59,6 +59,7 @@ import { GetWeeklyPlanHandler } from "@/features/my-plan/application/handlers/Ge
 import { GetLearningProgressHandler } from "@/features/my-plan/application/handlers/GetLearningProgressHandler";
 import { GetStudyScheduleHandler } from "@/features/my-plan/application/handlers/GetStudyScheduleHandler";
 import { GetLearningGoalsHandler } from "@/features/my-plan/application/handlers/GetLearningGoalsHandler";
+import { GenerateInitialPlanStructureHandler } from "@/features/my-plan/application/handlers/GenerateInitialPlanStructureHandler";
 
 export interface MyPlanContainer {
   readonly repositories: {
@@ -99,6 +100,7 @@ export interface MyPlanContainer {
     readonly getLearningProgress: GetLearningProgressHandler;
     readonly getStudySchedule: GetStudyScheduleHandler;
     readonly getLearningGoals: GetLearningGoalsHandler;
+    readonly generateInitialPlanStructure: GenerateInitialPlanStructureHandler;
   };
 }
 
@@ -233,6 +235,15 @@ export function createMyPlanContainer(): MyPlanContainer {
       repositories.learningPlan,
       repositories.learningGoal,
       ports.unitOfWork,
+      ports.logger,
+    ),
+    generateInitialPlanStructure: new GenerateInitialPlanStructureHandler(
+      repositories.learningPlan,
+      repositories.learningPhase,
+      repositories.learningTask,
+      repositories.studySchedule,
+      ports.unitOfWork,
+      ports.uuidGenerator,
       ports.logger,
     ),
   };
