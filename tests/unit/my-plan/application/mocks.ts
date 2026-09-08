@@ -117,13 +117,23 @@ export function makeStudySessionRepository() {
 }
 
 export function makeDailyPlanReadPort() {
-  return { findByLearningPlanIdAndDate: vi.fn(async (): Promise<DailyPlanReadModel | null> => null) };
+  return {
+    findByLearningPlanIdAndDate: vi.fn(async (): Promise<DailyPlanReadModel | null> => null),
+  };
 }
 
 export function makeWeeklyPlanReadPort() {
-  return { findByLearningPlanIdAndWeekNumber: vi.fn(async (): Promise<WeeklyPlanReadModel | null> => null) };
+  return {
+    findByLearningPlanIdAndWeekNumber: vi.fn(async (): Promise<WeeklyPlanReadModel | null> => null),
+  };
 }
 
 export function makeLearningProgressReadPort() {
-  return { findByLearningPlanId: vi.fn(async (): Promise<LearningProgressReadModel | null> => null) };
+  return {
+    findByLearningPlanId: vi.fn(async (): Promise<LearningProgressReadModel | null> => null),
+  };
+}
+
+export function makeLearningProgressWritePort() {
+  return { upsert: vi.fn(async (): Promise<void> => {}) };
 }

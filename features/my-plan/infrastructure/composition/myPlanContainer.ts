@@ -36,6 +36,7 @@ import { PrismaTransactionManager } from "../persistence/unit-of-work/PrismaTran
 import { PrismaDailyPlanReadPort } from "../query-services/PrismaDailyPlanReadPort";
 import { PrismaWeeklyPlanReadPort } from "../query-services/PrismaWeeklyPlanReadPort";
 import { PrismaLearningProgressReadPort } from "../query-services/PrismaLearningProgressReadPort";
+import { PrismaLearningProgressWriter } from "../query-services/PrismaLearningProgressWriter";
 import { InProcessEventBus } from "../events/InProcessEventBus";
 import { SystemClock } from "../adapters/SystemClock";
 import { CryptoUuidGenerator } from "../adapters/CryptoUuidGenerator";
@@ -76,6 +77,7 @@ export interface MyPlanContainer {
     readonly dailyPlan: PrismaDailyPlanReadPort;
     readonly weeklyPlan: PrismaWeeklyPlanReadPort;
     readonly learningProgress: PrismaLearningProgressReadPort;
+    readonly learningProgressWriter: PrismaLearningProgressWriter;
   };
   readonly ports: {
     readonly unitOfWork: PrismaUnitOfWork;
@@ -121,6 +123,7 @@ export function createMyPlanContainer(): MyPlanContainer {
     dailyPlan: new PrismaDailyPlanReadPort(),
     weeklyPlan: new PrismaWeeklyPlanReadPort(),
     learningProgress: new PrismaLearningProgressReadPort(),
+    learningProgressWriter: new PrismaLearningProgressWriter(),
   };
 
   const ports = {
@@ -169,6 +172,7 @@ export function createMyPlanContainer(): MyPlanContainer {
       repositories.learningTask,
       repositories.learningPhase,
       ownershipVerificationService,
+      queryServices.learningProgressWriter,
       ports.unitOfWork,
       ports.clock,
       domainEventPublisher,
@@ -244,6 +248,7 @@ export function createMyPlanContainer(): MyPlanContainer {
       repositories.learningPhase,
       repositories.learningTask,
       repositories.studySchedule,
+      queryServices.learningProgressWriter,
       ports.unitOfWork,
       ports.uuidGenerator,
       ports.logger,

@@ -16,6 +16,8 @@ import { ResourceNotFoundException } from "../exceptions/ResourceNotFoundExcepti
 import type { UnitOfWork } from "../ports/UnitOfWork";
 import type { UuidGenerator } from "../ports/UuidGenerator";
 import type { Logger } from "../ports/Logger";
+import type { LearningProgressWritePort } from "../ports/LearningProgressWritePort";
+import { LearningProgressCalculator } from "../services/LearningProgressCalculator";
 
 // Caso de uso: GenerateInitialPlanStructure — productor determinista de la
 // ESTRUCTURA mínima (LearningPhase + LearningTask) de un LearningPlan ya
@@ -30,14 +32,17 @@ import type { Logger } from "../ports/Logger";
 // ya existente (CompleteLearningTaskHandler, CreateStudySessionHandler).
 //
 // Alcance explícitamente NO cubierto aquí (ver auditoría "Learning Planner
+// Architecture Audit" y, para LearningProgress, "Learning Progress
 // Architecture Audit"): LearningGoal/StudySchedule (ya los crea
 // CreateLearningPlanHandler, sin modificar), LearningObjective (sin
 // productor, fuera de alcance — LearningPhase es estructuralmente
 // independiente de LearningGoal, ver comentario de migración de
 // learning_phase), StudySession (ya tiene productor propio,
-// CreateStudySessionHandler), DailyPlan/WeeklyPlan/LearningProgress (sin
-// repositorio de escritura, requieren una decisión de asignación de
-// fechas que StudySchedule no permite derivar hoy — fuera de alcance).
+// CreateStudySessionHandler), DailyPlan/WeeklyPlan (sin repositorio de
+// escritura, requieren una decisión de asignación de fechas que
+// StudySchedule no permite derivar hoy — fuera de alcance).
+// LearningProgress SÍ se inicializa aquí (slice "maintain learning
+// progress") — ver el paso final dentro de la transacción, más abajo.
 //
 // Frontera de confianza: este comando NUNCA se expone vía HTTP en este
 // slice (no hay Route Handler, no hay DTO público, no hay hook) — solo lo
@@ -71,6 +76,7 @@ export class GenerateInitialPlanStructureHandler {
     private readonly learningPhaseRepository: LearningPhaseRepository,
     private readonly learningTaskRepository: LearningTaskRepository,
     private readonly studyScheduleRepository: StudyScheduleRepository,
+    private readonly learningProgressWritePort: LearningProgressWritePort,
     private readonly unitOfWork: UnitOfWork,
     private readonly uuidGenerator: UuidGenerator,
     private readonly logger: Logger,
@@ -91,7 +97,10 @@ export class GenerateInitialPlanStructureHandler {
       const existingPhases = await this.learningPhaseRepository.findByLearningPlanId(planId);
       if (existingPhases.length > 0) {
         // Idempotente: la estructura ya existe (onboarding repetido,
-        // reintento, o invocación duplicada) — no se crea nada más.
+        // reintento, o invocación duplicada) — no se crea nada más, y por
+        // tanto tampoco se reescribe learning_progress (ya se escribió,
+        // si esta llamada tuvo éxito antes; si esta rama se alcanza es
+        // precisamente porque las fases ya existen).
         return {
           learningPlanId: planId.value,
           created: false,
@@ -136,6 +145,26 @@ export class GenerateInitialPlanStructureHandler {
         source: LearningTaskSource.SELF_DIRECTED,
       });
       await this.learningTaskRepository.save(task);
+
+      // learning_progress se inicializa en esta misma transacción —
+      // ver auditoría "Learning Progress Architecture Audit", secciones
+      // 11-12. El estado recién creado ya es conocido exactamente (1
+      // tarea, NOT_STARTED): no hace falta ninguna consulta adicional,
+      // basta reutilizar el mismo cálculo que CompleteLearningTaskHandler
+      // usará más adelante, para no duplicar la regla en dos sitios.
+      // currentStreak = 0: no existe hoy una semántica de streak válida
+      // para My Plan (StudySession/InactivityPolicy miden inactividad, no
+      // racha; Gamification.Streak es una entidad no relacionada, de otro
+      // bounded context) — se documenta como limitación conocida, no como
+      // un valor calculado.
+      const progress = LearningProgressCalculator.fromTaskStatuses([task.status]);
+      await this.learningProgressWritePort.upsert({
+        learningPlanId: planId.value,
+        completedTasks: progress.completedTasks,
+        totalTasks: progress.totalTasks,
+        completionPercentage: progress.completionPercentage,
+        currentStreak: 0,
+      });
 
       return {
         learningPlanId: planId.value,

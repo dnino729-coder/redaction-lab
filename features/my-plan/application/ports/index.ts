@@ -7,3 +7,4 @@ export * from "./Logger";
 export * from "./DailyPlanReadPort";
 export * from "./WeeklyPlanReadPort";
 export * from "./LearningProgressReadPort";
+export * from "./LearningProgressWritePort";

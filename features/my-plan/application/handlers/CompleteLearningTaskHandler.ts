@@ -17,6 +17,8 @@ import type { Clock } from "../ports/Clock";
 import type { Logger } from "../ports/Logger";
 import type { OwnershipVerificationService } from "../services/OwnershipVerificationService";
 import type { DomainEventPublisher } from "../services/DomainEventPublisher";
+import type { LearningProgressWritePort } from "../ports/LearningProgressWritePort";
+import { LearningProgressCalculator } from "../services/LearningProgressCalculator";
 
 // Caso de uso: CompleteLearningTask — completa manualmente una
 // LearningTask (siempre por la vía `complete()`, nunca
@@ -44,11 +46,19 @@ import type { DomainEventPublisher } from "../services/DomainEventPublisher";
 // padre (18.21: "LearningPhase.status se calcula automáticamente a partir
 // de sus LearningTask") — aplicar esa regla ya aprobada es coordinación
 // de aplicación, no una regla de negocio nueva.
+//
+// Slice "maintain learning progress" (ver auditoría "Learning Progress
+// Architecture Audit"): además, en la misma transacción, recalcula y
+// escribe `learning_progress` (recount completo de todas las
+// LearningTask del plan, vía LearningProgressCalculator) — mantiene la
+// proyección persistida consistente con el mismo cambio que la invalidó,
+// sin una segunda transacción ni EventBus.
 export class CompleteLearningTaskHandler {
   constructor(
     private readonly learningTaskRepository: LearningTaskRepository,
     private readonly learningPhaseRepository: LearningPhaseRepository,
     private readonly ownershipVerificationService: OwnershipVerificationService,
+    private readonly learningProgressWritePort: LearningProgressWritePort,
     private readonly unitOfWork: UnitOfWork,
     private readonly clock: Clock,
     private readonly domainEventPublisher: DomainEventPublisher,
@@ -74,7 +84,10 @@ export class CompleteLearningTaskHandler {
         }
         task.complete(studentId, this.clock.now());
       } catch (error) {
-        if (error instanceof InvalidTaskSourceOperationException || error instanceof InvalidStatusTransitionException) {
+        if (
+          error instanceof InvalidTaskSourceOperationException ||
+          error instanceof InvalidStatusTransitionException
+        ) {
           throw new ConflictException(error.message);
         }
         throw error;
@@ -83,8 +96,39 @@ export class CompleteLearningTaskHandler {
       await this.learningTaskRepository.save(task);
 
       const siblingTasks = await this.learningTaskRepository.findByLearningPhaseId(phase.id);
-      phase.recalculateStatus(siblingTasks.map((sibling) => sibling.status), this.clock.now());
+      phase.recalculateStatus(
+        siblingTasks.map((sibling) => sibling.status),
+        this.clock.now(),
+      );
       await this.learningPhaseRepository.save(phase);
+
+      // learning_progress se recalcula en la misma transacción — ver
+      // auditoría "Learning Progress Architecture Audit", secciones 6/11.
+      // `phase.learningPlanId` ya lo conocemos por
+      // OwnershipVerificationService.verifyTaskOwnership(); no se hace
+      // ninguna consulta adicional solo para descubrirlo.
+      //
+      // Recount completo (no incremental): se recorren TODAS las fases
+      // del plan y TODAS sus tareas — evita drift, mismo patrón ya usado
+      // arriba para recalcular LearningPhase.status a partir de sus
+      // hijas. currentStreak = 0: sin semántica de streak válida hoy para
+      // My Plan (ver LearningProgressCalculator.ts / auditoría, sección 5).
+      const allPhases = await this.learningPhaseRepository.findByLearningPlanId(
+        phase.learningPlanId,
+      );
+      const allTaskStatuses: LearningTaskStatus[] = [];
+      for (const planPhase of allPhases) {
+        const tasksOfPhase = await this.learningTaskRepository.findByLearningPhaseId(planPhase.id);
+        allTaskStatuses.push(...tasksOfPhase.map((planTask) => planTask.status));
+      }
+      const progress = LearningProgressCalculator.fromTaskStatuses(allTaskStatuses);
+      await this.learningProgressWritePort.upsert({
+        learningPlanId: phase.learningPlanId.value,
+        completedTasks: progress.completedTasks,
+        totalTasks: progress.totalTasks,
+        completionPercentage: progress.completionPercentage,
+        currentStreak: 0,
+      });
     });
 
     const task = await this.learningTaskRepository.findById(taskId);
@@ -97,7 +141,10 @@ export class CompleteLearningTaskHandler {
     // `unitOfWork.execute()`).
     await this.domainEventPublisher.publishFrom(task);
 
-    this.logger.info("LearningTask completada", { learningTaskId: taskId.value, studentId: studentId.value });
+    this.logger.info("LearningTask completada", {
+      learningTaskId: taskId.value,
+      studentId: studentId.value,
+    });
     return LearningTaskMapper.toResponseDto(task);
   }
 }

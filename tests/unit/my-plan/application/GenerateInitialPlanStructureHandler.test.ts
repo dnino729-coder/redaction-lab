@@ -16,6 +16,7 @@ import {
   makeLearningPhaseRepository,
   makeLearningTaskRepository,
   makeStudyScheduleRepository,
+  makeLearningProgressWritePort,
   makeUnitOfWork,
   makeUuidGenerator,
   makeLogger,
@@ -55,6 +56,7 @@ function buildHandler() {
   const learningPhaseRepository = makeLearningPhaseRepository();
   const learningTaskRepository = makeLearningTaskRepository();
   const studyScheduleRepository = makeStudyScheduleRepository();
+  const learningProgressWritePort = makeLearningProgressWritePort();
   const unitOfWork = makeUnitOfWork();
   const uuidGenerator = makeUuidGenerator([APP_FIXTURE_IDS.phase, APP_FIXTURE_IDS.task]);
   const logger = makeLogger();
@@ -64,6 +66,7 @@ function buildHandler() {
     learningPhaseRepository as never,
     learningTaskRepository as never,
     studyScheduleRepository as never,
+    learningProgressWritePort as never,
     unitOfWork as never,
     uuidGenerator as never,
     logger as never,
@@ -75,6 +78,7 @@ function buildHandler() {
     learningPhaseRepository,
     learningTaskRepository,
     studyScheduleRepository,
+    learningProgressWritePort,
     unitOfWork,
     logger,
   };
@@ -274,6 +278,39 @@ describe("GenerateInitialPlanStructureHandler", () => {
 
     const savedPhase = learningPhaseRepository.save.mock.calls[0]![0];
     expect(savedPhase.learningPlanId.value).toBe(APP_FIXTURE_IDS.plan);
+  });
+
+  it("13. inicializa learning_progress en 0 completadas / 1 total / 0% / streak 0", async () => {
+    const { handler, learningPlanRepository, studyScheduleRepository, learningProgressWritePort } =
+      buildHandler();
+    learningPlanRepository.findById.mockResolvedValue(buildPlan());
+    studyScheduleRepository.findByLearningPlanId.mockResolvedValue(buildSchedule());
+
+    await handler.handle(
+      GenerateInitialPlanStructureCommand.fromRequest({ learningPlanId: APP_FIXTURE_IDS.plan }),
+    );
+
+    expect(learningProgressWritePort.upsert).toHaveBeenCalledTimes(1);
+    expect(learningProgressWritePort.upsert).toHaveBeenCalledWith({
+      learningPlanId: APP_FIXTURE_IDS.plan,
+      completedTasks: 0,
+      totalTasks: 1,
+      completionPercentage: 0,
+      currentStreak: 0,
+    });
+  });
+
+  it("14. idempotencia: si la estructura ya existe, NO reescribe learning_progress", async () => {
+    const { handler, learningPlanRepository, learningPhaseRepository, learningProgressWritePort } =
+      buildHandler();
+    learningPlanRepository.findById.mockResolvedValue(buildPlan());
+    learningPhaseRepository.findByLearningPlanId.mockResolvedValue([buildExistingPhase()]);
+
+    await handler.handle(
+      GenerateInitialPlanStructureCommand.fromRequest({ learningPlanId: APP_FIXTURE_IDS.plan }),
+    );
+
+    expect(learningProgressWritePort.upsert).not.toHaveBeenCalled();
   });
 
   it("rechaza un learningPlanId inválido antes de tocar cualquier repositorio", async () => {

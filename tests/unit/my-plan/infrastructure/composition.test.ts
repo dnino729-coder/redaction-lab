@@ -6,7 +6,7 @@ describe("createMyPlanContainer (DI)", () => {
     const container = createMyPlanContainer();
 
     expect(Object.keys(container.repositories)).toHaveLength(7);
-    expect(Object.keys(container.queryServices)).toHaveLength(3);
+    expect(Object.keys(container.queryServices)).toHaveLength(4);
     expect(Object.keys(container.ports)).toHaveLength(6);
     expect(Object.keys(container.handlers)).toHaveLength(17);
   });
