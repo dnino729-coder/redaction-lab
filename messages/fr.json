@@ -119,7 +119,14 @@
       "noExamDate": "Aucune date d'examen définie pour le moment",
       "examDate": "Date de l'examen : {date}",
       "progress": "Avancement du plan",
-      "hoursStudied": "{done} h étudiées sur {weekly} h recommandées par semaine"
+      "hoursStudied": "{done} h étudiées sur {weekly} h recommandées par semaine",
+      "startDate": "Commencé le {date}",
+      "status": {
+        "ACTIVE": "Actif",
+        "PAUSED": "En pause",
+        "COMPLETED": "Terminé",
+        "CANCELLED": "Annulé"
+      }
     },
     "calendar": {
       "title": "Calendrier d'entraînement",

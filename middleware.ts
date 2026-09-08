@@ -13,13 +13,6 @@ const handleI18nRouting = createIntlMiddleware(routing);
 const isDashboardDevModeBypassRoute = (pathname: string) =>
   /^\/(es\/)?dashboard(\/|$)/.test(pathname);
 
-// Bypass temporal de desarrollo (MY_PLAN_DEV_MODE) — mismo mecanismo que
-// DASHBOARD_DEV_MODE, pero exclusivo del módulo Mi Plan (nunca se reutiliza
-// la variable de otro módulo, cada módulo tiene la suya). Alcance limitado a
-// /my-plan, /es/my-plan y /fr/my-plan.
-const isMyPlanDevModeBypassRoute = (pathname: string) =>
-  /^\/(es\/|fr\/)?my-plan(\/|$)/.test(pathname);
-
 // Bypass temporal de desarrollo (DAILY_TRAINING_DEV_MODE) — exclusivo del
 // módulo Entrenamiento, mismo mecanismo. Alcance limitado a
 // /daily-training, /es/daily-training y /fr/daily-training.
@@ -45,9 +38,6 @@ export default clerkMiddleware(async (auth, request) => {
     process.env.DASHBOARD_DEV_MODE === "true" &&
     isDashboardDevModeBypassRoute(request.nextUrl.pathname);
 
-  const isMyPlanDevModeBypass =
-    process.env.MY_PLAN_DEV_MODE === "true" && isMyPlanDevModeBypassRoute(request.nextUrl.pathname);
-
   const isDailyTrainingDevModeBypass =
     process.env.DAILY_TRAINING_DEV_MODE === "true" &&
     isDailyTrainingDevModeBypassRoute(request.nextUrl.pathname);
@@ -63,7 +53,6 @@ export default clerkMiddleware(async (auth, request) => {
   if (
     !isPublicRoute(request) &&
     !isDashboardDevModeBypass &&
-    !isMyPlanDevModeBypass &&
     !isDailyTrainingDevModeBypass &&
     !isSimulatorDevModeBypass &&
     !isAnalyticsDevModeBypass
