@@ -60,6 +60,34 @@ export interface LearningGoalsHttp {
   completed: LearningGoalSummaryHttp[];
 }
 
+// `LearningPhaseStatusHttp`/`LearningTaskStatusHttp` son deliberadamente 2
+// tipos distintos con los mismos 4 valores — no se alias-ean entre sí ni
+// con `LearningGoalStatusHttp` — mismo criterio ya usado en el dominio
+// (LearningGoalStatus.ts: "modelado como tipo TypeScript propio... para no
+// permitir mezclar estados entre entidades distintas").
+export type LearningPhaseStatusHttp = "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+export type LearningTaskStatusHttp = "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+export type LearningTaskSourceHttp =
+  "SELF_DIRECTED" | "ACADEMY" | "LABORATORY" | "DAILY_TRAINING" | "SIMULATOR";
+
+export interface LearningTaskSummaryHttp {
+  id: string;
+  title: string;
+  status: LearningTaskStatusHttp;
+  source: LearningTaskSourceHttp;
+}
+
+export interface LearningPhaseSummaryHttp {
+  id: string;
+  name: string;
+  status: LearningPhaseStatusHttp;
+  tasks: LearningTaskSummaryHttp[];
+}
+
+export interface LearningPhasesHttp {
+  phases: LearningPhaseSummaryHttp[];
+}
+
 const BASE = "/api/v1/my-plan";
 
 export async function getActiveLearningPlan(): Promise<LearningPlanHttp> {
@@ -76,4 +104,8 @@ export async function getLearningProgress(): Promise<LearningProgressHttp> {
 
 export async function getLearningGoals(): Promise<LearningGoalsHttp> {
   return apiFetch<LearningGoalsHttp>(`${BASE}/goals`);
+}
+
+export async function getLearningPhases(): Promise<LearningPhasesHttp> {
+  return apiFetch<LearningPhasesHttp>(`${BASE}/phases`);
 }

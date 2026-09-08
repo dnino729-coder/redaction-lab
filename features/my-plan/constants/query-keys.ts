@@ -6,4 +6,5 @@ export const myPlanKeys = {
   studySchedule: () => [...myPlanKeys.all, "study-schedule"] as const,
   progress: () => [...myPlanKeys.all, "progress"] as const,
   goals: () => [...myPlanKeys.all, "goals"] as const,
+  phases: () => [...myPlanKeys.all, "phases"] as const,
 };

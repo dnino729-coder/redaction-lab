@@ -14,3 +14,4 @@ export * from "./GetLearningProgressHandler";
 export * from "./GetStudyScheduleHandler";
 export * from "./GetLearningGoalsHandler";
 export * from "./GenerateInitialPlanStructureHandler";
+export * from "./GetLearningPhasesHandler";

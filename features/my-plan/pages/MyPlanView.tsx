@@ -2,13 +2,13 @@
 // MyPlanView — ensambla los bloques de Mi Plan (docs/modules/mi-plan.md,
 // Vacío 1) en el orden exacto especificado, más el bloque 6 (Progreso,
 // vertical slice #3). Bloques 1 (PlanSummaryOverview), 3
-// (GoalsAndObjectives, vertical slice "connect goals and objectives"), 5
-// (PlanConfiguration) y 6 (LearningProgressOverview) ya son reales: se
-// autoalimentan vía useActiveLearningPlan()/useLearningGoals()/
-// useStudySchedule()/useLearningProgress(), sin recibir props de este
-// componente. Los bloques 2 y 4 (TrainingCalendar/PhasesAndTasks) siguen
+// (GoalsAndObjectives), 4 (PhasesAndTasks, vertical slice "connect phases
+// and tasks"), 5 (PlanConfiguration) y 6 (LearningProgressOverview) ya son
+// reales: se autoalimentan vía useActiveLearningPlan()/useLearningGoals()/
+// useLearningPhases()/useStudySchedule()/useLearningProgress(), sin
+// recibir props de este componente. El bloque 2 (TrainingCalendar) sigue
 // recibiendo los datos ya cargados desde el mock (mismo patrón de
-// composición que DashboardView), mientras no tengan backend propio.
+// composición que DashboardView), mientras no tenga backend propio.
 import {
   PlanSummaryOverview,
   TrainingCalendar,
@@ -32,8 +32,8 @@ export function MyPlanView({ data }: MyPlanViewProps) {
       <TrainingCalendar calendar={data.calendar} />
       {/* Bloque 3 — Objetivos y metas (datos reales) */}
       <GoalsAndObjectives />
-      {/* Bloque 4 — Fases y tareas */}
-      <PhasesAndTasks phases={data.phases} />
+      {/* Bloque 4 — Fases y tareas (datos reales) */}
+      <PhasesAndTasks />
       {/* Bloque 5 — Configuración del plan (datos reales) */}
       <PlanConfiguration />
       {/* Bloque 6 — Progreso (datos reales) */}
