@@ -17,8 +17,22 @@ export interface LearningPlanHttp {
   status: LearningPlanStatusHttp;
 }
 
+export interface StudyScheduleHttp {
+  id: string;
+  learningPlanId: string;
+  daysPerWeek: number;
+  sessionsPerDay: number;
+  minutesPerSession: number;
+  reminderHour: number | null;
+  reminderMinute: number | null;
+}
+
 const BASE = "/api/v1/my-plan";
 
 export async function getActiveLearningPlan(): Promise<LearningPlanHttp> {
   return apiFetch<LearningPlanHttp>(`${BASE}/active`);
+}
+
+export async function getStudySchedule(): Promise<StudyScheduleHttp> {
+  return apiFetch<StudyScheduleHttp>(`${BASE}/study-schedule`);
 }

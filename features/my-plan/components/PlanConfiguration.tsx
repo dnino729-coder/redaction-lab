@@ -1,21 +1,31 @@
 "use client";
 // PlanConfiguration — bloque 5 "Configuración del plan"
-// (docs/modules/mi-plan.md, Vacío 1). StudySchedule (días/semana,
-// sesiones/día, minutos/sesión, recordatorio) + punto de entrada a la
-// reprogramación (Vacío 2 — flujo de propuesta/confirmación, fuera de
-// alcance de esta fase: sin Learning Planner implementado todavía, el CTA
-// queda deshabilitado con una nota explícita, en vez de simular un flujo
-// que no existe).
+// (docs/modules/mi-plan.md, Vacío 1). Ya no recibe `configuration` por
+// props: se autoalimenta desde GetStudyScheduleHandler vía
+// useStudySchedule() (mismo patrón que PlanSummaryOverview, vertical
+// slice 1). `preferences` no tiene equivalente en el DTO real
+// (StudyScheduleResponseDto) — se omite en vez de simular datos que no
+// existen. El punto de entrada a la reprogramación (Vacío 2) sigue
+// deshabilitado: sin Learning Planner implementado todavía.
 import { useTranslations } from "next-intl";
-import { Card, CardContent, CardHeader, CardTitle, Badge, Button } from "@/components/ui";
-import type { StudyScheduleBlock } from "../types";
+import { Card, CardContent, CardHeader, CardTitle, Button } from "@/components/ui";
+import { ApiError } from "@/lib/apiClient";
+import { useStudySchedule } from "../hooks/useStudySchedule";
+import { MyPlanSkeleton } from "./MyPlanSkeleton";
+import { MyPlanErrorState } from "./MyPlanErrorState";
+import { MyPlanEmptyState } from "./MyPlanEmptyState";
 
-export interface PlanConfigurationProps {
-  configuration: StudyScheduleBlock;
+function formatReminder(hour: number, minute: number): string {
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 }
 
-export function PlanConfiguration({ configuration }: PlanConfigurationProps) {
+export function PlanConfiguration() {
   const t = useTranslations("myPlan.configuration");
+  const { data: schedule, isLoading, isError, error, refetch } = useStudySchedule();
+
+  if (isLoading) return <MyPlanSkeleton />;
+  if (error instanceof ApiError && error.status === 404) return <MyPlanEmptyState />;
+  if (isError || !schedule) return <MyPlanErrorState onRetry={() => refetch()} />;
 
   return (
     <Card>
@@ -26,30 +36,24 @@ export function PlanConfiguration({ configuration }: PlanConfigurationProps) {
         <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div>
             <dt className="text-xs text-neutral-500">{t("daysPerWeek")}</dt>
-            <dd className="text-sm font-medium text-neutral-800">{configuration.daysPerWeek}</dd>
+            <dd className="text-sm font-medium text-neutral-800">{schedule.daysPerWeek}</dd>
           </div>
           <div>
             <dt className="text-xs text-neutral-500">{t("sessionsPerDay")}</dt>
-            <dd className="text-sm font-medium text-neutral-800">{configuration.sessionsPerDay}</dd>
+            <dd className="text-sm font-medium text-neutral-800">{schedule.sessionsPerDay}</dd>
           </div>
           <div>
             <dt className="text-xs text-neutral-500">{t("minutesPerSession")}</dt>
-            <dd className="text-sm font-medium text-neutral-800">{configuration.minutesPerSession}</dd>
+            <dd className="text-sm font-medium text-neutral-800">{schedule.minutesPerSession}</dd>
           </div>
         </dl>
 
-        {configuration.reminderTime ? (
-          <p className="text-sm text-neutral-600">{t("reminder", { time: configuration.reminderTime })}</p>
-        ) : null}
-
-        {configuration.preferences.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {configuration.preferences.map((preference) => (
-              <Badge key={preference} variant="neutral">
-                {preference}
-              </Badge>
-            ))}
-          </div>
+        {schedule.reminderHour !== null && schedule.reminderMinute !== null ? (
+          <p className="text-sm text-neutral-600">
+            {t("reminder", {
+              time: formatReminder(schedule.reminderHour, schedule.reminderMinute),
+            })}
+          </p>
         ) : null}
 
         <div className="border-t border-neutral-200 pt-4">

@@ -1,10 +1,11 @@
 "use client";
 // MyPlanView — ensambla los 5 bloques de Mi Plan (docs/modules/mi-plan.md,
-// Vacío 1) en el orden exacto especificado. Bloque 1 (PlanSummaryOverview)
-// ya es real: se autoalimenta vía useActiveLearningPlan(), sin recibir
-// props de este componente. Los bloques 2-5 siguen recibiendo los datos ya
-// cargados desde el mock (mismo patrón de composición que DashboardView),
-// mientras no tengan backend propio.
+// Vacío 1) en el orden exacto especificado. Bloques 1 (PlanSummaryOverview)
+// y 5 (PlanConfiguration) ya son reales: se autoalimentan vía
+// useActiveLearningPlan()/useStudySchedule(), sin recibir props de este
+// componente. Los bloques 2-4 siguen recibiendo los datos ya cargados
+// desde el mock (mismo patrón de composición que DashboardView), mientras
+// no tengan backend propio.
 import {
   PlanSummaryOverview,
   TrainingCalendar,
@@ -29,8 +30,8 @@ export function MyPlanView({ data }: MyPlanViewProps) {
       <GoalsAndObjectives goals={data.goals} />
       {/* Bloque 4 — Fases y tareas */}
       <PhasesAndTasks phases={data.phases} />
-      {/* Bloque 5 — Configuración del plan */}
-      <PlanConfiguration configuration={data.configuration} />
+      {/* Bloque 5 — Configuración del plan (datos reales) */}
+      <PlanConfiguration />
     </div>
   );
 }
