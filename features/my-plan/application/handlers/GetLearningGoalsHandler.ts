@@ -23,7 +23,7 @@ import type { Logger } from "../ports/Logger";
 // Ownership: el `learningPlanId` NUNCA lo decide el cliente — se resuelve
 // aquí, server-side, a partir del `studentId` autenticado (resuelto por
 // resolveMyPlanActor() en la capa API) vía
-// `LearningPlanRepository.findActiveByStudentId`. Un estudiante A no puede
+// `LearningPlanRepository.findCurrentByStudentId`. Un estudiante A no puede
 // pedir los goals de otro plan: no existe ningún parámetro de entrada que
 // acepte un `learningPlanId` externo.
 //
@@ -52,7 +52,7 @@ export class GetLearningGoalsHandler {
     const studentId = StudentId.create(request.studentId);
 
     const goals = await this.unitOfWork.execute(async () => {
-      const plan = await this.learningPlanRepository.findActiveByStudentId(studentId);
+      const plan = await this.learningPlanRepository.findCurrentByStudentId(studentId);
       if (!plan) throw new ResourceNotFoundException("LearningPlan (activo)", studentId.value);
 
       return this.learningGoalRepository.findByLearningPlanId(plan.id);

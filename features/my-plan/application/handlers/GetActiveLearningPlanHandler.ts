@@ -31,7 +31,7 @@ export class GetActiveLearningPlanHandler {
     const studentId = StudentId.create(request.studentId);
 
     const plan = await this.unitOfWork.execute(async () => {
-      const found = await this.learningPlanRepository.findActiveByStudentId(studentId);
+      const found = await this.learningPlanRepository.findCurrentByStudentId(studentId);
       if (!found) throw new ResourceNotFoundException("LearningPlan (activo)", studentId.value);
       return found;
     }, studentId.value);

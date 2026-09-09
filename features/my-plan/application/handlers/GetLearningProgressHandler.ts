@@ -27,7 +27,7 @@ export class GetLearningProgressHandler {
     const studentId = StudentId.create(request.studentId);
 
     const progress = await this.unitOfWork.execute(async () => {
-      const plan = await this.learningPlanRepository.findActiveByStudentId(studentId);
+      const plan = await this.learningPlanRepository.findCurrentByStudentId(studentId);
       if (!plan) throw new ResourceNotFoundException("LearningPlan (activo)", studentId.value);
 
       const found = await this.learningProgressReadPort.findByLearningPlanId(plan.id.value);

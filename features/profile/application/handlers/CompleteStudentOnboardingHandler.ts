@@ -62,12 +62,15 @@ export class CompleteStudentOnboardingHandler {
     const myPlanStudentId = MyPlanStudentId.create(request.studentId);
 
     const existingProfile = await this.studentProfileRepository.findByStudentId(studentId);
-    const existingActivePlan =
-      await this.learningPlanRepository.findActiveByStudentId(myPlanStudentId);
+    // "Plan actual" (ACTIVE o PAUSED, ver LearningPlanRepository.ts) — un
+    // plan pausado sigue ocupando el único cupo de 13.4 MUST, así que
+    // también debe bloquear un segundo onboarding.
+    const existingCurrentPlan =
+      await this.learningPlanRepository.findCurrentByStudentId(myPlanStudentId);
 
     // Estado C: onboarding ya completado — nunca crear un segundo plan ni
     // un segundo perfil.
-    if (existingProfile && existingActivePlan) {
+    if (existingProfile && existingCurrentPlan) {
       throw new ConflictException(
         `El estudiante ${studentId.value} ya completó el onboarding (StudentProfile y LearningPlan activo ya existen).`,
       );

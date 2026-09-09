@@ -59,11 +59,15 @@ export class CreateLearningPlanHandler {
     // 13.4 MUST: "un estudiante puede tener múltiples planes, pero solo un
     // plan activo" — verificado aquí porque es una invariante que cruza
     // agregados (no puede vivir dentro de un único `LearningPlan.create()`
-    // sin conocer los demás planes del estudiante).
-    const existingActivePlan = await this.learningPlanRepository.findActiveByStudentId(studentId);
-    if (existingActivePlan) {
+    // sin conocer los demás planes del estudiante). Se lee como "un único
+    // plan actual" (ACTIVE o PAUSED, ver LearningPlanRepository.ts): un
+    // plan PAUSED sigue ocupando ese único cupo — no basta con reanudarlo
+    // primero desde la nada, evita crear un segundo plan huérfano mientras
+    // el original solo está pausado.
+    const existingCurrentPlan = await this.learningPlanRepository.findCurrentByStudentId(studentId);
+    if (existingCurrentPlan) {
       throw new ConflictException(
-        `El estudiante ${studentId.value} ya tiene un plan activo (${existingActivePlan.id.value}) — 13.4 MUST: solo un plan activo por estudiante.`,
+        `El estudiante ${studentId.value} ya tiene un plan actual (${existingCurrentPlan.id.value}) — 13.4 MUST: solo un plan actual (ACTIVE o PAUSED) por estudiante.`,
       );
     }
 
@@ -97,8 +101,12 @@ export class CreateLearningPlanHandler {
         minutesPerSession: request.studySchedule.minutesPerSession,
       }),
       reminderTime:
-        request.studySchedule.reminderHour !== undefined && request.studySchedule.reminderMinute !== undefined
-          ? ReminderTime.create(request.studySchedule.reminderHour, request.studySchedule.reminderMinute)
+        request.studySchedule.reminderHour !== undefined &&
+        request.studySchedule.reminderMinute !== undefined
+          ? ReminderTime.create(
+              request.studySchedule.reminderHour,
+              request.studySchedule.reminderMinute,
+            )
           : null,
     });
 
@@ -114,7 +122,10 @@ export class CreateLearningPlanHandler {
     // ("PUBLICACIÓN DE EVENTOS... únicamente desde Application Layer").
     await this.domainEventPublisher.publishFrom(plan);
 
-    this.logger.info("LearningPlan creado", { learningPlanId: plan.id.value, studentId: studentId.value });
+    this.logger.info("LearningPlan creado", {
+      learningPlanId: plan.id.value,
+      studentId: studentId.value,
+    });
 
     return LearningPlanMapper.toResponseDto(plan);
   }

@@ -33,7 +33,7 @@ export class GetDailyPlanHandler {
     const studentId = StudentId.create(request.studentId);
 
     const dailyPlan = await this.unitOfWork.execute(async () => {
-      const plan = await this.learningPlanRepository.findActiveByStudentId(studentId);
+      const plan = await this.learningPlanRepository.findCurrentByStudentId(studentId);
       if (!plan) throw new ResourceNotFoundException("LearningPlan (activo)", studentId.value);
 
       const found = await this.dailyPlanReadPort.findByLearningPlanIdAndDate(

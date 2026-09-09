@@ -47,7 +47,7 @@ function buildActivePlan() {
 describe("GetActiveLearningPlanHandler", () => {
   it("devuelve el plan activo del estudiante, leyendo bajo el contexto RLS del propio estudiante (18.24)", async () => {
     const learningPlanRepository = makeLearningPlanRepository();
-    learningPlanRepository.findActiveByStudentId.mockResolvedValue(buildActivePlan());
+    learningPlanRepository.findCurrentByStudentId.mockResolvedValue(buildActivePlan());
     const unitOfWork = makeUnitOfWork();
     const handler = new GetActiveLearningPlanHandler(
       learningPlanRepository as never,
@@ -76,12 +76,34 @@ describe("GetActiveLearningPlanHandler", () => {
       ),
     ).rejects.toBeInstanceOf(ResourceNotFoundException);
   });
+
+  // Slice "resolve current learning plan including paused state" — un plan
+  // PAUSED sigue siendo el plan actual del estudiante (ver
+  // LearningPlanRepository.findCurrentByStudentId): ya no debe desaparecer
+  // detrás de un 404 solo por estar pausado.
+  it("resuelve un plan PAUSED como el plan actual del estudiante", async () => {
+    const learningPlanRepository = makeLearningPlanRepository();
+    const pausedPlan = buildActivePlan();
+    pausedPlan.pause();
+    learningPlanRepository.findCurrentByStudentId.mockResolvedValue(pausedPlan);
+    const handler = new GetActiveLearningPlanHandler(
+      learningPlanRepository as never,
+      makeUnitOfWork() as never,
+      makeLogger() as never,
+    );
+
+    const result = await handler.handle(
+      GetActiveLearningPlanQuery.fromRequest({ studentId: APP_FIXTURE_IDS.student }),
+    );
+    expect(result.id).toBe(APP_FIXTURE_IDS.plan);
+    expect(result.status).toBe("PAUSED");
+  });
 });
 
 describe("GetDailyPlanHandler (CQRS read port)", () => {
   it("resuelve el plan activo y delega en DailyPlanReadPort", async () => {
     const learningPlanRepository = makeLearningPlanRepository();
-    learningPlanRepository.findActiveByStudentId.mockResolvedValue(buildActivePlan());
+    learningPlanRepository.findCurrentByStudentId.mockResolvedValue(buildActivePlan());
     const dailyPlanReadPort = makeDailyPlanReadPort();
     dailyPlanReadPort.findByLearningPlanIdAndDate.mockResolvedValue({
       id: "dp-1",
@@ -114,7 +136,7 @@ describe("GetDailyPlanHandler (CQRS read port)", () => {
 describe("GetWeeklyPlanHandler (CQRS read port)", () => {
   it("resuelve el plan activo y delega en WeeklyPlanReadPort", async () => {
     const learningPlanRepository = makeLearningPlanRepository();
-    learningPlanRepository.findActiveByStudentId.mockResolvedValue(buildActivePlan());
+    learningPlanRepository.findCurrentByStudentId.mockResolvedValue(buildActivePlan());
     const weeklyPlanReadPort = makeWeeklyPlanReadPort();
     weeklyPlanReadPort.findByLearningPlanIdAndWeekNumber.mockResolvedValue({
       id: "wp-1",
@@ -143,7 +165,7 @@ describe("GetWeeklyPlanHandler (CQRS read port)", () => {
 describe("GetLearningProgressHandler (CQRS read port)", () => {
   it("resuelve el plan activo y delega en LearningProgressReadPort", async () => {
     const learningPlanRepository = makeLearningPlanRepository();
-    learningPlanRepository.findActiveByStudentId.mockResolvedValue(buildActivePlan());
+    learningPlanRepository.findCurrentByStudentId.mockResolvedValue(buildActivePlan());
     const learningProgressReadPort = makeLearningProgressReadPort();
     learningProgressReadPort.findByLearningPlanId.mockResolvedValue({
       id: "lp-1",
@@ -174,7 +196,7 @@ describe("GetStudyScheduleHandler", () => {
   it("resuelve el plan activo y devuelve su StudySchedule (relación 1:1, modelo de escritura)", async () => {
     const learningPlanRepository = makeLearningPlanRepository();
     const plan = buildActivePlan();
-    learningPlanRepository.findActiveByStudentId.mockResolvedValue(plan);
+    learningPlanRepository.findCurrentByStudentId.mockResolvedValue(plan);
     const studyScheduleRepository = makeStudyScheduleRepository();
     const schedule = StudySchedule.create({
       id: StudyScheduleId.create(APP_FIXTURE_IDS.schedule),
@@ -222,7 +244,7 @@ function buildGoal(
 describe("GetLearningGoalsHandler", () => {
   it("1. plan activo con un único goal activo: lo devuelve en `active`, `completed` vacío", async () => {
     const learningPlanRepository = makeLearningPlanRepository();
-    learningPlanRepository.findActiveByStudentId.mockResolvedValue(buildActivePlan());
+    learningPlanRepository.findCurrentByStudentId.mockResolvedValue(buildActivePlan());
     const learningGoalRepository = makeLearningGoalRepository();
     learningGoalRepository.findByLearningPlanId.mockResolvedValue([
       buildGoal("01", "Meta 1", "NOT_STARTED"),
@@ -252,7 +274,7 @@ describe("GetLearningGoalsHandler", () => {
   it("2/6. separa correctamente goals activos y completados, y excluye CANCELLED de ambos grupos", async () => {
     const learningPlanRepository = makeLearningPlanRepository();
     const plan = buildActivePlan();
-    learningPlanRepository.findActiveByStudentId.mockResolvedValue(plan);
+    learningPlanRepository.findCurrentByStudentId.mockResolvedValue(plan);
     const learningGoalRepository = makeLearningGoalRepository();
     learningGoalRepository.findByLearningPlanId.mockResolvedValue([
       buildGoal("01", "Not started", "NOT_STARTED"),
@@ -296,7 +318,7 @@ describe("GetLearningGoalsHandler", () => {
 
   it("4. el repositorio devuelve una lista vacía: responde con ambos grupos vacíos, sin lanzar", async () => {
     const learningPlanRepository = makeLearningPlanRepository();
-    learningPlanRepository.findActiveByStudentId.mockResolvedValue(buildActivePlan());
+    learningPlanRepository.findCurrentByStudentId.mockResolvedValue(buildActivePlan());
     const learningGoalRepository = makeLearningGoalRepository();
     learningGoalRepository.findByLearningPlanId.mockResolvedValue([]);
     const handler = new GetLearningGoalsHandler(
@@ -314,7 +336,7 @@ describe("GetLearningGoalsHandler", () => {
 
   it("5. error del repositorio de goals: se propaga sin ser capturado", async () => {
     const learningPlanRepository = makeLearningPlanRepository();
-    learningPlanRepository.findActiveByStudentId.mockResolvedValue(buildActivePlan());
+    learningPlanRepository.findCurrentByStudentId.mockResolvedValue(buildActivePlan());
     const learningGoalRepository = makeLearningGoalRepository();
     learningGoalRepository.findByLearningPlanId.mockRejectedValue(new Error("db down"));
     const handler = new GetLearningGoalsHandler(
@@ -332,7 +354,7 @@ describe("GetLearningGoalsHandler", () => {
   it("7. resuelve el learningPlanId server-side desde el plan activo del estudiante — no acepta uno externo", async () => {
     const learningPlanRepository = makeLearningPlanRepository();
     const plan = buildActivePlan();
-    learningPlanRepository.findActiveByStudentId.mockResolvedValue(plan);
+    learningPlanRepository.findCurrentByStudentId.mockResolvedValue(plan);
     const learningGoalRepository = makeLearningGoalRepository();
     learningGoalRepository.findByLearningPlanId.mockResolvedValue([]);
     const handler = new GetLearningGoalsHandler(
@@ -345,7 +367,7 @@ describe("GetLearningGoalsHandler", () => {
     // GetLearningGoalsRequestDto no declara ningún campo learningPlanId —
     // la única entrada posible es studentId; el plan se resuelve aquí.
     await handler.handle(GetLearningGoalsQuery.fromRequest({ studentId: APP_FIXTURE_IDS.student }));
-    expect(learningPlanRepository.findActiveByStudentId).toHaveBeenCalledWith(
+    expect(learningPlanRepository.findCurrentByStudentId).toHaveBeenCalledWith(
       StudentId.create(APP_FIXTURE_IDS.student),
     );
     expect(learningGoalRepository.findByLearningPlanId).toHaveBeenCalledWith(plan.id);
@@ -364,6 +386,6 @@ describe("GetLearningGoalsHandler", () => {
     await expect(
       handler.handle(GetLearningGoalsQuery.fromRequest({ studentId: "not-a-uuid" })),
     ).rejects.toBeInstanceOf(ValidationException);
-    expect(learningPlanRepository.findActiveByStudentId).not.toHaveBeenCalled();
+    expect(learningPlanRepository.findCurrentByStudentId).not.toHaveBeenCalled();
   });
 });

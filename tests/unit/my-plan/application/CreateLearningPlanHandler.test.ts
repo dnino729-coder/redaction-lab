@@ -34,7 +34,11 @@ function buildHandler() {
   const learningGoalRepository = makeLearningGoalRepository();
   const studyScheduleRepository = makeStudyScheduleRepository();
   const unitOfWork = makeUnitOfWork();
-  const uuidGenerator = makeUuidGenerator([APP_FIXTURE_IDS.plan, APP_FIXTURE_IDS.goal, APP_FIXTURE_IDS.schedule]);
+  const uuidGenerator = makeUuidGenerator([
+    APP_FIXTURE_IDS.plan,
+    APP_FIXTURE_IDS.goal,
+    APP_FIXTURE_IDS.schedule,
+  ]);
   const eventBus = makeEventBus();
   const logger = makeLogger();
   const domainEventPublisher = new DomainEventPublisher(eventBus as never);
@@ -49,13 +53,27 @@ function buildHandler() {
     logger as never,
   );
 
-  return { handler, learningPlanRepository, learningGoalRepository, studyScheduleRepository, unitOfWork, eventBus, logger };
+  return {
+    handler,
+    learningPlanRepository,
+    learningGoalRepository,
+    studyScheduleRepository,
+    unitOfWork,
+    eventBus,
+    logger,
+  };
 }
 
 describe("CreateLearningPlanHandler", () => {
   it("crea el plan, sus metas iniciales y su horario, y publica PLAN_CREATED tras el commit", async () => {
-    const { handler, learningPlanRepository, learningGoalRepository, studyScheduleRepository, unitOfWork, eventBus } =
-      buildHandler();
+    const {
+      handler,
+      learningPlanRepository,
+      learningGoalRepository,
+      studyScheduleRepository,
+      unitOfWork,
+      eventBus,
+    } = buildHandler();
 
     const result = await handler.handle(CreateLearningPlanCommand.fromRequest(baseRequest()));
 
@@ -80,11 +98,34 @@ describe("CreateLearningPlanHandler", () => {
       targetLevel: "B2" as never,
       startDate: new Date("2026-01-01T00:00:00.000Z"),
     });
-    learningPlanRepository.findActiveByStudentId.mockResolvedValueOnce(existingPlan);
+    learningPlanRepository.findCurrentByStudentId.mockResolvedValueOnce(existingPlan);
 
-    await expect(handler.handle(CreateLearningPlanCommand.fromRequest(baseRequest()))).rejects.toBeInstanceOf(
-      ConflictException,
-    );
+    await expect(
+      handler.handle(CreateLearningPlanCommand.fromRequest(baseRequest())),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(unitOfWork.execute).not.toHaveBeenCalled();
+    expect(eventBus.publish).not.toHaveBeenCalled();
+  });
+
+  // Slice "resolve current learning plan including paused state" — un plan
+  // PAUSED sigue ocupando el único cupo de 13.4 MUST: no basta con que el
+  // plan previo esté pausado para permitir crear uno nuevo (evita el
+  // plan-duplicado-huérfano identificado en la auditoría).
+  it("rechaza con ConflictException si el estudiante ya tiene un plan PAUSED", async () => {
+    const { handler, learningPlanRepository, unitOfWork, eventBus } = buildHandler();
+    const existingPlan = LearningPlan.create({
+      id: LearningPlanId.create(APP_FIXTURE_IDS.plan),
+      studentId: StudentId.create(APP_FIXTURE_IDS.student),
+      name: "Plan previo",
+      targetLevel: "B2" as never,
+      startDate: new Date("2026-01-01T00:00:00.000Z"),
+    });
+    existingPlan.pause();
+    learningPlanRepository.findCurrentByStudentId.mockResolvedValueOnce(existingPlan);
+
+    await expect(
+      handler.handle(CreateLearningPlanCommand.fromRequest(baseRequest())),
+    ).rejects.toBeInstanceOf(ConflictException);
     expect(unitOfWork.execute).not.toHaveBeenCalled();
     expect(eventBus.publish).not.toHaveBeenCalled();
   });
@@ -93,8 +134,8 @@ describe("CreateLearningPlanHandler", () => {
     const { handler } = buildHandler();
     const request = { ...baseRequest(), initialGoals: [] };
 
-    await expect(handler.handle(CreateLearningPlanCommand.fromRequest(request))).rejects.toBeInstanceOf(
-      ValidationException,
-    );
+    await expect(
+      handler.handle(CreateLearningPlanCommand.fromRequest(request)),
+    ).rejects.toBeInstanceOf(ValidationException);
   });
 });

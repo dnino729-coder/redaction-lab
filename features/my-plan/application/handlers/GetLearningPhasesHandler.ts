@@ -33,7 +33,7 @@ import type { Logger } from "../ports/Logger";
 // Ownership: el `learningPlanId` NUNCA lo decide el cliente — se resuelve
 // aquí, server-side, a partir del `studentId` autenticado (resuelto por
 // resolveMyPlanActor() en la capa API) vía
-// `LearningPlanRepository.findActiveByStudentId`, exactamente igual que
+// `LearningPlanRepository.findCurrentByStudentId`, exactamente igual que
 // GetLearningGoalsHandler.
 //
 // Orden de fases: `LearningPhaseRepository.findByLearningPlanId` (igual
@@ -81,7 +81,7 @@ export class GetLearningPhasesHandler {
     const studentId = StudentId.create(request.studentId);
 
     const phases = await this.unitOfWork.execute(async () => {
-      const plan = await this.learningPlanRepository.findActiveByStudentId(studentId);
+      const plan = await this.learningPlanRepository.findCurrentByStudentId(studentId);
       if (!plan) throw new ResourceNotFoundException("LearningPlan (activo)", studentId.value);
 
       const foundPhases = await this.learningPhaseRepository.findByLearningPlanId(plan.id);

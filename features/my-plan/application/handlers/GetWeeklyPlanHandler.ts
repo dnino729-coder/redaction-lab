@@ -27,7 +27,7 @@ export class GetWeeklyPlanHandler {
     const studentId = StudentId.create(request.studentId);
 
     const weeklyPlan = await this.unitOfWork.execute(async () => {
-      const plan = await this.learningPlanRepository.findActiveByStudentId(studentId);
+      const plan = await this.learningPlanRepository.findCurrentByStudentId(studentId);
       if (!plan) throw new ResourceNotFoundException("LearningPlan (activo)", studentId.value);
 
       const found = await this.weeklyPlanReadPort.findByLearningPlanIdAndWeekNumber(
@@ -38,7 +38,10 @@ export class GetWeeklyPlanHandler {
       return found;
     }, studentId.value);
 
-    this.logger.debug("GetWeeklyPlan resuelto", { studentId: studentId.value, weekNumber: request.weekNumber });
+    this.logger.debug("GetWeeklyPlan resuelto", {
+      studentId: studentId.value,
+      weekNumber: request.weekNumber,
+    });
     return weeklyPlan;
   }
 }

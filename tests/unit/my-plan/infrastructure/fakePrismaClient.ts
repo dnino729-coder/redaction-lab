@@ -12,11 +12,21 @@ export function createFakeModelDelegate<T extends { id: string }>(seed: readonly
     return a === b;
   }
 
+  // Soporta el único operador Prisma que este sprint realmente usa además
+  // de la igualdad simple: `{ in: [...] }` (ver
+  // PrismaLearningPlanRepository.findCurrentByStudentId — status ACTIVE|
+  // PAUSED). No se soportan otros operadores (`not`, `gte`, `OR`, ...)
+  // porque ningún Repository/Query Service de este sprint los usa todavía
+  // — añadirlos sin un llamador real sería infraestructura inventada.
   function matches(row: T, where: Record<string, unknown> | undefined): boolean {
     if (!where) return true;
-    return Object.entries(where).every(([key, value]) =>
-      valuesEqual((row as Record<string, unknown>)[key], value),
-    );
+    return Object.entries(where).every(([key, value]) => {
+      if (value !== null && typeof value === "object" && "in" in (value as object)) {
+        const options = (value as { in: readonly unknown[] }).in;
+        return options.some((option) => valuesEqual((row as Record<string, unknown>)[key], option));
+      }
+      return valuesEqual((row as Record<string, unknown>)[key], value);
+    });
   }
 
   return {
@@ -24,13 +34,18 @@ export function createFakeModelDelegate<T extends { id: string }>(seed: readonly
     async findUnique(args: { where: { id: string } }) {
       return rows.get(args.where.id) ?? null;
     },
-    async findFirst(args: { where?: Record<string, unknown>; orderBy?: { [key: string]: "asc" | "desc" } }) {
+    async findFirst(args: {
+      where?: Record<string, unknown>;
+      orderBy?: { [key: string]: "asc" | "desc" };
+    }) {
       let candidates = Array.from(rows.values()).filter((row) => matches(row, args.where));
       if (args.orderBy) {
         const [field, direction] = Object.entries(args.orderBy)[0]!;
         candidates = candidates.sort((a, b) => {
-          const av = (a as Record<string, unknown>)[field] as unknown as { getTime?: () => number } | string | number;
-          const bv = (b as Record<string, unknown>)[field] as unknown as { getTime?: () => number } | string | number;
+          const av = (a as Record<string, unknown>)[field] as unknown as
+            { getTime?: () => number } | string | number;
+          const bv = (b as Record<string, unknown>)[field] as unknown as
+            { getTime?: () => number } | string | number;
           const an = av instanceof Date ? av.getTime() : av;
           const bn = bv instanceof Date ? bv.getTime() : bv;
           const cmp = an! < bn! ? -1 : an! > bn! ? 1 : 0;
@@ -74,23 +89,30 @@ export function createFakeModelDelegate<T extends { id: string }>(seed: readonly
 // `@prisma/client` (ver tests/unit/my-plan/infrastructure/setup, o el
 // package.json del sandbox de verificación) expone `Prisma.
 // PrismaClientKnownRequestError` como clase real, no solo de tipos.
-function getPrismaErrorCtor(): { PrismaClientKnownRequestError: new (message: string, options: { code: string }) => Error & { code: string } } {
+function getPrismaErrorCtor(): {
+  PrismaClientKnownRequestError: new (
+    message: string,
+    options: { code: string },
+  ) => Error & { code: string };
+} {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   return require("@prisma/client").Prisma;
 }
 
-export function createFakeTransactionClient(seed: {
-  learningPlan?: Array<{ id: string; [key: string]: unknown }>;
-  learningGoal?: Array<{ id: string; [key: string]: unknown }>;
-  learningObjective?: Array<{ id: string; [key: string]: unknown }>;
-  learningPhase?: Array<{ id: string; [key: string]: unknown }>;
-  learningTask?: Array<{ id: string; [key: string]: unknown }>;
-  studySchedule?: Array<{ id: string; [key: string]: unknown }>;
-  studySession?: Array<{ id: string; [key: string]: unknown }>;
-  dailyPlan?: Array<{ id: string; [key: string]: unknown }>;
-  weeklyPlan?: Array<{ id: string; [key: string]: unknown }>;
-  learningProgress?: Array<{ id: string; [key: string]: unknown }>;
-} = {}) {
+export function createFakeTransactionClient(
+  seed: {
+    learningPlan?: Array<{ id: string; [key: string]: unknown }>;
+    learningGoal?: Array<{ id: string; [key: string]: unknown }>;
+    learningObjective?: Array<{ id: string; [key: string]: unknown }>;
+    learningPhase?: Array<{ id: string; [key: string]: unknown }>;
+    learningTask?: Array<{ id: string; [key: string]: unknown }>;
+    studySchedule?: Array<{ id: string; [key: string]: unknown }>;
+    studySession?: Array<{ id: string; [key: string]: unknown }>;
+    dailyPlan?: Array<{ id: string; [key: string]: unknown }>;
+    weeklyPlan?: Array<{ id: string; [key: string]: unknown }>;
+    learningProgress?: Array<{ id: string; [key: string]: unknown }>;
+  } = {},
+) {
   return {
     learningPlan: createFakeModelDelegate(seed.learningPlan as never),
     learningGoal: createFakeModelDelegate(seed.learningGoal as never),

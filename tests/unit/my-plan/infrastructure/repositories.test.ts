@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { Prisma } from "@prisma/client";
 import { PrismaLearningPlanRepository } from "@/features/my-plan/infrastructure/persistence/repositories/PrismaLearningPlanRepository";
 import { PrismaLearningGoalRepository } from "@/features/my-plan/infrastructure/persistence/repositories/PrismaLearningGoalRepository";
 import { PrismaLearningObjectiveRepository } from "@/features/my-plan/infrastructure/persistence/repositories/PrismaLearningObjectiveRepository";
@@ -46,20 +47,47 @@ describe("PrismaLearningPlanRepository", () => {
       const found = await repo.findById(LearningPlanId.create(IDS.plan));
       expect(found?.name).toBe("Plan");
 
-      const missing = await repo.findById(LearningPlanId.create("00000000-0000-4000-8000-000000000000"));
+      const missing = await repo.findById(
+        LearningPlanId.create("00000000-0000-4000-8000-000000000000"),
+      );
       expect(missing).toBeNull();
     });
   });
 
-  it("findActiveByStudentId filtra por studentId + status=ACTIVE", async () => {
+  it("findCurrentByStudentId filtra por studentId + status ACTIVE|PAUSED, excluye COMPLETED/CANCELLED", async () => {
     const tx = createFakeTransactionClient({
       learningPlan: [planRow, { ...planRow, id: IDS.goal, status: "CANCELLED" }],
     });
     const repo = new PrismaLearningPlanRepository();
 
     await runWithActiveTransaction(tx as never, async () => {
-      const active = await repo.findActiveByStudentId(StudentId.create(IDS.student));
-      expect(active?.id.value).toBe(IDS.plan);
+      const current = await repo.findCurrentByStudentId(StudentId.create(IDS.student));
+      expect(current?.id.value).toBe(IDS.plan);
+    });
+  });
+
+  // Slice "resolve current learning plan including paused state" — verifica
+  // explícitamente los 4 estados: ACTIVE y PAUSED deben resolverse como
+  // "plan actual"; COMPLETED y CANCELLED (terminales) nunca deben
+  // resolverse, aunque sean el único plan del estudiante.
+  it.each([
+    ["ACTIVE", true],
+    ["PAUSED", true],
+    ["COMPLETED", false],
+    ["CANCELLED", false],
+  ] as const)("status=%s → ¿resuelto como plan actual? %s", async (status, shouldResolve) => {
+    const tx = createFakeTransactionClient({
+      learningPlan: [{ ...planRow, status }],
+    });
+    const repo = new PrismaLearningPlanRepository();
+
+    await runWithActiveTransaction(tx as never, async () => {
+      const current = await repo.findCurrentByStudentId(StudentId.create(IDS.student));
+      if (shouldResolve) {
+        expect(current?.id.value).toBe(IDS.plan);
+      } else {
+        expect(current).toBeNull();
+      }
     });
   });
 
@@ -92,8 +120,10 @@ describe("PrismaLearningPlanRepository", () => {
       learningPlan: {
         ...createFakeModelDelegate([]),
         upsert: async () => {
-          const { Prisma } = require("@prisma/client");
-          throw new Prisma.PrismaClientKnownRequestError("Unique constraint failed", { code: "P2002" });
+          throw new Prisma.PrismaClientKnownRequestError("Unique constraint failed", {
+            code: "P2002",
+            clientVersion: "5.22.0",
+          });
         },
       },
     };
@@ -141,7 +171,9 @@ describe("Repositories restantes — find*/save operan sobre el doble de prueba"
     const repo = new PrismaLearningObjectiveRepository();
     await runWithActiveTransaction(tx as never, async () => {
       const objectives = await repo.findByLearningGoalId(
-        (await import("@/features/my-plan/domain/value-objects/LearningGoalId")).LearningGoalId.create(IDS.goal),
+        (
+          await import("@/features/my-plan/domain/value-objects/LearningGoalId")
+        ).LearningGoalId.create(IDS.goal),
       );
       expect(objectives).toEqual([]);
     });
@@ -188,7 +220,8 @@ describe("Repositories restantes — find*/save operan sobre el doble de prueba"
     });
     const repo = new PrismaLearningTaskRepository();
     await runWithActiveTransaction(tx as never, async () => {
-      const { LearningPhaseId } = await import("@/features/my-plan/domain/value-objects/LearningPhaseId");
+      const { LearningPhaseId } =
+        await import("@/features/my-plan/domain/value-objects/LearningPhaseId");
       const tasks = await repo.findByLearningPhaseId(LearningPhaseId.create(IDS.phase));
       expect(tasks).toHaveLength(1);
       expect(tasks[0]!.source).toBe("SELF_DIRECTED");

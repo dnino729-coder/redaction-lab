@@ -48,7 +48,7 @@ function makeStudentProfileRepository(): StudentProfileRepository {
 function makeLearningPlanRepository(): LearningPlanRepository {
   return {
     findById: vi.fn(async () => null),
-    findActiveByStudentId: vi.fn(async () => null),
+    findCurrentByStudentId: vi.fn(async () => null),
     save: vi.fn(async () => {}),
   };
 }
@@ -154,7 +154,7 @@ describe("CompleteStudentOnboardingHandler", () => {
     const studentProfileRepository = makeStudentProfileRepository();
     vi.mocked(studentProfileRepository.findByStudentId).mockResolvedValue(buildExistingProfile());
     const learningPlanRepository = makeLearningPlanRepository();
-    vi.mocked(learningPlanRepository.findActiveByStudentId).mockResolvedValue({} as never);
+    vi.mocked(learningPlanRepository.findCurrentByStudentId).mockResolvedValue({} as never);
     const { handler, createLearningPlanHandler } = buildHandler({
       studentProfileRepository,
       learningPlanRepository,

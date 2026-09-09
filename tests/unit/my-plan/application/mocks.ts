@@ -68,7 +68,7 @@ function makeRepoBase<T>() {
 export function makeLearningPlanRepository() {
   return {
     ...makeRepoBase<LearningPlan>(),
-    findActiveByStudentId: vi.fn(async (): Promise<LearningPlan | null> => null),
+    findCurrentByStudentId: vi.fn(async (): Promise<LearningPlan | null> => null),
   };
 }
 

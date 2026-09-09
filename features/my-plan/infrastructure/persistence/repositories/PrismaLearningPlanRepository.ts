@@ -18,10 +18,13 @@ export class PrismaLearningPlanRepository implements LearningPlanRepository {
     return row ? LearningPlanPersistenceMapper.toDomain(row) : null;
   }
 
-  public async findActiveByStudentId(studentId: StudentId): Promise<LearningPlan | null> {
+  // "Actual" = ACTIVE | PAUSED (ver LearningPlanRepository.ts, puerto de
+  // dominio, para la justificación completa) — COMPLETED/CANCELLED quedan
+  // excluidos por ser estados terminales.
+  public async findCurrentByStudentId(studentId: StudentId): Promise<LearningPlan | null> {
     const row = await withActiveClient((client) =>
       client.learningPlan.findFirst({
-        where: { studentId: studentId.value, status: "ACTIVE" },
+        where: { studentId: studentId.value, status: { in: ["ACTIVE", "PAUSED"] } },
       }),
     );
     return row ? LearningPlanPersistenceMapper.toDomain(row) : null;

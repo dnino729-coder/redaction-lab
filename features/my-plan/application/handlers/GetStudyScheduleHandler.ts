@@ -31,7 +31,7 @@ export class GetStudyScheduleHandler {
     const studentId = StudentId.create(request.studentId);
 
     const schedule = await this.unitOfWork.execute(async () => {
-      const plan = await this.learningPlanRepository.findActiveByStudentId(studentId);
+      const plan = await this.learningPlanRepository.findCurrentByStudentId(studentId);
       if (!plan) throw new ResourceNotFoundException("LearningPlan (activo)", studentId.value);
 
       const found = await this.studyScheduleRepository.findByLearningPlanId(plan.id);

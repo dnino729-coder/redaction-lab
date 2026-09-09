@@ -96,7 +96,7 @@ describe("GetLearningPhasesHandler", () => {
   it("1. plan activo con una fase y una tarea: devuelve la estructura esperada", async () => {
     const { handler, learningPlanRepository, learningPhaseRepository, learningTaskRepository } =
       buildHandler();
-    learningPlanRepository.findActiveByStudentId.mockResolvedValue(buildActivePlan());
+    learningPlanRepository.findCurrentByStudentId.mockResolvedValue(buildActivePlan());
     learningPhaseRepository.findByLearningPlanId.mockResolvedValue([
       buildPhase(APP_FIXTURE_IDS.phase, 1, "Phase 1"),
     ]);
@@ -131,7 +131,7 @@ describe("GetLearningPhasesHandler", () => {
   it("2. plan activo con múltiples fases: devuelve todas, ordenadas por phaseOrder ascendente", async () => {
     const { handler, learningPlanRepository, learningPhaseRepository, learningTaskRepository } =
       buildHandler();
-    learningPlanRepository.findActiveByStudentId.mockResolvedValue(buildActivePlan());
+    learningPlanRepository.findCurrentByStudentId.mockResolvedValue(buildActivePlan());
     // Se devuelven deliberadamente fuera de orden para probar que el
     // Handler las reordena por phaseOrder, no confía en el orden del
     // repositorio.
@@ -151,7 +151,7 @@ describe("GetLearningPhasesHandler", () => {
   it("3. cada fase contiene sus propias tareas (no mezcladas entre fases)", async () => {
     const { handler, learningPlanRepository, learningPhaseRepository, learningTaskRepository } =
       buildHandler();
-    learningPlanRepository.findActiveByStudentId.mockResolvedValue(buildActivePlan());
+    learningPlanRepository.findCurrentByStudentId.mockResolvedValue(buildActivePlan());
     const phaseA = APP_FIXTURE_IDS.phase;
     const phaseB = "11111111-1111-4111-8111-111111111198";
     learningPhaseRepository.findByLearningPlanId.mockResolvedValue([
@@ -175,7 +175,7 @@ describe("GetLearningPhasesHandler", () => {
 
   it("4. lista de fases vacía: devuelve un read model con phases: []", async () => {
     const { handler, learningPlanRepository, learningPhaseRepository } = buildHandler();
-    learningPlanRepository.findActiveByStudentId.mockResolvedValue(buildActivePlan());
+    learningPlanRepository.findCurrentByStudentId.mockResolvedValue(buildActivePlan());
     learningPhaseRepository.findByLearningPlanId.mockResolvedValue([]);
 
     const result = await handler.handle(
@@ -197,7 +197,7 @@ describe("GetLearningPhasesHandler", () => {
 
   it("6. error del repositorio de fases: se propaga sin ser capturado", async () => {
     const { handler, learningPlanRepository, learningPhaseRepository } = buildHandler();
-    learningPlanRepository.findActiveByStudentId.mockResolvedValue(buildActivePlan());
+    learningPlanRepository.findCurrentByStudentId.mockResolvedValue(buildActivePlan());
     learningPhaseRepository.findByLearningPlanId.mockRejectedValue(new Error("db down"));
 
     await expect(
@@ -208,7 +208,7 @@ describe("GetLearningPhasesHandler", () => {
   it("7. resuelve el plan activo server-side (no acepta un learningPlanId externo)", async () => {
     const { handler, learningPlanRepository, learningPhaseRepository } = buildHandler();
     const plan = buildActivePlan();
-    learningPlanRepository.findActiveByStudentId.mockResolvedValue(plan);
+    learningPlanRepository.findCurrentByStudentId.mockResolvedValue(plan);
     learningPhaseRepository.findByLearningPlanId.mockResolvedValue([]);
 
     // GetLearningPhasesRequestDto no declara ningún campo learningPlanId —
@@ -217,7 +217,7 @@ describe("GetLearningPhasesHandler", () => {
       GetLearningPhasesQuery.fromRequest({ studentId: APP_FIXTURE_IDS.student }),
     );
 
-    expect(learningPlanRepository.findActiveByStudentId).toHaveBeenCalledWith(
+    expect(learningPlanRepository.findCurrentByStudentId).toHaveBeenCalledWith(
       StudentId.create(APP_FIXTURE_IDS.student),
     );
     expect(learningPhaseRepository.findByLearningPlanId).toHaveBeenCalledWith(plan.id);
@@ -229,14 +229,14 @@ describe("GetLearningPhasesHandler", () => {
       learningPlanId: "99999999-9999-4999-8999-999999999999",
     };
     const { handler, learningPlanRepository, learningPhaseRepository } = buildHandler();
-    learningPlanRepository.findActiveByStudentId.mockResolvedValue(buildActivePlan());
+    learningPlanRepository.findCurrentByStudentId.mockResolvedValue(buildActivePlan());
     learningPhaseRepository.findByLearningPlanId.mockResolvedValue([]);
 
     // Aun si el llamante intenta inyectar learningPlanId en el DTO, el
     // Handler lo ignora por completo — nunca lo lee.
     await handler.handle(GetLearningPhasesQuery.fromRequest(request as never));
 
-    expect(learningPlanRepository.findActiveByStudentId).toHaveBeenCalledWith(
+    expect(learningPlanRepository.findCurrentByStudentId).toHaveBeenCalledWith(
       StudentId.create(APP_FIXTURE_IDS.student),
     );
   });
@@ -244,7 +244,7 @@ describe("GetLearningPhasesHandler", () => {
   it("9. preserva los valores reales de status de fase y tarea (incluyendo CANCELLED)", async () => {
     const { handler, learningPlanRepository, learningPhaseRepository, learningTaskRepository } =
       buildHandler();
-    learningPlanRepository.findActiveByStudentId.mockResolvedValue(buildActivePlan());
+    learningPlanRepository.findCurrentByStudentId.mockResolvedValue(buildActivePlan());
     const phase = buildPhase(APP_FIXTURE_IDS.phase, 1);
     phase.cancel();
     learningPhaseRepository.findByLearningPlanId.mockResolvedValue([phase]);
@@ -268,7 +268,7 @@ describe("GetLearningPhasesHandler", () => {
       learningTaskRepository,
       studySessionRepository,
     } = buildHandler();
-    learningPlanRepository.findActiveByStudentId.mockResolvedValue(buildActivePlan());
+    learningPlanRepository.findCurrentByStudentId.mockResolvedValue(buildActivePlan());
     learningPhaseRepository.findByLearningPlanId.mockResolvedValue([
       buildPhase(APP_FIXTURE_IDS.phase, 1, "Phase 1"),
     ]);
@@ -312,7 +312,7 @@ describe("GetLearningPhasesHandler", () => {
   it("12. una tarea sin sesiones devuelve sessions: [] (no es un error)", async () => {
     const { handler, learningPlanRepository, learningPhaseRepository, learningTaskRepository } =
       buildHandler();
-    learningPlanRepository.findActiveByStudentId.mockResolvedValue(buildActivePlan());
+    learningPlanRepository.findCurrentByStudentId.mockResolvedValue(buildActivePlan());
     learningPhaseRepository.findByLearningPlanId.mockResolvedValue([
       buildPhase(APP_FIXTURE_IDS.phase, 1, "Phase 1"),
     ]);
@@ -337,7 +337,7 @@ describe("GetLearningPhasesHandler", () => {
       learningTaskRepository,
       studySessionRepository,
     } = buildHandler();
-    learningPlanRepository.findActiveByStudentId.mockResolvedValue(buildActivePlan());
+    learningPlanRepository.findCurrentByStudentId.mockResolvedValue(buildActivePlan());
     const phaseA = APP_FIXTURE_IDS.phase;
     const phaseB = "11111111-1111-4111-8111-111111111197";
     learningPhaseRepository.findByLearningPlanId.mockResolvedValue([
@@ -365,6 +365,6 @@ describe("GetLearningPhasesHandler", () => {
     await expect(
       handler.handle(GetLearningPhasesQuery.fromRequest({ studentId: "not-a-uuid" })),
     ).rejects.toBeInstanceOf(ValidationException);
-    expect(learningPlanRepository.findActiveByStudentId).not.toHaveBeenCalled();
+    expect(learningPlanRepository.findCurrentByStudentId).not.toHaveBeenCalled();
   });
 });
