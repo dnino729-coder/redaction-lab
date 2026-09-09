@@ -173,6 +173,7 @@
       "completeTask": "Terminer la tâche",
       "completingTask": "Finalisation…",
       "completeTaskError": "La tâche n'a pas pu être terminée. Réessayez.",
+      "pausedHint": "Ton plan est en pause. Reprends-le pour continuer à progresser.",
       "status": {
         "NOT_STARTED": "Non commencé",
         "IN_PROGRESS": "En cours",

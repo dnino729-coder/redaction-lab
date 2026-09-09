@@ -31,11 +31,25 @@
 // invalidan `myPlanKeys.phases()` Y `myPlanKeys.progress()` (completar una
 // tarea recalcula LearningPhase.status y LearningProgress en el mismo
 // Handler).
+//
+// UX de PAUSED (slice "reflect paused state in progress controls"): el
+// backend (CompleteLearningTaskHandler/CreateStudySessionHandler, sin
+// modificar) ya rechaza con 409 completar tareas o iniciar sesiones
+// mientras el plan no esté ACTIVE — este bloque solo refleja esa regla
+// anticipadamente, deshabilitando ambos botones. El `status` del plan se
+// obtiene reutilizando useActiveLearningPlan() (mismo hook que ya usa
+// PlanSummaryOverview.tsx, misma query key `activeLearningPlan()` — sin
+// endpoint ni query nuevos: TanStack Query deduplica la petición real
+// cuando ambos componentes están montados a la vez). "Finalizar sesión"
+// permanece siempre habilitado (FinishStudySessionHandler, sin modificar,
+// nunca consulta el plan) — una sesión abierta antes de pausar debe poder
+// cerrarse.
 import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle, Badge, Button } from "@/components/ui";
 import { ApiError } from "@/lib/apiClient";
 import type { LearningPhaseStatusHttp, LearningTaskStatusHttp } from "../services/myPlanApi";
 import { useLearningPhases } from "../hooks/useLearningPhases";
+import { useActiveLearningPlan } from "../hooks/useActiveLearningPlan";
 import { useCreateStudySession } from "../hooks/useCreateStudySession";
 import { useFinishStudySession } from "../hooks/useFinishStudySession";
 import { useCompleteLearningTask } from "../hooks/useCompleteLearningTask";
@@ -55,6 +69,7 @@ function statusVariant(
 export function PhasesAndTasks() {
   const t = useTranslations("myPlan.phases");
   const { data: phasesData, isLoading, isError, error, refetch } = useLearningPhases();
+  const { data: activePlan } = useActiveLearningPlan();
   const createSession = useCreateStudySession();
   const finishSession = useFinishStudySession();
   const completeTask = useCompleteLearningTask();
@@ -63,12 +78,15 @@ export function PhasesAndTasks() {
   if (error instanceof ApiError && error.status === 404) return <MyPlanEmptyState />;
   if (isError || !phasesData) return <MyPlanErrorState onRetry={() => refetch()} />;
 
+  const isPlanPaused = activePlan?.status === "PAUSED";
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>{t("title")}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
+        {isPlanPaused ? <p className="text-xs text-neutral-500">{t("pausedHint")}</p> : null}
         {phasesData.phases.length === 0 ? (
           <p className="text-sm text-neutral-500">{t("empty")}</p>
         ) : (
@@ -120,7 +138,8 @@ export function PhasesAndTasks() {
                           type="button"
                           variant="outline"
                           size="sm"
-                          disabled={isStartingThisTask}
+                          disabled={isStartingThisTask || isPlanPaused}
+                          title={isPlanPaused ? t("pausedHint") : undefined}
                           onClick={() => createSession.mutate(task.id)}
                         >
                           {isStartingThisTask ? t("startingSession") : t("startSession")}
@@ -146,7 +165,8 @@ export function PhasesAndTasks() {
                             type="button"
                             variant="primary"
                             size="sm"
-                            disabled={isCompletingThisTask}
+                            disabled={isCompletingThisTask || isPlanPaused}
+                            title={isPlanPaused ? t("pausedHint") : undefined}
                             onClick={() => completeTask.mutate(task.id)}
                           >
                             {isCompletingThisTask ? t("completingTask") : t("completeTask")}

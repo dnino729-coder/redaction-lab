@@ -173,6 +173,7 @@
       "completeTask": "Completar tarea",
       "completingTask": "Completando…",
       "completeTaskError": "No se pudo completar la tarea. Intenta de nuevo.",
+      "pausedHint": "Tu plan está en pausa. Reanúdalo para seguir progresando.",
       "status": {
         "NOT_STARTED": "Sin empezar",
         "IN_PROGRESS": "En progreso",
