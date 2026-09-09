@@ -126,7 +126,17 @@
         "PAUSED": "En pause",
         "COMPLETED": "Terminé",
         "CANCELLED": "Annulé"
-      }
+      },
+      "pauseCta": "Mettre en pause",
+      "pausing": "Mise en pause…",
+      "resumeCta": "Reprendre le plan",
+      "resuming": "Reprise…",
+      "cancelCta": "Annuler le plan",
+      "cancelConfirmTitle": "Annuler le plan d'étude",
+      "cancelConfirmMessage": "Confirmes-tu vouloir annuler ton plan d'étude ? Cette action est irréversible.",
+      "keepPlanCta": "Garder le plan",
+      "confirmCancelCta": "Annuler le plan",
+      "actionError": "L'action n'a pas pu être effectuée. Réessayez."
     },
     "calendar": {
       "title": "Calendrier d'entraînement",

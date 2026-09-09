@@ -159,6 +159,23 @@ export async function getActiveLearningPlan(): Promise<LearningPlanHttp> {
   return apiFetch<LearningPlanHttp>(`${BASE}/active`);
 }
 
+// Slice "expose learning plan lifecycle actions" — las tres acciones son
+// POST sin body: el cliente nunca envía `planId` (el servidor resuelve el
+// plan actual del estudiante autenticado, ver learningPlanHandlers.ts) ni,
+// en el caso de cancelar, ninguna fecha (CancelLearningPlanHandler usa
+// siempre `Clock.now()`, sin modificar).
+export async function pauseLearningPlan(): Promise<LearningPlanHttp> {
+  return apiFetch<LearningPlanHttp>(`${BASE}/pause`, { method: "POST" });
+}
+
+export async function resumeLearningPlan(): Promise<LearningPlanHttp> {
+  return apiFetch<LearningPlanHttp>(`${BASE}/resume`, { method: "POST" });
+}
+
+export async function cancelLearningPlan(): Promise<LearningPlanHttp> {
+  return apiFetch<LearningPlanHttp>(`${BASE}/cancel`, { method: "POST" });
+}
+
 export async function getStudySchedule(): Promise<StudyScheduleHttp> {
   return apiFetch<StudyScheduleHttp>(`${BASE}/study-schedule`);
 }

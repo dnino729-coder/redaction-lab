@@ -35,7 +35,10 @@ describe("PauseLearningPlanHandler", () => {
     );
 
     const result = await handler.handle(
-      PauseLearningPlanCommand.fromRequest({ planId: APP_FIXTURE_IDS.plan, studentId: APP_FIXTURE_IDS.student }),
+      PauseLearningPlanCommand.fromRequest({
+        planId: APP_FIXTURE_IDS.plan,
+        studentId: APP_FIXTURE_IDS.student,
+      }),
     );
     expect(result.status).toBe("PAUSED");
   });
@@ -50,7 +53,10 @@ describe("PauseLearningPlanHandler", () => {
 
     await expect(
       handler.handle(
-        PauseLearningPlanCommand.fromRequest({ planId: APP_FIXTURE_IDS.plan, studentId: APP_FIXTURE_IDS.student }),
+        PauseLearningPlanCommand.fromRequest({
+          planId: APP_FIXTURE_IDS.plan,
+          studentId: APP_FIXTURE_IDS.student,
+        }),
       ),
     ).rejects.toBeInstanceOf(ResourceNotFoundException);
   });
@@ -66,7 +72,10 @@ describe("PauseLearningPlanHandler", () => {
 
     await expect(
       handler.handle(
-        PauseLearningPlanCommand.fromRequest({ planId: APP_FIXTURE_IDS.plan, studentId: APP_FIXTURE_IDS.student }),
+        PauseLearningPlanCommand.fromRequest({
+          planId: APP_FIXTURE_IDS.plan,
+          studentId: APP_FIXTURE_IDS.student,
+        }),
       ),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
@@ -84,7 +93,10 @@ describe("PauseLearningPlanHandler", () => {
 
     await expect(
       handler.handle(
-        PauseLearningPlanCommand.fromRequest({ planId: APP_FIXTURE_IDS.plan, studentId: APP_FIXTURE_IDS.student }),
+        PauseLearningPlanCommand.fromRequest({
+          planId: APP_FIXTURE_IDS.plan,
+          studentId: APP_FIXTURE_IDS.student,
+        }),
       ),
     ).rejects.toBeInstanceOf(ConflictException);
   });
@@ -103,9 +115,73 @@ describe("ResumeLearningPlanHandler", () => {
     );
 
     const result = await handler.handle(
-      ResumeLearningPlanCommand.fromRequest({ planId: APP_FIXTURE_IDS.plan, studentId: APP_FIXTURE_IDS.student }),
+      ResumeLearningPlanCommand.fromRequest({
+        planId: APP_FIXTURE_IDS.plan,
+        studentId: APP_FIXTURE_IDS.student,
+      }),
     );
     expect(result.status).toBe("ACTIVE");
+  });
+
+  // Slice "expose learning plan lifecycle actions" — cierra la asimetría
+  // de cobertura señalada por la auditoría: mismos 3 casos que
+  // PauseLearningPlanHandler ya tenía (not-found/forbidden/conflict).
+  it("lanza ResourceNotFoundException si el plan no existe", async () => {
+    const learningPlanRepository = makeLearningPlanRepository();
+    const handler = new ResumeLearningPlanHandler(
+      learningPlanRepository as never,
+      makeUnitOfWork() as never,
+      makeLogger() as never,
+    );
+
+    await expect(
+      handler.handle(
+        ResumeLearningPlanCommand.fromRequest({
+          planId: APP_FIXTURE_IDS.plan,
+          studentId: APP_FIXTURE_IDS.student,
+        }),
+      ),
+    ).rejects.toBeInstanceOf(ResourceNotFoundException);
+  });
+
+  it("lanza ForbiddenException si el plan pertenece a otro estudiante", async () => {
+    const learningPlanRepository = makeLearningPlanRepository();
+    const plan = activePlan(APP_FIXTURE_IDS.otherStudent);
+    plan.pause();
+    learningPlanRepository.findById.mockResolvedValue(plan);
+    const handler = new ResumeLearningPlanHandler(
+      learningPlanRepository as never,
+      makeUnitOfWork() as never,
+      makeLogger() as never,
+    );
+
+    await expect(
+      handler.handle(
+        ResumeLearningPlanCommand.fromRequest({
+          planId: APP_FIXTURE_IDS.plan,
+          studentId: APP_FIXTURE_IDS.student,
+        }),
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it("traduce InvalidStatusTransitionException del dominio a ConflictException (plan ya ACTIVE)", async () => {
+    const learningPlanRepository = makeLearningPlanRepository();
+    learningPlanRepository.findById.mockResolvedValue(activePlan()); // ya ACTIVE, resume() exige PAUSED
+    const handler = new ResumeLearningPlanHandler(
+      learningPlanRepository as never,
+      makeUnitOfWork() as never,
+      makeLogger() as never,
+    );
+
+    await expect(
+      handler.handle(
+        ResumeLearningPlanCommand.fromRequest({
+          planId: APP_FIXTURE_IDS.plan,
+          studentId: APP_FIXTURE_IDS.student,
+        }),
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 });
 
@@ -122,7 +198,98 @@ describe("CancelLearningPlanHandler", () => {
     );
 
     const result = await handler.handle(
-      CancelLearningPlanCommand.fromRequest({ planId: APP_FIXTURE_IDS.plan, studentId: APP_FIXTURE_IDS.student }),
+      CancelLearningPlanCommand.fromRequest({
+        planId: APP_FIXTURE_IDS.plan,
+        studentId: APP_FIXTURE_IDS.student,
+      }),
+    );
+    expect(result.status).toBe("CANCELLED");
+    expect(result.endDate).toBe(fixedNow.toISOString());
+  });
+
+  // Slice "expose learning plan lifecycle actions" — mismos 3 casos que
+  // PauseLearningPlanHandler, más el caso propio de Cancel: cancelar desde
+  // PAUSED (18.22: ACTIVE|PAUSED -> CANCELLED, a diferencia de Pause/Resume
+  // que solo aceptan un único estado de origen).
+  it("lanza ResourceNotFoundException si el plan no existe", async () => {
+    const learningPlanRepository = makeLearningPlanRepository();
+    const handler = new CancelLearningPlanHandler(
+      learningPlanRepository as never,
+      makeUnitOfWork() as never,
+      makeClock(new Date("2026-07-18T12:00:00.000Z")) as never,
+      makeLogger() as never,
+    );
+
+    await expect(
+      handler.handle(
+        CancelLearningPlanCommand.fromRequest({
+          planId: APP_FIXTURE_IDS.plan,
+          studentId: APP_FIXTURE_IDS.student,
+        }),
+      ),
+    ).rejects.toBeInstanceOf(ResourceNotFoundException);
+  });
+
+  it("lanza ForbiddenException si el plan pertenece a otro estudiante", async () => {
+    const learningPlanRepository = makeLearningPlanRepository();
+    learningPlanRepository.findById.mockResolvedValue(activePlan(APP_FIXTURE_IDS.otherStudent));
+    const handler = new CancelLearningPlanHandler(
+      learningPlanRepository as never,
+      makeUnitOfWork() as never,
+      makeClock(new Date("2026-07-18T12:00:00.000Z")) as never,
+      makeLogger() as never,
+    );
+
+    await expect(
+      handler.handle(
+        CancelLearningPlanCommand.fromRequest({
+          planId: APP_FIXTURE_IDS.plan,
+          studentId: APP_FIXTURE_IDS.student,
+        }),
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it("traduce InvalidStatusTransitionException del dominio a ConflictException (plan ya CANCELLED)", async () => {
+    const learningPlanRepository = makeLearningPlanRepository();
+    const plan = activePlan();
+    plan.cancel(new Date("2026-02-01T00:00:00.000Z")); // ya terminal
+    learningPlanRepository.findById.mockResolvedValue(plan);
+    const handler = new CancelLearningPlanHandler(
+      learningPlanRepository as never,
+      makeUnitOfWork() as never,
+      makeClock(new Date("2026-07-18T12:00:00.000Z")) as never,
+      makeLogger() as never,
+    );
+
+    await expect(
+      handler.handle(
+        CancelLearningPlanCommand.fromRequest({
+          planId: APP_FIXTURE_IDS.plan,
+          studentId: APP_FIXTURE_IDS.student,
+        }),
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it("cancela un plan PAUSED (18.22: ACTIVE|PAUSED -> CANCELLED)", async () => {
+    const learningPlanRepository = makeLearningPlanRepository();
+    const plan = activePlan();
+    plan.pause();
+    learningPlanRepository.findById.mockResolvedValue(plan);
+    const fixedNow = new Date("2026-07-18T12:00:00.000Z");
+    const handler = new CancelLearningPlanHandler(
+      learningPlanRepository as never,
+      makeUnitOfWork() as never,
+      makeClock(fixedNow) as never,
+      makeLogger() as never,
+    );
+
+    const result = await handler.handle(
+      CancelLearningPlanCommand.fromRequest({
+        planId: APP_FIXTURE_IDS.plan,
+        studentId: APP_FIXTURE_IDS.student,
+      }),
     );
     expect(result.status).toBe("CANCELLED");
     expect(result.endDate).toBe(fixedNow.toISOString());
