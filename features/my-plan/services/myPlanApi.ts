@@ -70,11 +70,25 @@ export type LearningTaskStatusHttp = "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED"
 export type LearningTaskSourceHttp =
   "SELF_DIRECTED" | "ACADEMY" | "LABORATORY" | "DAILY_TRAINING" | "SIMULATOR";
 
+// Slice "connect study session history": id/startedAt/finishedAt/
+// durationMinutes/completed — mismos campos y misma serialización que
+// `StudySessionMapper.toResponseDto()` (ISO string / null), sin
+// `studentId`/`learningTaskId` (la tarea ya está scoped por la propia
+// respuesta de fases).
+export interface LearningTaskSessionSummaryHttp {
+  id: string;
+  startedAt: string;
+  finishedAt: string | null;
+  durationMinutes: number | null;
+  completed: boolean;
+}
+
 export interface LearningTaskSummaryHttp {
   id: string;
   title: string;
   status: LearningTaskStatusHttp;
   source: LearningTaskSourceHttp;
+  sessions: LearningTaskSessionSummaryHttp[];
 }
 
 export interface LearningPhaseSummaryHttp {

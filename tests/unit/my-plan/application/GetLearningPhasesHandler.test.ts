@@ -6,14 +6,18 @@ import { ValidationException } from "@/features/my-plan/application/exceptions/V
 import { LearningPlan } from "@/features/my-plan/domain/entities/LearningPlan";
 import { LearningPhase } from "@/features/my-plan/domain/entities/LearningPhase";
 import { LearningTask } from "@/features/my-plan/domain/entities/LearningTask";
+import { StudySession } from "@/features/my-plan/domain/entities/StudySession";
+import { SessionDuration } from "@/features/my-plan/domain/value-objects/SessionDuration";
 import { LearningPlanId } from "@/features/my-plan/domain/value-objects/LearningPlanId";
 import { LearningPhaseId } from "@/features/my-plan/domain/value-objects/LearningPhaseId";
 import { LearningTaskId } from "@/features/my-plan/domain/value-objects/LearningTaskId";
+import { StudySessionId } from "@/features/my-plan/domain/value-objects/StudySessionId";
 import { StudentId } from "@/features/my-plan/domain/value-objects/StudentId";
 import {
   makeLearningPlanRepository,
   makeLearningPhaseRepository,
   makeLearningTaskRepository,
+  makeStudySessionRepository,
   makeUnitOfWork,
   makeLogger,
 } from "./mocks";
@@ -48,10 +52,24 @@ function buildTask(id: string, learningPhaseId: string, title = "Task") {
   });
 }
 
+function buildSession(
+  id: string,
+  learningTaskId: string,
+  startedAt = new Date("2026-07-17T08:00:00.000Z"),
+) {
+  return StudySession.start({
+    id: StudySessionId.create(id),
+    studentId: StudentId.create(APP_FIXTURE_IDS.student),
+    learningTaskId: LearningTaskId.create(learningTaskId),
+    startedAt,
+  });
+}
+
 function buildHandler() {
   const learningPlanRepository = makeLearningPlanRepository();
   const learningPhaseRepository = makeLearningPhaseRepository();
   const learningTaskRepository = makeLearningTaskRepository();
+  const studySessionRepository = makeStudySessionRepository();
   const unitOfWork = makeUnitOfWork();
   const logger = makeLogger();
 
@@ -59,6 +77,7 @@ function buildHandler() {
     learningPlanRepository as never,
     learningPhaseRepository as never,
     learningTaskRepository as never,
+    studySessionRepository as never,
     unitOfWork as never,
     logger as never,
   );
@@ -68,6 +87,7 @@ function buildHandler() {
     learningPlanRepository,
     learningPhaseRepository,
     learningTaskRepository,
+    studySessionRepository,
     unitOfWork,
   };
 }
@@ -100,6 +120,7 @@ describe("GetLearningPhasesHandler", () => {
               title: "Task 1",
               status: "NOT_STARTED",
               source: "SELF_DIRECTED",
+              sessions: [],
             },
           ],
         },
@@ -237,6 +258,105 @@ describe("GetLearningPhasesHandler", () => {
 
     expect(result.phases[0]!.status).toBe("CANCELLED");
     expect(result.phases[0]!.tasks[0]!.status).toBe("CANCELLED");
+  });
+
+  it("11. embebe el historial real de StudySession de cada tarea (abierta y finalizada)", async () => {
+    const {
+      handler,
+      learningPlanRepository,
+      learningPhaseRepository,
+      learningTaskRepository,
+      studySessionRepository,
+    } = buildHandler();
+    learningPlanRepository.findActiveByStudentId.mockResolvedValue(buildActivePlan());
+    learningPhaseRepository.findByLearningPlanId.mockResolvedValue([
+      buildPhase(APP_FIXTURE_IDS.phase, 1, "Phase 1"),
+    ]);
+    learningTaskRepository.findByLearningPhaseId.mockResolvedValue([
+      buildTask(APP_FIXTURE_IDS.task, APP_FIXTURE_IDS.phase, "Task 1"),
+    ]);
+    const openSession = buildSession(APP_FIXTURE_IDS.session, APP_FIXTURE_IDS.task);
+    const finishedSession = buildSession(
+      "77777777-7777-4777-8777-777777777771",
+      APP_FIXTURE_IDS.task,
+      new Date("2026-07-16T08:00:00.000Z"),
+    );
+    finishedSession.finish(new Date("2026-07-16T08:25:00.000Z"), SessionDuration.create(25));
+    studySessionRepository.findByLearningTaskId.mockResolvedValue([openSession, finishedSession]);
+
+    const result = await handler.handle(
+      GetLearningPhasesQuery.fromRequest({ studentId: APP_FIXTURE_IDS.student }),
+    );
+
+    expect(result.phases[0]!.tasks[0]!.sessions).toEqual([
+      {
+        id: APP_FIXTURE_IDS.session,
+        startedAt: "2026-07-17T08:00:00.000Z",
+        finishedAt: null,
+        durationMinutes: null,
+        completed: false,
+      },
+      {
+        id: "77777777-7777-4777-8777-777777777771",
+        startedAt: "2026-07-16T08:00:00.000Z",
+        finishedAt: "2026-07-16T08:25:00.000Z",
+        durationMinutes: 25,
+        completed: true,
+      },
+    ]);
+    expect(studySessionRepository.findByLearningTaskId).toHaveBeenCalledWith(
+      LearningTaskId.create(APP_FIXTURE_IDS.task),
+    );
+  });
+
+  it("12. una tarea sin sesiones devuelve sessions: [] (no es un error)", async () => {
+    const { handler, learningPlanRepository, learningPhaseRepository, learningTaskRepository } =
+      buildHandler();
+    learningPlanRepository.findActiveByStudentId.mockResolvedValue(buildActivePlan());
+    learningPhaseRepository.findByLearningPlanId.mockResolvedValue([
+      buildPhase(APP_FIXTURE_IDS.phase, 1, "Phase 1"),
+    ]);
+    learningTaskRepository.findByLearningPhaseId.mockResolvedValue([
+      buildTask(APP_FIXTURE_IDS.task, APP_FIXTURE_IDS.phase, "Task 1"),
+    ]);
+    // studySessionRepository.findByLearningTaskId no se sobreescribe: usa
+    // el valor por defecto del mock ([]).
+
+    const result = await handler.handle(
+      GetLearningPhasesQuery.fromRequest({ studentId: APP_FIXTURE_IDS.student }),
+    );
+
+    expect(result.phases[0]!.tasks[0]!.sessions).toEqual([]);
+  });
+
+  it("13. las sesiones de una fase/tarea no se mezclan con las de otra", async () => {
+    const {
+      handler,
+      learningPlanRepository,
+      learningPhaseRepository,
+      learningTaskRepository,
+      studySessionRepository,
+    } = buildHandler();
+    learningPlanRepository.findActiveByStudentId.mockResolvedValue(buildActivePlan());
+    const phaseA = APP_FIXTURE_IDS.phase;
+    const phaseB = "11111111-1111-4111-8111-111111111197";
+    learningPhaseRepository.findByLearningPlanId.mockResolvedValue([
+      buildPhase(phaseA, 1, "Phase A"),
+      buildPhase(phaseB, 2, "Phase B"),
+    ]);
+    learningTaskRepository.findByLearningPhaseId
+      .mockResolvedValueOnce([buildTask(APP_FIXTURE_IDS.task, phaseA, "Task A")])
+      .mockResolvedValueOnce([buildTask(APP_FIXTURE_IDS.task2, phaseB, "Task B")]);
+    studySessionRepository.findByLearningTaskId
+      .mockResolvedValueOnce([buildSession(APP_FIXTURE_IDS.session, APP_FIXTURE_IDS.task)])
+      .mockResolvedValueOnce([]);
+
+    const result = await handler.handle(
+      GetLearningPhasesQuery.fromRequest({ studentId: APP_FIXTURE_IDS.student }),
+    );
+
+    expect(result.phases[0]!.tasks[0]!.sessions).toHaveLength(1);
+    expect(result.phases[1]!.tasks[0]!.sessions).toHaveLength(0);
   });
 
   it("10. rechaza un studentId inválido antes de tocar cualquier repositorio", async () => {

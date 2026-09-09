@@ -5,14 +5,14 @@
 // recibe `phases` como prop/mock. Muestra LearningPhase reales, en orden
 // de `phaseOrder` (ordenadas server-side), con sus LearningTask.
 //
-// Historial de StudySession: deliberadamente NO se muestra en este slice.
-// La versión anterior (mock) mostraba un conteo de sesiones por tarea,
-// pero `StudySessionRepository.findByLearningTaskId` no tiene hoy ningún
-// llamador real en ningún Handler existente — conectarlo habría
-// introducido un nuevo camino de lectura de producción por primera vez,
-// fuera del alcance declarado de este slice (LearningPhase → LearningTask
-// únicamente). Se retira la línea en vez de inventar datos; ver
-// GetLearningPhasesHandler.ts para la justificación completa.
+// Historial de StudySession (slice "connect study session history"): el
+// conteo de sesiones por tarea vuelve a mostrarse, ahora con datos reales
+// — `task.sessions` viene embebido en la misma respuesta de
+// GetLearningPhasesHandler (StudySessionRepository.findByLearningTaskId),
+// no de un endpoint aparte. Deliberadamente solo un conteo (mismo nivel de
+// detalle que la versión mock anterior) — sin fechas/duración individuales,
+// sin botón de iniciar/finalizar sesión, sin timer: eso es explícitamente
+// otro slice.
 import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle, Badge } from "@/components/ui";
 import { ApiError } from "@/lib/apiClient";
@@ -59,14 +59,21 @@ export function PhasesAndTasks() {
               </div>
               <ul className="flex flex-col gap-2 pl-3">
                 {phase.tasks.map((task) => (
-                  <li key={task.id} className="flex items-center justify-between gap-3 text-sm">
-                    <span className="text-neutral-700">{task.title}</span>
-                    <span className="flex items-center gap-2">
-                      <Badge variant="neutral">{t(`source.${task.source}`)}</Badge>
-                      <Badge variant={statusVariant(task.status)}>
-                        {t(`status.${task.status}`)}
-                      </Badge>
-                    </span>
+                  <li key={task.id} className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between gap-3 text-sm">
+                      <span className="text-neutral-700">{task.title}</span>
+                      <span className="flex items-center gap-2">
+                        <Badge variant="neutral">{t(`source.${task.source}`)}</Badge>
+                        <Badge variant={statusVariant(task.status)}>
+                          {t(`status.${task.status}`)}
+                        </Badge>
+                      </span>
+                    </div>
+                    {task.sessions.length > 0 ? (
+                      <p className="text-xs text-neutral-500">
+                        {t("sessions", { count: task.sessions.length })}
+                      </p>
+                    ) : null}
                   </li>
                 ))}
               </ul>

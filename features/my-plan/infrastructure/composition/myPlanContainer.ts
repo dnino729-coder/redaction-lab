@@ -257,6 +257,7 @@ export function createMyPlanContainer(): MyPlanContainer {
       repositories.learningPlan,
       repositories.learningPhase,
       repositories.learningTask,
+      repositories.studySession,
       ports.unitOfWork,
       ports.logger,
     ),
