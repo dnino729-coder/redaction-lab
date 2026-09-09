@@ -10,6 +10,7 @@ import type { StudySessionResponseDto } from "../dto/StudySessionDto";
 import { StudySessionMapper } from "../mappers/StudySessionMapper";
 import { validateCreateStudySessionRequest } from "../validators/studyScheduleSessionValidators";
 import { ResourceNotFoundException } from "../exceptions/ResourceNotFoundException";
+import { ConflictException } from "../exceptions/ConflictException";
 import type { UnitOfWork } from "../ports/UnitOfWork";
 import type { Clock } from "../ports/Clock";
 import type { UuidGenerator } from "../ports/UuidGenerator";
@@ -50,7 +51,18 @@ export class CreateStudySessionHandler {
     await this.unitOfWork.execute(async () => {
       const task = await this.learningTaskRepository.findById(learningTaskId);
       if (!task) throw new ResourceNotFoundException("LearningTask", learningTaskId.value);
-      await this.ownershipVerificationService.verifyTaskOwnership(task, studentId);
+      const { plan } = await this.ownershipVerificationService.verifyTaskOwnership(task, studentId);
+
+      // Regla "PAUSED = no se puede generar nuevo progreso" (ver auditoría
+      // "PAUSED Behavior Audit"): iniciar una nueva sesión de estudio
+      // representa generación de progreso nuevo — solo se permite con el
+      // plan ACTIVE. Finalizar una sesión ya abierta (FinishStudySessionHandler)
+      // se mantiene deliberadamente sin este chequeo — ver ese archivo.
+      if (!plan.isActive) {
+        throw new ConflictException(
+          `El LearningPlan ${plan.id.value} está ${plan.status}, no ACTIVE — no se puede iniciar una nueva sesión de estudio mientras el plan no esté activo.`,
+        );
+      }
 
       const session = StudySession.start({
         id: sessionId,
@@ -64,7 +76,10 @@ export class CreateStudySessionHandler {
     const session = await this.studySessionRepository.findById(sessionId);
     if (!session) throw new ResourceNotFoundException("StudySession", sessionId.value);
 
-    this.logger.info("StudySession iniciada", { studySessionId: sessionId.value, studentId: studentId.value });
+    this.logger.info("StudySession iniciada", {
+      studySessionId: sessionId.value,
+      studentId: studentId.value,
+    });
     return StudySessionMapper.toResponseDto(session);
   }
 }

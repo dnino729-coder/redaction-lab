@@ -37,7 +37,9 @@ export class UpdateLearningObjectiveHandler {
     private readonly logger: Logger,
   ) {}
 
-  public async handle(command: UpdateLearningObjectiveCommand): Promise<LearningObjectiveResponseDto> {
+  public async handle(
+    command: UpdateLearningObjectiveCommand,
+  ): Promise<LearningObjectiveResponseDto> {
     const { request } = command;
     validateUpdateLearningObjectiveRequest(request);
 
@@ -48,7 +50,22 @@ export class UpdateLearningObjectiveHandler {
       const objective = await this.learningObjectiveRepository.findById(objectiveId);
       if (!objective) throw new ResourceNotFoundException("LearningObjective", objectiveId.value);
 
-      const goal = await this.ownershipVerificationService.verifyObjectiveOwnership(objective, studentId);
+      const { goal, plan } = await this.ownershipVerificationService.verifyObjectiveOwnership(
+        objective,
+        studentId,
+      );
+
+      // Regla "PAUSED = no se puede generar/modificar progreso" (ver
+      // auditoría "PAUSED Behavior Audit"): las 4 transiciones de
+      // LearningObjective (START/COMPLETE/REVERT/CANCEL) se bloquean por
+      // igual mientras el plan no esté ACTIVE — regla simple, sin
+      // distinguir "avanzar" de "deshacer" para mantener la semántica
+      // fácil de explicar al estudiante.
+      if (!plan.isActive) {
+        throw new ConflictException(
+          `El LearningPlan ${plan.id.value} está ${plan.status}, no ACTIVE — no se puede modificar el objetivo ${objectiveId.value} mientras el plan no esté activo.`,
+        );
+      }
 
       try {
         switch (request.action) {
@@ -76,8 +93,13 @@ export class UpdateLearningObjectiveHandler {
 
       // 18.21: LearningGoal.status se calcula a partir de sus
       // LearningObjective — se recalcula tras cualquier transición.
-      const siblingObjectives = await this.learningObjectiveRepository.findByLearningGoalId(goal.id);
-      goal.recalculateStatus(siblingObjectives.map((sibling) => sibling.status), this.clock.now());
+      const siblingObjectives = await this.learningObjectiveRepository.findByLearningGoalId(
+        goal.id,
+      );
+      goal.recalculateStatus(
+        siblingObjectives.map((sibling) => sibling.status),
+        this.clock.now(),
+      );
       await this.learningGoalRepository.save(goal);
     });
 

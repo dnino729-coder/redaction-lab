@@ -55,7 +55,7 @@ function buildHandler(now = new Date("2026-07-18T09:25:00.000Z")) {
     logger as never,
   );
 
-  return { handler, studySessionRepository, unitOfWork, clock };
+  return { handler, studySessionRepository, learningPlanRepository, unitOfWork, clock };
 }
 
 describe("FinishStudySessionHandler", () => {
@@ -217,5 +217,29 @@ describe("FinishStudySessionHandler", () => {
       ),
     ).rejects.toBeInstanceOf(ValidationException);
     expect(studySessionRepository.findById).not.toHaveBeenCalled();
+  });
+
+  // Slice "enforce paused plan progress rules" — deliberadamente SIN
+  // bloqueo por PAUSED (ver auditoría "PAUSED Behavior Audit"): una sesión
+  // pudo abrirse con el plan ACTIVE y luego el estudiante pausó el plan;
+  // finalizarla debe seguir permitido. El Handler ni siquiera consulta
+  // LearningPlanRepository — la garantía es arquitectónica, no solo de
+  // comportamiento observado.
+  it("10. finaliza una sesión abierta sin consultar LearningPlan en absoluto (permite finish incluso con el plan PAUSED)", async () => {
+    const { handler, studySessionRepository, learningPlanRepository } = buildHandler(
+      new Date("2026-07-18T09:25:00.000Z"),
+    );
+    const session = buildOpenSession(new Date("2026-07-18T09:00:00.000Z"));
+    studySessionRepository.findById.mockResolvedValue(session);
+
+    const result = await handler.handle(
+      FinishStudySessionCommand.fromRequest({
+        studentId: APP_FIXTURE_IDS.student,
+        sessionId: APP_FIXTURE_IDS.session,
+      }),
+    );
+
+    expect(result.completed).toBe(true);
+    expect(learningPlanRepository.findById).not.toHaveBeenCalled();
   });
 });

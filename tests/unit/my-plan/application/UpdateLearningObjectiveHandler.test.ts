@@ -66,7 +66,8 @@ function buildHandler() {
 
 describe("UpdateLearningObjectiveHandler", () => {
   it("START -> COMPLETE recalcula LearningGoal.status vía el estado de sus objetivos hermanos", async () => {
-    const { handler, learningObjectiveRepository, learningGoalRepository, learningPlanRepository } = buildHandler();
+    const { handler, learningObjectiveRepository, learningGoalRepository, learningPlanRepository } =
+      buildHandler();
     const { plan, goal, objective } = buildFixtures();
     learningObjectiveRepository.findById.mockResolvedValue(objective);
     learningGoalRepository.findById.mockResolvedValue(goal);
@@ -88,7 +89,8 @@ describe("UpdateLearningObjectiveHandler", () => {
   });
 
   it("traduce InvalidStatusTransitionException a ConflictException (COMPLETE sin START previo: NOT_STARTED -> COMPLETED no es un borde válido de 18.21)", async () => {
-    const { handler, learningObjectiveRepository, learningGoalRepository, learningPlanRepository } = buildHandler();
+    const { handler, learningObjectiveRepository, learningGoalRepository, learningPlanRepository } =
+      buildHandler();
     const { plan, goal, objective } = buildFixtures();
     learningObjectiveRepository.findById.mockResolvedValue(objective);
     learningGoalRepository.findById.mockResolvedValue(goal);
@@ -104,5 +106,32 @@ describe("UpdateLearningObjectiveHandler", () => {
         }),
       ),
     ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  // Slice "enforce paused plan progress rules" — las 4 transiciones se
+  // bloquean por igual mientras el plan no esté ACTIVE (ver auditoría
+  // "PAUSED Behavior Audit"); se prueba con START, representativa de las
+  // otras tres (COMPLETE/REVERT/CANCEL comparten el mismo guard temprano).
+  it("rechaza con ConflictException si el LearningPlan está PAUSED y no persiste ningún cambio", async () => {
+    const { handler, learningObjectiveRepository, learningGoalRepository, learningPlanRepository } =
+      buildHandler();
+    const { plan, goal, objective } = buildFixtures();
+    plan.pause();
+    learningObjectiveRepository.findById.mockResolvedValue(objective);
+    learningGoalRepository.findById.mockResolvedValue(goal);
+    learningPlanRepository.findById.mockResolvedValue(plan);
+
+    await expect(
+      handler.handle(
+        UpdateLearningObjectiveCommand.fromRequest({
+          objectiveId: APP_FIXTURE_IDS.objective,
+          studentId: APP_FIXTURE_IDS.student,
+          action: "START",
+        }),
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(objective.status).toBe("NOT_STARTED");
+    expect(learningObjectiveRepository.save).not.toHaveBeenCalled();
+    expect(learningGoalRepository.save).not.toHaveBeenCalled();
   });
 });

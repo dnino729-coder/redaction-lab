@@ -4,6 +4,7 @@ import { CreateStudySessionCommand } from "@/features/my-plan/application/comman
 import { OwnershipVerificationService } from "@/features/my-plan/application/services/OwnershipVerificationService";
 import { ForbiddenException } from "@/features/my-plan/application/exceptions/ForbiddenException";
 import { ResourceNotFoundException } from "@/features/my-plan/application/exceptions/ResourceNotFoundException";
+import { ConflictException } from "@/features/my-plan/application/exceptions/ConflictException";
 import { LearningPlan } from "@/features/my-plan/domain/entities/LearningPlan";
 import { LearningPhase } from "@/features/my-plan/domain/entities/LearningPhase";
 import { LearningTask } from "@/features/my-plan/domain/entities/LearningTask";
@@ -93,7 +94,9 @@ describe("CreateStudySessionHandler", () => {
     learningTaskRepository.findById.mockResolvedValue(task);
     learningPhaseRepository.findById.mockResolvedValue(phase);
     learningPlanRepository.findById.mockResolvedValue(plan);
-    studySessionRepository.findById.mockImplementation(async () => studySessionRepository.save.mock.calls[0]?.[0] ?? null);
+    studySessionRepository.findById.mockImplementation(
+      async () => studySessionRepository.save.mock.calls[0]?.[0] ?? null,
+    );
 
     const result = await handler.handle(
       CreateStudySessionCommand.fromRequest({
@@ -110,7 +113,7 @@ describe("CreateStudySessionHandler", () => {
   });
 
   it("rechaza con ResourceNotFoundException si la tarea no existe", async () => {
-    const { handler, learningTaskRepository } = buildHandler();
+    const { handler } = buildHandler();
     await expect(
       handler.handle(
         CreateStudySessionCommand.fromRequest({
@@ -122,7 +125,8 @@ describe("CreateStudySessionHandler", () => {
   });
 
   it("rechaza con ForbiddenException si la tarea no pertenece al estudiante", async () => {
-    const { handler, learningTaskRepository, learningPhaseRepository, learningPlanRepository } = buildHandler();
+    const { handler, learningTaskRepository, learningPhaseRepository, learningPlanRepository } =
+      buildHandler();
     const { plan, phase, task } = buildFixtures(APP_FIXTURE_IDS.otherStudent);
     learningTaskRepository.findById.mockResolvedValue(task);
     learningPhaseRepository.findById.mockResolvedValue(phase);
@@ -136,5 +140,33 @@ describe("CreateStudySessionHandler", () => {
         }),
       ),
     ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  // Slice "enforce paused plan progress rules" — regla "PAUSED = no se
+  // puede generar nuevo progreso": iniciar una sesión nueva cuenta como
+  // generar progreso (ver auditoría "PAUSED Behavior Audit").
+  it("rechaza con ConflictException si el LearningPlan está PAUSED y no crea la sesión", async () => {
+    const {
+      handler,
+      studySessionRepository,
+      learningTaskRepository,
+      learningPhaseRepository,
+      learningPlanRepository,
+    } = buildHandler();
+    const { plan, phase, task } = buildFixtures();
+    plan.pause();
+    learningTaskRepository.findById.mockResolvedValue(task);
+    learningPhaseRepository.findById.mockResolvedValue(phase);
+    learningPlanRepository.findById.mockResolvedValue(plan);
+
+    await expect(
+      handler.handle(
+        CreateStudySessionCommand.fromRequest({
+          studentId: APP_FIXTURE_IDS.student,
+          learningTaskId: APP_FIXTURE_IDS.task,
+        }),
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(studySessionRepository.save).not.toHaveBeenCalled();
   });
 });

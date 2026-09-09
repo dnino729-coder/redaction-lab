@@ -9,7 +9,12 @@ import { StudyFrequency } from "@/features/my-plan/domain/value-objects/StudyFre
 import { LearningPlanId } from "@/features/my-plan/domain/value-objects/LearningPlanId";
 import { StudyScheduleId } from "@/features/my-plan/domain/value-objects/StudyScheduleId";
 import { StudentId } from "@/features/my-plan/domain/value-objects/StudentId";
-import { makeStudyScheduleRepository, makeLearningPlanRepository, makeUnitOfWork, makeLogger } from "./mocks";
+import {
+  makeStudyScheduleRepository,
+  makeLearningPlanRepository,
+  makeUnitOfWork,
+  makeLogger,
+} from "./mocks";
 import { APP_FIXTURE_IDS } from "./fixtures";
 
 function buildFixtures(studentId: string = APP_FIXTURE_IDS.student) {
@@ -110,5 +115,37 @@ describe("UpdateStudyScheduleHandler", () => {
         }),
       ),
     ).rejects.toBeInstanceOf(ResourceNotFoundException);
+  });
+
+  // Slice "enforce paused plan progress rules" — deliberadamente SIN
+  // bloqueo por PAUSED (ver auditoría "PAUSED Behavior Audit"): reorganizar
+  // el horario no genera progreso, así que un plan PAUSED debe poder
+  // reconfigurarse igual que uno ACTIVE.
+  it("reconfigura la disponibilidad aunque el LearningPlan esté PAUSED", async () => {
+    const studyScheduleRepository = makeStudyScheduleRepository();
+    const learningPlanRepository = makeLearningPlanRepository();
+    const { plan, schedule } = buildFixtures();
+    plan.pause();
+    learningPlanRepository.findById.mockResolvedValue(plan);
+    studyScheduleRepository.findByLearningPlanId.mockResolvedValue(schedule);
+    const handler = new UpdateStudyScheduleHandler(
+      studyScheduleRepository as never,
+      learningPlanRepository as never,
+      makeUnitOfWork() as never,
+      makeLogger() as never,
+    );
+
+    const result = await handler.handle(
+      UpdateStudyScheduleCommand.fromRequest({
+        studentId: APP_FIXTURE_IDS.student,
+        planId: APP_FIXTURE_IDS.plan,
+        daysPerWeek: 5,
+        sessionsPerDay: 1,
+        minutesPerSession: 30,
+      }),
+    );
+
+    expect(result.daysPerWeek).toBe(5);
+    expect(studyScheduleRepository.save).toHaveBeenCalledWith(schedule);
   });
 });

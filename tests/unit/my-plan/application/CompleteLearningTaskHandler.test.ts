@@ -272,4 +272,35 @@ describe("CompleteLearningTaskHandler", () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
     expect(learningProgressWritePort.upsert).not.toHaveBeenCalled();
   });
+
+  // Slice "enforce paused plan progress rules" — regla "PAUSED = no se
+  // puede generar nuevo progreso" (ver auditoría "PAUSED Behavior Audit").
+  it("rechaza con ConflictException si el LearningPlan está PAUSED y no persiste ningún cambio", async () => {
+    const {
+      handler,
+      learningTaskRepository,
+      learningPhaseRepository,
+      learningPlanRepository,
+      learningProgressWritePort,
+    } = buildHandler();
+    const { plan, phase, task } = buildFixtures();
+    plan.pause();
+    learningTaskRepository.findById.mockResolvedValue(task);
+    learningPhaseRepository.findById.mockResolvedValue(phase);
+    learningPlanRepository.findById.mockResolvedValue(plan);
+
+    await expect(
+      handler.handle(
+        CompleteLearningTaskCommand.fromRequest({
+          taskId: APP_FIXTURE_IDS.task,
+          studentId: APP_FIXTURE_IDS.student,
+        }),
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+    // Sin side effects: la tarea permanece sin completar, sin persistir.
+    expect(task.status).toBe("NOT_STARTED");
+    expect(learningTaskRepository.save).not.toHaveBeenCalled();
+    expect(learningPhaseRepository.save).not.toHaveBeenCalled();
+    expect(learningProgressWritePort.upsert).not.toHaveBeenCalled();
+  });
 });

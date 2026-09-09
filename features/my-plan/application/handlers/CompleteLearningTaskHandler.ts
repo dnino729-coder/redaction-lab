@@ -76,7 +76,22 @@ export class CompleteLearningTaskHandler {
       const task = await this.learningTaskRepository.findById(taskId);
       if (!task) throw new ResourceNotFoundException("LearningTask", taskId.value);
 
-      const phase = await this.ownershipVerificationService.verifyTaskOwnership(task, studentId);
+      const { phase, plan } = await this.ownershipVerificationService.verifyTaskOwnership(
+        task,
+        studentId,
+      );
+
+      // Regla "PAUSED = no se puede generar nuevo progreso" (ver auditoría
+      // "PAUSED Behavior Audit"): completar una tarea es la operación que
+      // define "progreso" en el dominio (LearningProgress solo depende de
+      // LearningTaskStatus) — solo se permite con el plan ACTIVE. Se
+      // verifica aquí, tras resolver ownership y antes de mutar la tarea,
+      // para no persistir ningún cambio si el plan está pausado.
+      if (!plan.isActive) {
+        throw new ConflictException(
+          `El LearningPlan ${plan.id.value} está ${plan.status}, no ACTIVE — no se puede completar la tarea ${taskId.value} mientras el plan no esté activo.`,
+        );
+      }
 
       try {
         if (task.status === LearningTaskStatus.NOT_STARTED) {

@@ -48,12 +48,16 @@ export class OwnershipVerificationService {
   }
 
   /** Verifica que `task` pertenezca (vía su fase → plan) al estudiante
-   * dado, y devuelve la fase intermedia para que el Handler llamante no
-   * tenga que volver a cargarla. */
+   * dado, y devuelve la fase intermedia (para que el Handler llamante no
+   * tenga que volver a cargarla) junto con el propio `plan` ya resuelto
+   * aquí — evita que los Handlers que necesitan comprobar `plan.isActive`
+   * (regla "PAUSED = no se puede generar nuevo progreso", ver
+   * CompleteLearningTaskHandler/CreateStudySessionHandler) tengan que
+   * volver a consultarlo por separado. */
   public async verifyTaskOwnership(
     task: LearningTask,
     studentId: StudentId,
-  ): Promise<LearningPhase> {
+  ): Promise<{ phase: LearningPhase; plan: LearningPlan }> {
     const phase = await this.learningPhaseRepository.findById(task.learningPhaseId);
     if (!phase) {
       throw new ResourceNotFoundException("LearningPhase", task.learningPhaseId.value);
@@ -63,15 +67,17 @@ export class OwnershipVerificationService {
       throw new ResourceNotFoundException("LearningPlan", phase.learningPlanId.value);
     }
     await this.verifyPlanOwnership(plan, studentId);
-    return phase;
+    return { phase, plan };
   }
 
   /** Verifica que `objective` pertenezca (vía su meta → plan) al
-   * estudiante dado, y devuelve la meta intermedia. */
+   * estudiante dado, y devuelve la meta intermedia junto con el `plan` ya
+   * resuelto aquí — mismo motivo que `verifyTaskOwnership` (ver
+   * UpdateLearningObjectiveHandler). */
   public async verifyObjectiveOwnership(
     objective: LearningObjective,
     studentId: StudentId,
-  ): Promise<LearningGoal> {
+  ): Promise<{ goal: LearningGoal; plan: LearningPlan }> {
     const goal = await this.learningGoalRepository.findById(objective.learningGoalId);
     if (!goal) {
       throw new ResourceNotFoundException("LearningGoal", objective.learningGoalId.value);
@@ -81,6 +87,6 @@ export class OwnershipVerificationService {
       throw new ResourceNotFoundException("LearningPlan", goal.learningPlanId.value);
     }
     await this.verifyPlanOwnership(plan, studentId);
-    return goal;
+    return { goal, plan };
   }
 }
