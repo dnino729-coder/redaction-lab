@@ -155,6 +155,11 @@
       "title": "Fases y tareas",
       "empty": "Todavía no hay fases.",
       "sessions": "{count, plural, =0 {Sin sesiones} one {# sesión} other {# sesiones}}",
+      "startSession": "Iniciar sesión",
+      "startingSession": "Iniciando…",
+      "finishSession": "Finalizar",
+      "finishingSession": "Finalizando…",
+      "sessionActionError": "No se pudo completar la acción. Intenta de nuevo.",
       "status": {
         "NOT_STARTED": "Sin empezar",
         "IN_PROGRESS": "En progreso",

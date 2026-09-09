@@ -1,6 +1,12 @@
 import { ValidationException } from "../exceptions/ValidationException";
-import type { UpdateStudyScheduleRequestDto, GetStudyScheduleRequestDto } from "../dto/StudyScheduleDto";
-import type { CreateStudySessionRequestDto } from "../dto/StudySessionDto";
+import type {
+  UpdateStudyScheduleRequestDto,
+  GetStudyScheduleRequestDto,
+} from "../dto/StudyScheduleDto";
+import type {
+  CreateStudySessionRequestDto,
+  FinishStudySessionRequestDto,
+} from "../dto/StudySessionDto";
 import { requireUuid, requireIntegerInRange, collectErrors } from "./primitives";
 
 export function validateUpdateStudyScheduleRequest(request: UpdateStudyScheduleRequestDto): void {
@@ -12,10 +18,14 @@ export function validateUpdateStudyScheduleRequest(request: UpdateStudyScheduleR
     requireIntegerInRange(request.minutesPerSession, "minutesPerSession", 1, 1440),
   );
   if (request.reminderHour !== undefined && request.reminderHour !== null) {
-    errors.push(...collectErrors(requireIntegerInRange(request.reminderHour, "reminderHour", 0, 23)));
+    errors.push(
+      ...collectErrors(requireIntegerInRange(request.reminderHour, "reminderHour", 0, 23)),
+    );
   }
   if (request.reminderMinute !== undefined && request.reminderMinute !== null) {
-    errors.push(...collectErrors(requireIntegerInRange(request.reminderMinute, "reminderMinute", 0, 59)));
+    errors.push(
+      ...collectErrors(requireIntegerInRange(request.reminderMinute, "reminderMinute", 0, 59)),
+    );
   }
   if (errors.length > 0) throw new ValidationException(errors);
 }
@@ -29,6 +39,14 @@ export function validateCreateStudySessionRequest(request: CreateStudySessionReq
   const errors = collectErrors(
     requireUuid(request.studentId, "studentId"),
     requireUuid(request.learningTaskId, "learningTaskId"),
+  );
+  if (errors.length > 0) throw new ValidationException(errors);
+}
+
+export function validateFinishStudySessionRequest(request: FinishStudySessionRequestDto): void {
+  const errors = collectErrors(
+    requireUuid(request.studentId, "studentId"),
+    requireUuid(request.sessionId, "sessionId"),
   );
   if (errors.length > 0) throw new ValidationException(errors);
 }

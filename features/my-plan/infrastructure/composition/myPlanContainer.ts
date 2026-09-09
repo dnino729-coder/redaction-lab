@@ -52,6 +52,7 @@ import { CancelLearningPlanHandler } from "@/features/my-plan/application/handle
 import { CompleteLearningTaskHandler } from "@/features/my-plan/application/handlers/CompleteLearningTaskHandler";
 import { UpdateLearningObjectiveHandler } from "@/features/my-plan/application/handlers/UpdateLearningObjectiveHandler";
 import { CreateStudySessionHandler } from "@/features/my-plan/application/handlers/CreateStudySessionHandler";
+import { FinishStudySessionHandler } from "@/features/my-plan/application/handlers/FinishStudySessionHandler";
 import { UpdateStudyScheduleHandler } from "@/features/my-plan/application/handlers/UpdateStudyScheduleHandler";
 import { RequestPlanReorganizationHandler } from "@/features/my-plan/application/handlers/RequestPlanReorganizationHandler";
 import { GetActiveLearningPlanHandler } from "@/features/my-plan/application/handlers/GetActiveLearningPlanHandler";
@@ -95,6 +96,7 @@ export interface MyPlanContainer {
     readonly completeLearningTask: CompleteLearningTaskHandler;
     readonly updateLearningObjective: UpdateLearningObjectiveHandler;
     readonly createStudySession: CreateStudySessionHandler;
+    readonly finishStudySession: FinishStudySessionHandler;
     readonly updateStudySchedule: UpdateStudyScheduleHandler;
     readonly requestPlanReorganization: RequestPlanReorganizationHandler;
     readonly getActiveLearningPlan: GetActiveLearningPlanHandler;
@@ -193,6 +195,13 @@ export function createMyPlanContainer(): MyPlanContainer {
       ports.unitOfWork,
       ports.clock,
       ports.uuidGenerator,
+      ports.logger,
+    ),
+    finishStudySession: new FinishStudySessionHandler(
+      repositories.studySession,
+      ownershipVerificationService,
+      ports.unitOfWork,
+      ports.clock,
       ports.logger,
     ),
     updateStudySchedule: new UpdateStudyScheduleHandler(

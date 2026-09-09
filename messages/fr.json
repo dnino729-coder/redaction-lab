@@ -155,6 +155,11 @@
       "title": "Phases et tâches",
       "empty": "Aucune phase pour le moment.",
       "sessions": "{count, plural, =0 {Aucune session} one {# session} other {# sessions}}",
+      "startSession": "Démarrer une session",
+      "startingSession": "Démarrage…",
+      "finishSession": "Terminer",
+      "finishingSession": "Fin en cours…",
+      "sessionActionError": "L'action n'a pas pu être effectuée. Réessayez.",
       "status": {
         "NOT_STARTED": "Non commencé",
         "IN_PROGRESS": "En cours",

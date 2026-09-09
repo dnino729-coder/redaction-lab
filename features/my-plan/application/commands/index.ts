@@ -5,6 +5,7 @@ export * from "./CancelLearningPlanCommand";
 export * from "./CompleteLearningTaskCommand";
 export * from "./UpdateLearningObjectiveCommand";
 export * from "./CreateStudySessionCommand";
+export * from "./FinishStudySessionCommand";
 export * from "./UpdateStudyScheduleCommand";
 export * from "./RequestPlanReorganizationCommand";
 export * from "./GenerateInitialPlanStructureCommand";

@@ -5,6 +5,7 @@ export * from "./CancelLearningPlanHandler";
 export * from "./CompleteLearningTaskHandler";
 export * from "./UpdateLearningObjectiveHandler";
 export * from "./CreateStudySessionHandler";
+export * from "./FinishStudySessionHandler";
 export * from "./UpdateStudyScheduleHandler";
 export * from "./RequestPlanReorganizationHandler";
 export * from "./GetActiveLearningPlanHandler";

@@ -6,18 +6,26 @@
 // de `phaseOrder` (ordenadas server-side), con sus LearningTask.
 //
 // Historial de StudySession (slice "connect study session history"): el
-// conteo de sesiones por tarea vuelve a mostrarse, ahora con datos reales
-// — `task.sessions` viene embebido en la misma respuesta de
-// GetLearningPhasesHandler (StudySessionRepository.findByLearningTaskId),
-// no de un endpoint aparte. Deliberadamente solo un conteo (mismo nivel de
-// detalle que la versión mock anterior) — sin fechas/duración individuales,
-// sin botón de iniciar/finalizar sesión, sin timer: eso es explícitamente
-// otro slice.
+// conteo de sesiones por tarea se muestra con datos reales — `task.sessions`
+// viene embebido en la misma respuesta de GetLearningPhasesHandler
+// (StudySessionRepository.findByLearningTaskId), no de un endpoint aparte.
+//
+// Iniciar/finalizar sesión (slice "create and finish study sessions"):
+// un botón "Iniciar sesión" por tarea (siempre disponible — el dominio
+// permite múltiples sesiones simultáneas por tarea, no se deshabilita por
+// tener ya una abierta) y un botón "Finalizar" por cada sesión con
+// `completed = false`. Tras cualquiera de las dos mutaciones se invalida
+// `myPlanKeys.phases()` — la UI se refresca con datos reales, sin caché
+// paralela. Deliberadamente sin timer/cronómetro/tiempo transcurrido en
+// vivo: `finishedAt`/`durationMinutes` los calcula el servidor (Clock),
+// nunca se muestran mientras la sesión está abierta.
 import { useTranslations } from "next-intl";
-import { Card, CardContent, CardHeader, CardTitle, Badge } from "@/components/ui";
+import { Card, CardContent, CardHeader, CardTitle, Badge, Button } from "@/components/ui";
 import { ApiError } from "@/lib/apiClient";
 import type { LearningPhaseStatusHttp, LearningTaskStatusHttp } from "../services/myPlanApi";
 import { useLearningPhases } from "../hooks/useLearningPhases";
+import { useCreateStudySession } from "../hooks/useCreateStudySession";
+import { useFinishStudySession } from "../hooks/useFinishStudySession";
 import { MyPlanSkeleton } from "./MyPlanSkeleton";
 import { MyPlanErrorState } from "./MyPlanErrorState";
 import { MyPlanEmptyState } from "./MyPlanEmptyState";
@@ -34,6 +42,8 @@ function statusVariant(
 export function PhasesAndTasks() {
   const t = useTranslations("myPlan.phases");
   const { data: phasesData, isLoading, isError, error, refetch } = useLearningPhases();
+  const createSession = useCreateStudySession();
+  const finishSession = useFinishStudySession();
 
   if (isLoading) return <MyPlanSkeleton />;
   if (error instanceof ApiError && error.status === 404) return <MyPlanEmptyState />;
@@ -58,24 +68,65 @@ export function PhasesAndTasks() {
                 <Badge variant={statusVariant(phase.status)}>{t(`status.${phase.status}`)}</Badge>
               </div>
               <ul className="flex flex-col gap-2 pl-3">
-                {phase.tasks.map((task) => (
-                  <li key={task.id} className="flex flex-col gap-1">
-                    <div className="flex items-center justify-between gap-3 text-sm">
-                      <span className="text-neutral-700">{task.title}</span>
-                      <span className="flex items-center gap-2">
-                        <Badge variant="neutral">{t(`source.${task.source}`)}</Badge>
-                        <Badge variant={statusVariant(task.status)}>
-                          {t(`status.${task.status}`)}
-                        </Badge>
-                      </span>
-                    </div>
-                    {task.sessions.length > 0 ? (
-                      <p className="text-xs text-neutral-500">
-                        {t("sessions", { count: task.sessions.length })}
-                      </p>
-                    ) : null}
-                  </li>
-                ))}
+                {phase.tasks.map((task) => {
+                  const isStartingThisTask =
+                    createSession.isPending && createSession.variables === task.id;
+                  const startFailedForThisTask =
+                    createSession.isError && createSession.variables === task.id;
+                  const openSessions = task.sessions.filter((session) => !session.completed);
+                  const finishFailedForThisTask =
+                    finishSession.isError &&
+                    openSessions.some((session) => session.id === finishSession.variables);
+
+                  return (
+                    <li key={task.id} className="flex flex-col gap-1">
+                      <div className="flex items-center justify-between gap-3 text-sm">
+                        <span className="text-neutral-700">{task.title}</span>
+                        <span className="flex items-center gap-2">
+                          <Badge variant="neutral">{t(`source.${task.source}`)}</Badge>
+                          <Badge variant={statusVariant(task.status)}>
+                            {t(`status.${task.status}`)}
+                          </Badge>
+                        </span>
+                      </div>
+                      {task.sessions.length > 0 ? (
+                        <p className="text-xs text-neutral-500">
+                          {t("sessions", { count: task.sessions.length })}
+                        </p>
+                      ) : null}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={isStartingThisTask}
+                          onClick={() => createSession.mutate(task.id)}
+                        >
+                          {isStartingThisTask ? t("startingSession") : t("startSession")}
+                        </Button>
+                        {openSessions.map((session) => {
+                          const isFinishingThisSession =
+                            finishSession.isPending && finishSession.variables === session.id;
+                          return (
+                            <Button
+                              key={session.id}
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={isFinishingThisSession}
+                              onClick={() => finishSession.mutate(session.id)}
+                            >
+                              {isFinishingThisSession ? t("finishingSession") : t("finishSession")}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                      {startFailedForThisTask || finishFailedForThisTask ? (
+                        <p className="text-xs text-danger-600">{t("sessionActionError")}</p>
+                      ) : null}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           ))

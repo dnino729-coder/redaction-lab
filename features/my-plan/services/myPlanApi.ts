@@ -102,6 +102,23 @@ export interface LearningPhasesHttp {
   phases: LearningPhaseSummaryHttp[];
 }
 
+// Slice "create and finish study sessions" — forma HTTP completa
+// (studentId/learningTaskId incluidos), distinta de
+// `LearningTaskSessionSummaryHttp` (la versión embebida y recortada de
+// GET /phases): esta es la respuesta real de crear/finalizar una sesión,
+// espejo de `StudySessionResponseDto`. El cliente nunca envía
+// `startedAt`/`finishedAt`/`durationMinutes` en la petición — son
+// siempre parte de la RESPUESTA del servidor, nunca del request.
+export interface StudySessionHttp {
+  id: string;
+  studentId: string;
+  learningTaskId: string;
+  startedAt: string;
+  finishedAt: string | null;
+  durationMinutes: number | null;
+  completed: boolean;
+}
+
 const BASE = "/api/v1/my-plan";
 
 export async function getActiveLearningPlan(): Promise<LearningPlanHttp> {
@@ -122,4 +139,12 @@ export async function getLearningGoals(): Promise<LearningGoalsHttp> {
 
 export async function getLearningPhases(): Promise<LearningPhasesHttp> {
   return apiFetch<LearningPhasesHttp>(`${BASE}/phases`);
+}
+
+export async function createStudySession(taskId: string): Promise<StudySessionHttp> {
+  return apiFetch<StudySessionHttp>(`${BASE}/tasks/${taskId}/sessions`, { method: "POST" });
+}
+
+export async function finishStudySession(sessionId: string): Promise<StudySessionHttp> {
+  return apiFetch<StudySessionHttp>(`${BASE}/sessions/${sessionId}/finish`, { method: "POST" });
 }

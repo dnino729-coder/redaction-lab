@@ -3,6 +3,7 @@ import type { LearningPhase } from "@/features/my-plan/domain/entities/LearningP
 import type { LearningObjective } from "@/features/my-plan/domain/entities/LearningObjective";
 import type { LearningGoal } from "@/features/my-plan/domain/entities/LearningGoal";
 import type { LearningPlan } from "@/features/my-plan/domain/entities/LearningPlan";
+import type { StudySession } from "@/features/my-plan/domain/entities/StudySession";
 import type { LearningPlanRepository } from "@/features/my-plan/domain/repositories/LearningPlanRepository";
 import type { LearningPhaseRepository } from "@/features/my-plan/domain/repositories/LearningPhaseRepository";
 import type { LearningGoalRepository } from "@/features/my-plan/domain/repositories/LearningGoalRepository";
@@ -29,6 +30,19 @@ export class OwnershipVerificationService {
     if (!plan.studentId.equals(studentId)) {
       throw new ForbiddenException(
         `El estudiante ${studentId.value} no es propietario del plan ${plan.id.value}.`,
+      );
+    }
+  }
+
+  /** Verifica ownership de una `StudySession` — a diferencia de
+   * `LearningTask`/`LearningObjective`, `StudySession` sí tiene
+   * `student_id` propio (13.4: "única de las 6 con student_id propio"),
+   * así que no hace falta ninguna cadena de repositorios intermedia; es
+   * una comparación directa, igual de trivial que `verifyPlanOwnership`. */
+  public async verifySessionOwnership(session: StudySession, studentId: StudentId): Promise<void> {
+    if (!session.studentId.equals(studentId)) {
+      throw new ForbiddenException(
+        `El estudiante ${studentId.value} no es propietario de la sesión ${session.id.value}.`,
       );
     }
   }
