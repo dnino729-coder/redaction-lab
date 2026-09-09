@@ -160,6 +160,9 @@
       "finishSession": "Finalizar",
       "finishingSession": "Finalizando…",
       "sessionActionError": "No se pudo completar la acción. Intenta de nuevo.",
+      "completeTask": "Completar tarea",
+      "completingTask": "Completando…",
+      "completeTaskError": "No se pudo completar la tarea. Intenta de nuevo.",
       "status": {
         "NOT_STARTED": "Sin empezar",
         "IN_PROGRESS": "En progreso",

@@ -160,6 +160,9 @@
       "finishSession": "Terminer",
       "finishingSession": "Fin en cours…",
       "sessionActionError": "L'action n'a pas pu être effectuée. Réessayez.",
+      "completeTask": "Terminer la tâche",
+      "completingTask": "Finalisation…",
+      "completeTaskError": "La tâche n'a pas pu être terminée. Réessayez.",
       "status": {
         "NOT_STARTED": "Non commencé",
         "IN_PROGRESS": "En cours",

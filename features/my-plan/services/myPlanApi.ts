@@ -119,6 +119,26 @@ export interface StudySessionHttp {
   completed: boolean;
 }
 
+// Slice "complete learning tasks" — espejo de `LearningTaskResponseDto`
+// (respuesta real de completar una tarea), distinta de
+// `LearningTaskSummaryHttp` (la versión embebida y recortada de GET
+// /phases). El cliente nunca envía `status`/`completedAt` — el servidor
+// decide ambos (ver CompleteLearningTaskHandler, sin modificar).
+export type LearningTaskDifficultyHttp = "EASY" | "MEDIUM" | "HARD" | "EXPERT";
+
+export interface LearningTaskHttp {
+  id: string;
+  learningPhaseId: string;
+  title: string;
+  description: string | null;
+  estimatedMinutes: number;
+  difficulty: LearningTaskDifficultyHttp;
+  dueDate: string | null;
+  completedAt: string | null;
+  status: LearningTaskStatusHttp;
+  source: LearningTaskSourceHttp;
+}
+
 const BASE = "/api/v1/my-plan";
 
 export async function getActiveLearningPlan(): Promise<LearningPlanHttp> {
@@ -147,4 +167,8 @@ export async function createStudySession(taskId: string): Promise<StudySessionHt
 
 export async function finishStudySession(sessionId: string): Promise<StudySessionHttp> {
   return apiFetch<StudySessionHttp>(`${BASE}/sessions/${sessionId}/finish`, { method: "POST" });
+}
+
+export async function completeLearningTask(taskId: string): Promise<LearningTaskHttp> {
+  return apiFetch<LearningTaskHttp>(`${BASE}/tasks/${taskId}/complete`, { method: "POST" });
 }

@@ -19,6 +19,18 @@
 // paralela. Deliberadamente sin timer/cronómetro/tiempo transcurrido en
 // vivo: `finishedAt`/`durationMinutes` los calcula el servidor (Clock),
 // nunca se muestran mientras la sesión está abierta.
+//
+// Completar tarea (slice "complete learning tasks"): un botón "Completar
+// tarea" solo para tareas `source = SELF_DIRECTED` con `status`
+// NOT_STARTED/IN_PROGRESS (mismo campo `source` ya expuesto por
+// `LearningTaskSummaryHttp` — no se inventa ningún dato nuevo). No se
+// muestra para tareas ya COMPLETED/CANCELLED ni para fuentes externas —
+// CompleteLearningTaskHandler (sin modificar) las rechazaría con 409.
+// Reutiliza exactamente ese Handler; no completa la tarea automáticamente
+// al finalizar una sesión — son acciones independientes. Tras el éxito se
+// invalidan `myPlanKeys.phases()` Y `myPlanKeys.progress()` (completar una
+// tarea recalcula LearningPhase.status y LearningProgress en el mismo
+// Handler).
 import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle, Badge, Button } from "@/components/ui";
 import { ApiError } from "@/lib/apiClient";
@@ -26,6 +38,7 @@ import type { LearningPhaseStatusHttp, LearningTaskStatusHttp } from "../service
 import { useLearningPhases } from "../hooks/useLearningPhases";
 import { useCreateStudySession } from "../hooks/useCreateStudySession";
 import { useFinishStudySession } from "../hooks/useFinishStudySession";
+import { useCompleteLearningTask } from "../hooks/useCompleteLearningTask";
 import { MyPlanSkeleton } from "./MyPlanSkeleton";
 import { MyPlanErrorState } from "./MyPlanErrorState";
 import { MyPlanEmptyState } from "./MyPlanEmptyState";
@@ -44,6 +57,7 @@ export function PhasesAndTasks() {
   const { data: phasesData, isLoading, isError, error, refetch } = useLearningPhases();
   const createSession = useCreateStudySession();
   const finishSession = useFinishStudySession();
+  const completeTask = useCompleteLearningTask();
 
   if (isLoading) return <MyPlanSkeleton />;
   if (error instanceof ApiError && error.status === 404) return <MyPlanEmptyState />;
@@ -77,6 +91,13 @@ export function PhasesAndTasks() {
                   const finishFailedForThisTask =
                     finishSession.isError &&
                     openSessions.some((session) => session.id === finishSession.variables);
+                  const canCompleteTask =
+                    task.source === "SELF_DIRECTED" &&
+                    (task.status === "NOT_STARTED" || task.status === "IN_PROGRESS");
+                  const isCompletingThisTask =
+                    completeTask.isPending && completeTask.variables === task.id;
+                  const completeFailedForThisTask =
+                    completeTask.isError && completeTask.variables === task.id;
 
                   return (
                     <li key={task.id} className="flex flex-col gap-1">
@@ -120,9 +141,23 @@ export function PhasesAndTasks() {
                             </Button>
                           );
                         })}
+                        {canCompleteTask ? (
+                          <Button
+                            type="button"
+                            variant="primary"
+                            size="sm"
+                            disabled={isCompletingThisTask}
+                            onClick={() => completeTask.mutate(task.id)}
+                          >
+                            {isCompletingThisTask ? t("completingTask") : t("completeTask")}
+                          </Button>
+                        ) : null}
                       </div>
                       {startFailedForThisTask || finishFailedForThisTask ? (
                         <p className="text-xs text-danger-600">{t("sessionActionError")}</p>
+                      ) : null}
+                      {completeFailedForThisTask ? (
+                        <p className="text-xs text-danger-600">{t("completeTaskError")}</p>
                       ) : null}
                     </li>
                   );
