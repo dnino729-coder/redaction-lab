@@ -183,6 +183,11 @@
       "sessionsPerDay": "Sesiones por día",
       "minutesPerSession": "Minutos por sesión",
       "reminder": "Recordatorio a las {time}",
+      "reminderLabel": "Recordatorio (opcional)",
+      "saveCta": "Guardar cambios",
+      "saving": "Guardando…",
+      "saveSuccess": "Cambios guardados",
+      "saveError": "No se pudo guardar la configuración. Intenta de nuevo.",
       "reorganizeCta": "Solicitar reprogramación",
       "reorganizeDisabledHint": "Próximamente — requiere el Learning Planner (docs/modules/mi-plan.md, Vacío 8), todavía no implementado."
     },

@@ -27,6 +27,20 @@ export interface StudyScheduleHttp {
   reminderMinute: number | null;
 }
 
+// Slice "update study schedule" — el cliente nunca envía `studentId` ni
+// `learningPlanId` (ver UpdateStudyScheduleHandler, sin modificar): ambos
+// los resuelve el servidor a partir de la sesión Clerk verificada. La
+// configuración se reemplaza completa en cada envío (no hay semántica de
+// actualización parcial en el Handler) — `reminderHour`/`reminderMinute`
+// ausentes juntos significa "sin recordatorio", no "sin cambios".
+export interface UpdateStudyScheduleRequestHttp {
+  daysPerWeek: number;
+  sessionsPerDay: number;
+  minutesPerSession: number;
+  reminderHour?: number;
+  reminderMinute?: number;
+}
+
 export interface LearningProgressHttp {
   id: string;
   learningPlanId: string;
@@ -147,6 +161,15 @@ export async function getActiveLearningPlan(): Promise<LearningPlanHttp> {
 
 export async function getStudySchedule(): Promise<StudyScheduleHttp> {
   return apiFetch<StudyScheduleHttp>(`${BASE}/study-schedule`);
+}
+
+export async function updateStudySchedule(
+  payload: UpdateStudyScheduleRequestHttp,
+): Promise<StudyScheduleHttp> {
+  return apiFetch<StudyScheduleHttp>(`${BASE}/study-schedule`, {
+    method: "PATCH",
+    body: payload,
+  });
 }
 
 export async function getLearningProgress(): Promise<LearningProgressHttp> {
