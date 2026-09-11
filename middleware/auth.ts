@@ -26,22 +26,19 @@ import { createRouteMatcher } from "@clerk/nextjs/server";
 import { PUBLIC_ROUTES } from "@/config/routes";
 import { routing } from "@/i18n/routing";
 
-const nonDefaultLocales = routing.locales.filter(
-  (locale) => locale !== routing.defaultLocale,
-);
+const nonDefaultLocales = routing.locales.filter((locale) => locale !== routing.defaultLocale);
 
 // Expande cada ruta pública sin prefijo ("/landing") a su variante
 // prefijada por locale no-default ("/es/landing"), reutilizando
 // PUBLIC_ROUTES como única fuente de verdad de qué rutas son públicas.
 const localizedPublicRoutes = PUBLIC_ROUTES.flatMap((route) =>
-  nonDefaultLocales.map((locale) =>
-    route === "/" ? `/${locale}` : `/${locale}${route}`,
-  ),
+  nonDefaultLocales.map((locale) => (route === "/" ? `/${locale}` : `/${locale}${route}`)),
 );
 
 // createRouteMatcher acepta patrones de ruta (no rutas exactas); se añaden
-// aquí los patrones de Clerk y de infraestructura (webhooks, health check)
-// que deben quedar siempre fuera de la protección de autenticación.
+// aquí los patrones de Clerk y de infraestructura (webhooks, health check,
+// jobs programados) que deben quedar siempre fuera de la protección de
+// autenticación de sesión de Clerk.
 export const isPublicRoute = createRouteMatcher([
   ...PUBLIC_ROUTES,
   ...localizedPublicRoutes,
@@ -52,4 +49,11 @@ export const isPublicRoute = createRouteMatcher([
   "/api/webhooks(.*)",
   "/api/health",
   "/api/v1/academy/health(.*)",
+  // Jobs programados (Vercel Cron, Block 2F) — invocados por la
+  // infraestructura de cron de Vercel, nunca por un navegador con sesión
+  // Clerk. Mismo criterio que "/api/webhooks(.*)": la ruta queda fuera de
+  // `auth().protect()` y aplica su propia autenticación (verificación del
+  // header `Authorization: Bearer ${CRON_SECRET}` — ver
+  // app/api/internal/jobs/academy-reflection-projection/route.ts).
+  "/api/internal/jobs/(.*)",
 ]);

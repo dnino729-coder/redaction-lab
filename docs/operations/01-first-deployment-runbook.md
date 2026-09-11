@@ -14,17 +14,26 @@ Basado exclusivamente en el código real del repositorio (`package.json`, `prism
 
 ## Variables necesarias (mínimo indispensable para un primer arranque funcional)
 
-| Variable | Obligatoria para... |
-|---|---|
-| `DATABASE_URL` | Conexión de la aplicación en tiempo de ejecución |
-| `DIRECT_URL` | Migraciones de Prisma (`prisma migrate deploy`) |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Autenticación cliente |
-| `CLERK_SECRET_KEY` | Autenticación servidor |
-| `CLERK_WEBHOOK_SECRET` | Sincronización de usuarios (sin esto, ningún usuario nuevo queda provisto en la base) |
-| `ACADEMY_AI_PROVIDER` | Selección de proveedor de IA (`"claude"` u `"openai"`, default `"claude"`) |
-| `ACADEMY_CLAUDE_API_KEY` o `ACADEMY_OPENAI_API_KEY` | Al menos una, según el proveedor elegido |
+| Variable                                            | Obligatoria para...                                                                                                                                                                                                                                                                             |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                                      | Conexión de la aplicación en tiempo de ejecución                                                                                                                                                                                                                                                |
+| `DIRECT_URL`                                        | Migraciones de Prisma (`prisma migrate deploy`)                                                                                                                                                                                                                                                 |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`                 | Autenticación cliente                                                                                                                                                                                                                                                                           |
+| `CLERK_SECRET_KEY`                                  | Autenticación servidor                                                                                                                                                                                                                                                                          |
+| `CLERK_WEBHOOK_SECRET`                              | Sincronización de usuarios (sin esto, ningún usuario nuevo queda provisto en la base)                                                                                                                                                                                                           |
+| `ACADEMY_AI_PROVIDER`                               | Selección de proveedor de IA (`"claude"` u `"openai"`, default `"claude"`)                                                                                                                                                                                                                      |
+| `ACADEMY_CLAUDE_API_KEY` o `ACADEMY_OPENAI_API_KEY` | Al menos una, según el proveedor elegido                                                                                                                                                                                                                                                        |
+| `CRON_SECRET`                                       | El job programado que proyecta la actividad de Academia a `learning_metric` (Vercel Cron → `/api/internal/jobs/academy-reflection-projection`). Sin esto la app arranca igual, pero esa proyección nunca se ejecuta automáticamente. Generar con `openssl rand -hex 32` y configurar en Vercel. |
 
 Ver `docs/operations/04-production-environment-reference.md` para la lista exhaustiva de todas las variables, incluidas las opcionales.
+
+## Jobs programados (Vercel Cron)
+
+`vercel.json` declara un único cron: `POST/GET /api/internal/jobs/academy-reflection-projection`, cada 5 minutos (`*/5 * * * *`). Procesa los `ReflectionCompletedEvent` acumulados en `academy_outbox` y los proyecta a `learning_metric` (consumer de Block 2D; idempotente y transaccional). Requisitos:
+
+- **`CRON_SECRET` configurada en Vercel** — Vercel Cron la envía como `Authorization: Bearer …`; el endpoint la exige (fail-closed: 401 sin ella).
+- **Plan de Vercel que permita esa frecuencia** — el plan Hobby limita los crons a 1 ejecución/día; `*/5 * * * *` requiere plan Pro. Si se despliega en Hobby, ajustar `schedule` en `vercel.json` a una cadencia diaria (p. ej. `"0 * * * *"` sigue siendo Pro; Hobby solo admite `"0 8 * * *"` u otra única hora del día).
+- Los crons de Vercel solo se ejecutan en despliegues de **producción**, no en previews.
 
 ## Orden correcto de configuración
 

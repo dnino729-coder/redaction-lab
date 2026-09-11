@@ -1,0 +1,62 @@
+-- Academy Analytics — primer pipeline real (Block 2D):
+-- ReflectionCompletedEvent (academy_outbox) -> consumer -> learning_metric.
+--
+-- Migración EXCLUSIVAMENTE de permisos (GRANT). No crea roles, no crea
+-- políticas, no toca RLS/FORCE RLS, no toca tablas/columnas/índices/
+-- constraints. Mismo patrón ya usado en el proyecto para corregir GRANT
+-- ausentes (202608131700_academy_grants_fix,
+-- 202609081200_student_profile_write_grants): "BYPASSRLS exime de las
+-- políticas de fila, nunca de los GRANT de nivel de tabla".
+--
+-- Verificación en runtime (Block 2D, comprobación READ-ONLY contra la base
+-- real): `has_table_privilege` confirmó que, antes de esta migración:
+--   - dashboard_service_role: 0 privilegios sobre academy_outbox y sobre
+--     learning_metric.
+--   - dashboard_app_role: 0 privilegios sobre academy_outbox; solo SELECT
+--     sobre learning_metric.
+--
+-- ============================================================================
+-- 1. Consumer del Outbox (services/academyAnalytics) — se ejecuta bajo
+--    `withServiceContext` => rol `dashboard_service_role` (BYPASSRLS).
+--    Necesita:
+--      - academy_outbox:  SELECT (listar/reclamar PENDING|FAILED, contar
+--                         eventos PUBLISHED por estudiante),
+--                         UPDATE  (marcar PUBLISHED / registrar
+--                         retry_count + last_error / DEAD_LETTER).
+--      - learning_metric: SELECT (leer el snapshot previo para arrastrar
+--                         los campos que esta proyección NO modifica),
+--                         INSERT (escribir el nuevo snapshot append-only).
+--    NO necesita INSERT sobre academy_outbox (el consumer nunca inserta
+--    eventos) ni UPDATE/DELETE sobre learning_metric (proyección
+--    append-only, nunca modifica ni borra snapshots previos).
+-- ============================================================================
+GRANT SELECT, UPDATE ON "academy_outbox"  TO dashboard_service_role;
+GRANT SELECT, INSERT ON "learning_metric" TO dashboard_service_role;
+
+-- ============================================================================
+-- 2. Ruta de escritura del evento fuente, YA EXISTENTE (no se modifica en
+--    este bloque): EP-05 `POST /api/v1/academy/attempts/{id}/reflection`
+--    -> `CompleteReflectionHandler` -> `DomainEventPublisher.appendFrom`
+--    -> `PrismaAcademyOutboxPort.append` -> `academyOutbox.create(...)`.
+--    Ese handler llama `unitOfWork.execute(work, studentId)` CON studentId
+--    => `withStudentContext` => rol `dashboard_app_role` (NOBYPASSRLS).
+--    Sin este GRANT, `POST /reflection` falla con "permission denied for
+--    table academy_outbox" y NINGÚN ReflectionCompletedEvent llega jamás
+--    al Outbox — es decir, el pipeline de este bloque no tendría entrada.
+--    Se incluye SELECT además de INSERT porque `Prisma.create()` emite
+--    `INSERT ... RETURNING *`, y `RETURNING` exige SELECT sobre las
+--    columnas devueltas (documentación de PostgreSQL, referencia de INSERT).
+--    NO se concede UPDATE/DELETE: `append()` solo inserta.
+-- ============================================================================
+GRANT SELECT, INSERT ON "academy_outbox" TO dashboard_app_role;
+
+-- ============================================================================
+-- Fuera de alcance deliberado (documentado, no concedido aquí):
+--   - GRANT ... TO dashboard_service_role sobre academy_outbox.INSERT:
+--     la ruta `RecordFeedbackDeliveredHandler` (contexto de servicio)
+--     también escribe al Outbox y hoy no tiene ese GRANT, pero pertenece
+--     al flujo de FeedbackDeliveredEvent, explícitamente fuera de este
+--     bloque (Decisión #4). Se deja como gap conocido pre-existente.
+--   - Cualquier GRANT DELETE / ALL / TRUNCATE / ALTER.
+--   - Cualquier cambio de schema, índice, constraint o RLS.
+-- ============================================================================
