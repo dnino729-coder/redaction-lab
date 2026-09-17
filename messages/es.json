@@ -26,6 +26,153 @@
       "title": "Crear cuenta"
     }
   },
+  "landing": {
+    "nav": {
+      "brand": "Redaction Lab",
+      "links": {
+        "howItWorks": "Cómo funciona",
+        "ecosystem": "Ecosistema",
+        "coach": "Coach IA",
+        "evolution": "Evolución"
+      },
+      "signIn": "Iniciar sesión",
+      "start": "Comenzar",
+      "openMenu": "Abrir menú",
+      "closeMenu": "Cerrar menú"
+    },
+    "hero": {
+      "titleLine1": "Escribe mejor en francés.",
+      "titleLine2": "Entrena para el DELF B2.",
+      "subtitle": "Redaction Lab te acompaña en cada etapa de la producción escrita: planifica, redacta, revisa y aprende de cada texto.",
+      "ctaPrimary": "Comenzar a entrenar",
+      "ctaSecondary": "Descubrir Redaction Lab",
+      "mockup": {
+        "exerciseBadge": "Ejercicio de escritura",
+        "exerciseTitle": "Producción escrita — Ensayo de opinión",
+        "exercisePrompt": "Consigna B2: argumenta tu punto de vista sobre un tema de actualidad.",
+        "criteriaLabel": "Criterios de evaluación",
+        "criteriaCoherence": "Coherencia",
+        "criteriaRegister": "Registro",
+        "criteriaArgumentation": "Argumentación",
+        "progressLabel": "Progreso del texto",
+        "feedbackLabel": "Retroalimentación del Coach",
+        "feedbackSample": "Buena estructura argumentativa. Revisa la transición entre el segundo y el tercer párrafo."
+      }
+    },
+    "problem": {
+      "eyebrow": "El reto en B2",
+      "title": "En B2, escribir no es solo conocer la gramática.",
+      "description": "Escribir con fluidez implica comprender la situación comunicativa, organizar las ideas, argumentar con claridad, mantener la coherencia del texto y adaptar el registro.",
+      "resolution": "Redaction Lab convierte cada una de estas exigencias en un proceso de entrenamiento progresivo, no en una lista de reglas para memorizar.",
+      "points": {
+        "comprehend": "Comprender la situación comunicativa",
+        "organize": "Organizar las ideas",
+        "argue": "Argumentar con claridad",
+        "coherence": "Mantener la coherencia",
+        "register": "Adaptar el registro",
+        "revise": "Revisar el texto"
+      }
+    },
+    "howItWorks": {
+      "title": "Cómo funciona",
+      "subtitle": "Un proceso de cuatro etapas, el mismo en cada producción escrita.",
+      "steps": {
+        "understand": {
+          "number": "01",
+          "title": "Comprende",
+          "description": "Comprende la consigna, el género textual y la situación comunicativa."
+        },
+        "plan": {
+          "number": "02",
+          "title": "Planifica",
+          "description": "Organiza tus ideas, argumentos y estructura."
+        },
+        "write": {
+          "number": "03",
+          "title": "Escribe",
+          "description": "Construye tu texto con acompañamiento durante el proceso."
+        },
+        "revise": {
+          "number": "04",
+          "title": "Revisa",
+          "description": "Recibe retroalimentación, reflexiona y mejora tu producción."
+        }
+      }
+    },
+    "ecosystem": {
+      "title": "Un ecosistema de entrenamiento",
+      "subtitle": "Cada espacio de Redaction Lab cumple un papel distinto en tu progreso.",
+      "items": {
+        "laboratory": {
+          "title": "Laboratorio de escritura",
+          "description": "Practica géneros textuales específicos con ejercicios guiados de lectura y escritura."
+        },
+        "dailyTraining": {
+          "title": "Entrenamiento diario",
+          "description": "Mantén el hábito de escribir con retos breves y frecuentes."
+        },
+        "coach": {
+          "title": "Coach IA",
+          "description": "Recibe orientación y preguntas que te ayudan a avanzar en tu propio texto."
+        },
+        "simulator": {
+          "title": "Simulador DELF",
+          "description": "Enfréntate a condiciones similares a las del examen DELF B2."
+        },
+        "analytics": {
+          "title": "Evolución",
+          "description": "Observa cómo cambia tu forma de escribir a lo largo del tiempo."
+        },
+        "myPlan": {
+          "title": "Mi Plan",
+          "description": "Sigue un plan de trabajo adaptado a tus objetivos de aprendizaje."
+        }
+      }
+    },
+    "coach": {
+      "eyebrow": "Coach IA",
+      "title": "La IA te acompaña. Tú escribes.",
+      "description": "El Coach de Redaction Lab no escribe por ti ni corrige automáticamente tu texto. Orienta tu proceso, hace preguntas, ofrece retroalimentación y te ayuda a identificar qué revisar.",
+      "disclaimer": "Las ideas, las decisiones discursivas y el texto final siguen siendo tuyos.",
+      "capabilities": {
+        "guide": "Orienta el proceso de escritura",
+        "ask": "Hace preguntas para ayudarte a pensar",
+        "feedback": "Ofrece retroalimentación formativa",
+        "identify": "Ayuda a identificar problemas en el texto",
+        "accompany": "Acompaña la revisión, sin sustituirla"
+      },
+      "conversation": {
+        "coachLabel": "Coach",
+        "studentLabel": "Tú",
+        "coachMessage": "¿Qué quieres lograr con este párrafo: convencer o simplemente informar?",
+        "studentMessage": "Quiero convencer al lector de mi punto de vista.",
+        "coachFollowUp": "Entonces revisa: ¿tu segundo argumento refuerza el primero o lo repite?"
+      }
+    },
+    "evolution": {
+      "eyebrow": "Evolución",
+      "title": "Mejoras escribiendo, no memorizando reglas.",
+      "description": "Cada texto que produces alimenta un ciclo de práctica, retroalimentación, revisión y progreso.",
+      "cycle": {
+        "practice": "Práctica",
+        "feedback": "Retroalimentación",
+        "revision": "Revisión",
+        "progress": "Progreso"
+      }
+    },
+    "finalCta": {
+      "title": "Tu próxima producción puede ser mejor que la anterior.",
+      "description": "Entrena tu escritura en francés con una metodología centrada en el proceso, la práctica y la reflexión.",
+      "ctaPrimary": "Comenzar a entrenar",
+      "ctaSecondary": "Iniciar sesión"
+    },
+    "footer": {
+      "brand": "Redaction Lab",
+      "tagline": "Entrenamiento de la producción escrita en francés.",
+      "signIn": "Iniciar sesión",
+      "start": "Comenzar"
+    }
+  },
   "dashboard": {
     "welcome": {
       "avatarAlt": "Foto de perfil",

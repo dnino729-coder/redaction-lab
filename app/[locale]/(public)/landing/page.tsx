@@ -1,22 +1,7 @@
-export default function Page() {
-  return (
-    <main
-      style={{
-        padding: 60,
-        fontFamily: "sans-serif",
-      }}
-    >
-      <h1>🚀 Redaction Lab</h1>
+// Ruta pública: Landing (sección 5.4). Sin lógica de producto en app/ — solo
+// importa y renderiza la superficie pública de la feature
+// (features/landing/pages), tal como exige .eslintrc.cjs
+// (import/no-restricted-paths), igual que el resto de rutas del proyecto.
+import LandingPage from "@/features/landing/pages";
 
-      <p>La infraestructura funciona correctamente.</p>
-
-      <ul>
-        <li>✅ Next.js</li>
-        <li>✅ Routing</li>
-        <li>✅ Clerk</li>
-        <li>✅ next-intl</li>
-        <li>✅ App Router</li>
-      </ul>
-    </main>
-  );
-}
+export default LandingPage;

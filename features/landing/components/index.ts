@@ -1,0 +1,9 @@
+export { LandingNavbar } from "./LandingNavbar";
+export { HeroSection } from "./HeroSection";
+export { ProblemSection } from "./ProblemSection";
+export { HowItWorksSection } from "./HowItWorksSection";
+export { EcosystemSection } from "./EcosystemSection";
+export { CoachSection } from "./CoachSection";
+export { EvolutionSection } from "./EvolutionSection";
+export { FinalCtaSection } from "./FinalCtaSection";
+export { LandingFooter } from "./LandingFooter";

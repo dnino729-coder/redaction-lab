@@ -34,6 +34,7 @@ const FEATURES = [
   "gamification",
   "notifications",
   "settings",
+  "landing",
 ];
 
 /** @type {import('eslint').Linter.Config} */
