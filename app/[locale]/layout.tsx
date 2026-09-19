@@ -15,6 +15,9 @@ export const metadata: Metadata = {
   title: "Redaction Lab",
   description:
     "Plataforma de entrenamiento de la producción escrita DELF B2 mediante Inteligencia Artificial.",
+  icons: {
+    icon: "/brand/redaction-lab-logo.png",
+  },
 };
 
 export default async function RootLayout({

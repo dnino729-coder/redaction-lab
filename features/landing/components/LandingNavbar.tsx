@@ -6,6 +6,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { Menu, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button, buttonVariants } from "@/components/ui";
@@ -26,8 +27,16 @@ export function LandingNavbar() {
   return (
     <header className="sticky top-0 z-40 border-b border-neutral-200 bg-neutral-0">
       <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link href="/landing" className="text-lg font-semibold text-neutral-900">
-          {t("brand")}
+        <Link href="/landing" className="flex items-center gap-2">
+          <Image
+            src="/brand/redaction-lab-logo.png"
+            alt=""
+            width={1254}
+            height={1254}
+            priority
+            className="h-9 w-9 object-contain sm:h-10 sm:w-10"
+          />
+          <span className="text-lg font-semibold text-neutral-900">{t("brand")}</span>
         </Link>
 
         <nav aria-label={t("brand")} className="hidden items-center gap-6 md:flex">
