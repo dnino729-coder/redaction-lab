@@ -3,7 +3,16 @@
 // no una pantalla de producto diseñada (sin Design System aplicado todavía
 // — eso corresponde a la fase de desarrollo del módulo de Autenticación).
 import { SignIn } from "@clerk/nextjs";
+import { routing } from "@/i18n/routing";
 
-export default function Page() {
-  return <SignIn />;
+function localizedPath(locale: string, segment: "sign-in" | "sign-up") {
+  return locale === routing.defaultLocale ? `/${segment}` : `/${locale}/${segment}`;
+}
+
+export default async function Page({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+
+  return (
+    <SignIn path={localizedPath(locale, "sign-in")} signUpUrl={localizedPath(locale, "sign-up")} />
+  );
 }
