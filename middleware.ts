@@ -5,6 +5,34 @@ import { isPublicRoute } from "./middleware/auth";
 
 const handleI18nRouting = createIntlMiddleware(routing);
 
+// Corrige el fallback cross-origin de Clerk (auth().protect() -> Account
+// Portal en accounts.redactionlab.online) que Safari bloquea como CORS en
+// navegaciones RSC (?_rsc=...): sin signInUrl/signUpUrl explícitos, Clerk
+// cae a environment.displayConfig.signInUrl (Account Portal, otro origen).
+// Se calculan por request (no estático) para conservar el locale actual.
+//
+// nonDefaultLocales replica, sin importarlo, el mismo criterio que
+// middleware/auth.ts usa para isPublicRoute (ese binding no está exportado
+// ahí, por lo que importarlo requeriría modificar ese archivo). La fuente
+// única de verdad (routing.locales/routing.defaultLocale) no se duplica:
+// se deriva localmente el mismo criterio a partir del mismo `routing` ya
+// importado más arriba.
+const nonDefaultLocales = routing.locales.filter((locale) => locale !== routing.defaultLocale);
+
+const getClerkMiddlewareOptions = (request: Request) => {
+  const { pathname } = new URL(request.url);
+  const isNonDefaultLocale = nonDefaultLocales.some(
+    (locale) => pathname === `/${locale}` || pathname.startsWith(`/${locale}/`),
+  );
+  const locale = isNonDefaultLocale ? pathname.split("/")[1] : routing.defaultLocale;
+  const prefix = locale === routing.defaultLocale ? "" : `/${locale}`;
+
+  return {
+    signInUrl: `${prefix}/sign-in`,
+    signUpUrl: `${prefix}/sign-up`,
+  };
+};
+
 // Bypass temporal de desarrollo (DASHBOARD_DEV_MODE) — permite visualizar
 // /dashboard sin sesión de Clerk mientras se construye la interfaz.
 // Alcance deliberadamente mínimo: solo /dashboard y /es/dashboard, nunca el
@@ -66,7 +94,7 @@ export default clerkMiddleware(async (auth, request) => {
   }
 
   return handleI18nRouting(request);
-});
+}, getClerkMiddlewareOptions);
 
 export const config = {
   matcher: ["/((?!_next|.*\\..*).*)", "/(api|trpc)(.*)"],
