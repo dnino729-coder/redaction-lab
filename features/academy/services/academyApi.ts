@@ -18,6 +18,8 @@ import type {
   TeacherOverrideHttp,
   TeacherRecommendationHttp,
   TextType,
+  UnitStep,
+  UnitStepContentHttp,
 } from "../types";
 
 interface PaginationMeta {
@@ -33,7 +35,9 @@ interface PaginatedResponse<T> {
 const BASE = "/api/v1/academy";
 
 // EP-13
-export async function getUnits(textType?: TextType): Promise<PaginatedResponse<AcademyUnitSummaryHttp>> {
+export async function getUnits(
+  textType?: TextType,
+): Promise<PaginatedResponse<AcademyUnitSummaryHttp>> {
   const query = textType ? `?textType=${encodeURIComponent(textType)}` : "";
   return apiFetch<PaginatedResponse<AcademyUnitSummaryHttp>>(`${BASE}/units${query}`);
 }
@@ -43,8 +47,24 @@ export async function getUnitDetail(unitId: string): Promise<AcademyUnitDetailHt
   return apiFetch<AcademyUnitDetailHttp>(`${BASE}/units/${unitId}`);
 }
 
+// Academy Content v1 (Bloque 3A) — endpoint nuevo, sin número EP (fuera de
+// los 23 del API Contract v1.3 original). `locale` es obligatorio y va
+// como query string (decisión explícita del Bloque 3A, ver
+// features/academy/hooks/useUnitStepContent.ts).
+export async function getUnitStepContent(
+  unitId: string,
+  step: UnitStep,
+  locale: string,
+): Promise<UnitStepContentHttp> {
+  return apiFetch<UnitStepContentHttp>(
+    `${BASE}/units/${unitId}/steps/${step}/content?locale=${encodeURIComponent(locale)}`,
+  );
+}
+
 // EP-16
-export async function getUnitAttempts(unitId: string): Promise<PaginatedResponse<AttemptSummaryHttp>> {
+export async function getUnitAttempts(
+  unitId: string,
+): Promise<PaginatedResponse<AttemptSummaryHttp>> {
   return apiFetch<PaginatedResponse<AttemptSummaryHttp>>(`${BASE}/units/${unitId}/attempts`);
 }
 
@@ -92,7 +112,9 @@ export async function createModelExample(
 }
 
 // EP-19
-export async function getModelExamples(textType?: TextType): Promise<PaginatedResponse<ModelExampleHttp>> {
+export async function getModelExamples(
+  textType?: TextType,
+): Promise<PaginatedResponse<ModelExampleHttp>> {
   const query = textType ? `?textType=${encodeURIComponent(textType)}` : "";
   return apiFetch<PaginatedResponse<ModelExampleHttp>>(`${BASE}/model-examples${query}`);
 }
@@ -121,7 +143,9 @@ export async function getMyProgressSummary(): Promise<StudentProgressSummaryHttp
 }
 
 // EP-20
-export async function getStudentProgressSummary(studentId: string): Promise<StudentProgressSummaryHttp> {
+export async function getStudentProgressSummary(
+  studentId: string,
+): Promise<StudentProgressSummaryHttp> {
   return apiFetch<StudentProgressSummaryHttp>(`${BASE}/students/${studentId}/progress-summary`);
 }
 
@@ -160,7 +184,9 @@ export async function completeReflection(
 
 // EP-18
 export async function getFeedback(attemptId: string, versionNumber: number): Promise<FeedbackHttp> {
-  return apiFetch<FeedbackHttp>(`${BASE}/attempts/${attemptId}/feedback?versionNumber=${versionNumber}`);
+  return apiFetch<FeedbackHttp>(
+    `${BASE}/attempts/${attemptId}/feedback?versionNumber=${versionNumber}`,
+  );
 }
 
 // EP-23

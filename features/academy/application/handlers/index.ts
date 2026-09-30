@@ -28,6 +28,7 @@ export * from "./GetContinuationStateHandler";
 export * from "./GetAttemptHistoryHandler";
 export * from "./GetVersionFeedbackHandler";
 export * from "./ListModelExamplesByTextTypeHandler";
+export * from "./GetUnitStepContentHandler";
 export * from "./GetStudentProgressSummaryHandler";
 export * from "./GetTeacherOverrideHistoryHandler";
 export * from "./GetStudentUnitHistoryHandler";

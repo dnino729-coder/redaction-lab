@@ -2,7 +2,12 @@ import type { NextResponse } from "next/server";
 import { createAcademyContainer } from "../composition/academyContainer";
 import { resolveAcademyActor, requireRole } from "../http/auth";
 import { requireIdempotencyKey } from "../http/idempotency";
-import { jsonSuccess, resolvePagination, paginate, type AcademyResponseHeaders } from "../http/response";
+import {
+  jsonSuccess,
+  resolvePagination,
+  paginate,
+  type AcademyResponseHeaders,
+} from "../http/response";
 import { ConflictException } from "@/features/academy/application/exceptions/ConflictException";
 import { StartUnitCommand } from "@/features/academy/application/commands/StartUnitCommand";
 import { RepeatUnitCommand } from "@/features/academy/application/commands/RepeatUnitCommand";
@@ -10,6 +15,7 @@ import { ApplyTeacherOverrideCommand } from "@/features/academy/application/comm
 import { ListAcademyUnitsForStudentQuery } from "@/features/academy/application/queries/ListAcademyUnitsForStudentQuery";
 import { GetAcademyUnitDetailQuery } from "@/features/academy/application/queries/GetAcademyUnitDetailQuery";
 import { GetAttemptHistoryQuery } from "@/features/academy/application/queries/GetAttemptHistoryQuery";
+import { GetUnitStepContentQuery } from "@/features/academy/application/queries/GetUnitStepContentQuery";
 import {
   toStartUnitRequest,
   toRepeatUnitRequest,
@@ -17,9 +23,10 @@ import {
   toListUnitsForStudentRequest,
   toGetUnitDetailRequest,
   toGetAttemptHistoryRequest,
+  toGetUnitStepContentRequest,
 } from "../request-mappers/unitRequestMappers";
 import { toAttemptSummaryHttp } from "../response-mappers/attemptResponseMappers";
-import { toUnitDetailHttp } from "../response-mappers/unitResponseMappers";
+import { toUnitDetailHttp, toUnitStepContentHttp } from "../response-mappers/unitResponseMappers";
 import { toTeacherOverrideHttp } from "../response-mappers/teacherResponseMappers";
 
 // Route Handlers de `academy/units` — EP-01, EP-06, EP-07, EP-13, EP-14,
@@ -56,7 +63,10 @@ export async function handleStartUnit(
     // adicional de solo lectura, no una decisión de negocio nueva) en vez
     // de propagar el conflicto como 409 — fiel al texto explícito del
     // Contrato, sin modificar la decisión de Application.
-    if (error instanceof ConflictException && error.code === "ACADEMY_RULE_ATTEMPT_ALREADY_ACTIVE") {
+    if (
+      error instanceof ConflictException &&
+      error.code === "ACADEMY_RULE_ATTEMPT_ALREADY_ACTIVE"
+    ) {
       // Sprint 6.3.2: call site actualizado por cambio de firma de
       // `toGetAttemptHistoryRequest` (remediacion H-01) -- `actor.userId`
       // ya estaba disponible en este scope.
@@ -102,7 +112,9 @@ export async function handleApplyTeacherOverride(
   const container = createAcademyContainer();
 
   const dto = await container.commandHandlers.applyTeacherOverride.handle(
-    ApplyTeacherOverrideCommand.fromRequest(toApplyTeacherOverrideRequest(unitId, body, actor.userId)),
+    ApplyTeacherOverrideCommand.fromRequest(
+      toApplyTeacherOverrideRequest(unitId, body, actor.userId),
+    ),
   );
   return jsonSuccess(toTeacherOverrideHttp(dto), 201, headers);
 }
@@ -120,7 +132,9 @@ export async function handleListUnits(
   const pagination = resolvePagination(url.searchParams);
 
   const items = await container.queryHandlers.listAcademyUnitsForStudent.handle(
-    ListAcademyUnitsForStudentQuery.fromRequest(toListUnitsForStudentRequest(actor.userId, textType)),
+    ListAcademyUnitsForStudentQuery.fromRequest(
+      toListUnitsForStudentRequest(actor.userId, textType),
+    ),
   );
   const page = paginate(items.map(toUnitDetailHttp), pagination);
   return jsonSuccess(page, 200, headers);
@@ -167,4 +181,35 @@ export async function handleListUnitAttempts(
   );
   const page = paginate(items.map(toAttemptSummaryHttp), pagination);
   return jsonSuccess(page, 200, headers);
+}
+
+// Academy Content v1 (Bloque 3A) — GET /api/v1/academy/units/{unitId}/steps/{step}/content
+//
+// Endpoint nuevo, fuera de los 23 endpoints del API Contract v1.3 original
+// (Academy Content v1, diseño aprobado 2026-09-30). `locale` llega como
+// query string (`?locale=fr|es`) — decisión explícita del Bloque 3A: las
+// rutas `/api/*` no pasan por el middleware de next-intl (`middleware.ts`
+// no se modifica), así que el cliente lo resuelve con `useLocale()` y lo
+// envía explícito, nunca inferido de cookie/Accept-Language (mismo tipo de
+// desincronización ya diagnosticado en la investigación CORS/Safari de
+// esta sesión). Sin `requireIdempotencyKey` — es una lectura, no un
+// comando.
+export async function handleGetUnitStepContent(
+  request: Request,
+  unitId: string,
+  step: string,
+  headers: AcademyResponseHeaders,
+): Promise<NextResponse> {
+  const actor = await resolveAcademyActor();
+  requireRole(actor, ["STUDENT"]);
+  const container = createAcademyContainer();
+  const url = new URL(request.url);
+  const locale = url.searchParams.get("locale") ?? "";
+
+  const dto = await container.queryHandlers.getUnitStepContent.handle(
+    GetUnitStepContentQuery.fromRequest(
+      toGetUnitStepContentRequest(unitId, actor.userId, step, locale),
+    ),
+  );
+  return jsonSuccess(toUnitStepContentHttp(dto), 200, headers);
 }

@@ -4,6 +4,7 @@ export * from "./GetContinuationStateQuery";
 export * from "./GetAttemptHistoryQuery";
 export * from "./GetVersionFeedbackQuery";
 export * from "./ListModelExamplesByTextTypeQuery";
+export * from "./GetUnitStepContentQuery";
 export * from "./GetStudentProgressSummaryQuery";
 export * from "./GetTeacherOverrideHistoryQuery";
 export * from "./GetStudentUnitHistoryQuery";

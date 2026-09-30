@@ -56,6 +56,33 @@ export interface ListModelExamplesByTextTypeRequestDto {
   readonly textType: string;
 }
 
+// Academy Content v1 (Bloque 3A) — lectura de contenido editorial
+// publicado de un step. `unitId`/`studentId` resuelven ownership (mismo
+// criterio H-01 ya aplicado en `GetAcademyUnitDetailRequestDto`); la
+// resolución real del slot editorial (`textType`+`position`) ocurre en el
+// Read Model a partir de esos dos campos, nunca por FK directa (ver
+// diseño aprobado, "IMPORTANTE sobre unitId").
+export interface GetUnitStepContentRequestDto {
+  readonly unitId: string;
+  readonly studentId: string;
+  readonly step: string;
+  readonly locale: string;
+}
+
+export interface UnitContentBlockResponseDto {
+  readonly order: number;
+  readonly type: string;
+  readonly data: unknown;
+}
+
+// Deliberadamente sin createdBy/createdAt/updatedAt/publishedAt/status/
+// version/ids internos (alcance del Bloque 3A) — el estudiante solo
+// necesita los bloques a renderizar.
+export interface UnitStepContentResponseDto {
+  readonly step: string;
+  readonly blocks: readonly UnitContentBlockResponseDto[];
+}
+
 export interface GetStudentProgressSummaryRequestDto {
   readonly studentId: string;
   readonly teacherId: string;

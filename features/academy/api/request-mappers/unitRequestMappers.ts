@@ -2,13 +2,12 @@ import type {
   StartUnitRequestDto,
   RepeatUnitRequestDto,
 } from "@/features/academy/application/dto/AttemptDto";
-import type {
-  ApplyTeacherOverrideRequestDto,
-} from "@/features/academy/application/dto/TeacherOverrideDto";
+import type { ApplyTeacherOverrideRequestDto } from "@/features/academy/application/dto/TeacherOverrideDto";
 import type {
   ListAcademyUnitsForStudentRequestDto,
   GetAcademyUnitDetailRequestDto,
   GetAttemptHistoryRequestDto,
+  GetUnitStepContentRequestDto,
 } from "@/features/academy/application/dto/QueryDto";
 
 // Request Mapper (Alcance #6) — HTTP Request → Application Request DTO,
@@ -63,4 +62,17 @@ export function toGetAttemptHistoryRequest(
   studentId: string,
 ): GetAttemptHistoryRequestDto {
   return { unitId, studentId };
+}
+
+// Academy Content v1 (Bloque 3A) — mismo criterio de ownership (H-01) que
+// los dos mappers anteriores; `step`/`locale` vienen de la ruta/query
+// string tal cual, sin transformar (la validación sintáctica ocurre en el
+// Handler, no aquí — Request Mapper nunca valida, solo combina).
+export function toGetUnitStepContentRequest(
+  unitId: string,
+  studentId: string,
+  step: string,
+  locale: string,
+): GetUnitStepContentRequestDto {
+  return { unitId, studentId, step, locale };
 }

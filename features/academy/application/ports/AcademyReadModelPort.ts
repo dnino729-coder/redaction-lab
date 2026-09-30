@@ -5,6 +5,7 @@ import type {
   AttemptSummaryResponseDto,
   VersionFeedbackResponseDto,
   ModelExampleResponseDto,
+  UnitStepContentResponseDto,
   StudentProgressSummaryResponseDto,
   TeacherOverrideResponseDto,
   StudentUnitHistoryResponseDto,
@@ -30,11 +31,19 @@ export interface AcademyReadModelPort {
     studentId: string,
   ): Promise<VersionFeedbackResponseDto | null>;
   listModelExamplesByTextType(textType: string): Promise<ModelExampleResponseDto[]>;
+  // Academy Content v1 (Bloque 3A) — `unitId`/`studentId` resuelven
+  // ownership (mismo criterio H-01 que `getUnitDetail`); `null` significa
+  // "unitId no existe o no pertenece a studentId" (404 en el Handler) —
+  // distinto de "unidad existe pero sin contenido PUBLISHED todavía", que
+  // devuelve `{ step, blocks: [] }`, nunca null ni error.
+  getUnitStepContent(
+    unitId: string,
+    studentId: string,
+    step: string,
+    locale: string,
+  ): Promise<UnitStepContentResponseDto | null>;
   getStudentProgressSummary(studentId: string): Promise<StudentProgressSummaryResponseDto>;
-  listTeacherOverrides(
-    unitId?: string,
-    studentId?: string,
-  ): Promise<TeacherOverrideResponseDto[]>;
+  listTeacherOverrides(unitId?: string, studentId?: string): Promise<TeacherOverrideResponseDto[]>;
   getStudentUnitHistory(
     studentId: string,
     unitId: string,

@@ -1,4 +1,4 @@
-import type { AcademyTextType } from "@prisma/client";
+import type { AcademyTextType, AcademyUnitStep } from "@prisma/client";
 import type { AcademyReadModelPort } from "@/features/academy/application/ports/AcademyReadModelPort";
 import type {
   AcademyUnitListItemDto,
@@ -9,6 +9,7 @@ import type {
   VersionResponseDto,
   FeedbackResponseDto,
   ModelExampleResponseDto,
+  UnitStepContentResponseDto,
   StudentProgressSummaryResponseDto,
   TeacherOverrideResponseDto,
   StudentUnitHistoryResponseDto,
@@ -52,7 +53,10 @@ function toIso(date: Date | null): string | null {
 }
 
 export class PrismaAcademyReadModelPort implements AcademyReadModelPort {
-  public async listUnitsForStudent(studentId: string, textType?: string): Promise<AcademyUnitListItemDto[]> {
+  public async listUnitsForStudent(
+    studentId: string,
+    textType?: string,
+  ): Promise<AcademyUnitListItemDto[]> {
     const rows = await withActiveClient((client) =>
       client.academyUnit.findMany({
         where: { studentId, ...(textType ? { textType: textType as AcademyTextType } : {}) },
@@ -63,7 +67,10 @@ export class PrismaAcademyReadModelPort implements AcademyReadModelPort {
 
     const byTextTypeAndPosition = new Map<string, UnitRowWithCount>();
     for (const row of rows) {
-      byTextTypeAndPosition.set(`${row.textType}:${row.position}`, row as unknown as UnitRowWithCount);
+      byTextTypeAndPosition.set(
+        `${row.textType}:${row.position}`,
+        row as unknown as UnitRowWithCount,
+      );
     }
 
     return rows.map((row) => {
@@ -104,7 +111,9 @@ export class PrismaAcademyReadModelPort implements AcademyReadModelPort {
     return this.toDetailDto(unitRow, (predecessor as unknown as UnitRowWithCount) ?? null);
   }
 
-  public async getContinuationState(studentId: string): Promise<ContinuationStateResponseDto | null> {
+  public async getContinuationState(
+    studentId: string,
+  ): Promise<ContinuationStateResponseDto | null> {
     const attemptRow = await withActiveClient((client) =>
       client.attempt.findFirst({
         where: { isCurrent: true, academyUnit: { studentId } },
@@ -135,8 +144,14 @@ export class PrismaAcademyReadModelPort implements AcademyReadModelPort {
 
     return {
       unit: this.toDetailDto(unitRow, (predecessor as unknown as UnitRowWithCount) ?? null),
-      attempt: this.toAttemptSummaryDto({ ...attempt, studentId: unitRow.studentId, versionCount: _count.versions }),
-      draft: draft ? { content: draft.content, lastSavedAt: draft.lastSavedAt.toISOString() } : null,
+      attempt: this.toAttemptSummaryDto({
+        ...attempt,
+        studentId: unitRow.studentId,
+        versionCount: _count.versions,
+      }),
+      draft: draft
+        ? { content: draft.content, lastSavedAt: draft.lastSavedAt.toISOString() }
+        : null,
     };
   }
 
@@ -150,13 +165,20 @@ export class PrismaAcademyReadModelPort implements AcademyReadModelPort {
     const rows = await withActiveClient((client) =>
       client.attempt.findMany({
         where: { academyUnitId: unitId, academyUnit: { studentId } },
-        include: { academyUnit: { select: { studentId: true } }, _count: { select: { versions: true } } },
+        include: {
+          academyUnit: { select: { studentId: true } },
+          _count: { select: { versions: true } },
+        },
         orderBy: { attemptNumber: "asc" },
       }),
     );
     return rows.map((row) => {
       const { academyUnit, _count, ...attempt } = row;
-      return this.toAttemptSummaryDto({ ...attempt, studentId: academyUnit!.studentId, versionCount: _count.versions });
+      return this.toAttemptSummaryDto({
+        ...attempt,
+        studentId: academyUnit!.studentId,
+        versionCount: _count.versions,
+      });
     });
   }
 
@@ -205,12 +227,73 @@ export class PrismaAcademyReadModelPort implements AcademyReadModelPort {
     }));
   }
 
-  public async getStudentProgressSummary(studentId: string): Promise<StudentProgressSummaryResponseDto> {
+  // Academy Content v1 (Bloque 3A). Dos consultas, ambas bajo el mismo
+  // `client` de `withActiveClient` (sin transacción propia — lectura pura,
+  // mismo criterio que el resto de este Read Model):
+  //   1) resuelve `(textType, position)` desde `academy_unit`, con el
+  //      mismo filtro de ownership (`id` + `studentId`) ya usado por
+  //      `getUnitDetail` — `unitId` NUNCA tiene FK directa hacia
+  //      `academy_unit_content` (ver diseño aprobado); si no aparece
+  //      ninguna fila, `unitId` no existe o no es del estudiante -> null
+  //      (404 en el Handler, no confundir con "sin contenido publicado").
+  //   2) resuelve el slot editorial exacto — `status: PUBLISHED`,
+  //      `ORDER BY version DESC, LIMIT 1` (mayor versión publicada; el
+  //      cliente nunca puede pedir DRAFT/ARCHIVED ni una versión
+  //      específica, ambos fuera de este filtro por construcción) — sin
+  //      fila PUBLISHED, retorna `{ step, blocks: [] }` (200, nunca 404
+  //      ni 500 — "ausencia de contenido" es un estado válido, ver
+  //      diseño aprobado).
+  public async getUnitStepContent(
+    unitId: string,
+    studentId: string,
+    step: string,
+    locale: string,
+  ): Promise<UnitStepContentResponseDto | null> {
+    const unit = await withActiveClient((client) =>
+      client.academyUnit.findFirst({
+        where: { id: unitId, studentId },
+        select: { textType: true, position: true },
+      }),
+    );
+    if (!unit) return null;
+
+    const content = await withActiveClient((client) =>
+      client.academyUnitContent.findFirst({
+        where: {
+          textType: unit.textType,
+          position: unit.position,
+          step: step as AcademyUnitStep,
+          locale,
+          status: "PUBLISHED",
+        },
+        orderBy: { version: "desc" },
+        include: { blocks: { orderBy: { order: "asc" } } },
+      }),
+    );
+    if (!content) return { step, blocks: [] };
+
+    return {
+      step,
+      blocks: content.blocks.map((block) => ({
+        order: block.order,
+        type: block.type,
+        data: block.data,
+      })),
+    };
+  }
+
+  public async getStudentProgressSummary(
+    studentId: string,
+  ): Promise<StudentProgressSummaryResponseDto> {
     const byState = await withActiveClient((client) =>
       client.academyUnit.groupBy({ by: ["state"], where: { studentId }, _count: { _all: true } }),
     );
     const byTextType = await withActiveClient((client) =>
-      client.academyUnit.groupBy({ by: ["textType"], where: { studentId }, _count: { _all: true } }),
+      client.academyUnit.groupBy({
+        by: ["textType"],
+        where: { studentId },
+        _count: { _all: true },
+      }),
     );
 
     const unitsByState: Record<string, number> = {};
@@ -233,7 +316,10 @@ export class PrismaAcademyReadModelPort implements AcademyReadModelPort {
     };
   }
 
-  public async listTeacherOverrides(unitId?: string, studentId?: string): Promise<TeacherOverrideResponseDto[]> {
+  public async listTeacherOverrides(
+    unitId?: string,
+    studentId?: string,
+  ): Promise<TeacherOverrideResponseDto[]> {
     const rows = await withActiveClient((client) =>
       client.teacherOverride.findMany({
         where: {
@@ -300,7 +386,12 @@ export class PrismaAcademyReadModelPort implements AcademyReadModelPort {
         id: string;
         versionId: string;
         deliveredAt: Date;
-        observations: readonly { category: string; strength: string; explanation: string; suggestion: string }[];
+        observations: readonly {
+          category: string;
+          strength: string;
+          explanation: string;
+          suggestion: string;
+        }[];
       } | null;
     };
     type HistoryAttemptRow = {
@@ -333,14 +424,20 @@ export class PrismaAcademyReadModelPort implements AcademyReadModelPort {
     );
 
     return {
-      unit: this.toDetailDto(unitRow as unknown as UnitRowWithCount, (predecessor as unknown as UnitRowWithCount) ?? null),
+      unit: this.toDetailDto(
+        unitRow as unknown as UnitRowWithCount,
+        (predecessor as unknown as UnitRowWithCount) ?? null,
+      ),
       attempts: attemptEntries,
     };
   }
 
   // --- Helpers de proyección ------------------------------------------
 
-  private toDetailDto(row: UnitRowWithCount, predecessor: UnitRowWithCount | null): AcademyUnitDetailResponseDto {
+  private toDetailDto(
+    row: UnitRowWithCount,
+    predecessor: UnitRowWithCount | null,
+  ): AcademyUnitDetailResponseDto {
     const isFirstInSequence = row.position === 1;
     const eligibleForUnlock = eligibleForUnlockSpec.isSatisfiedBy({
       currentState: row.state as UnitState,
@@ -364,7 +461,10 @@ export class PrismaAcademyReadModelPort implements AcademyReadModelPort {
     };
   }
 
-  private toListItemDto(row: UnitRowWithCount, predecessor: UnitRowWithCount | null): AcademyUnitListItemDto {
+  private toListItemDto(
+    row: UnitRowWithCount,
+    predecessor: UnitRowWithCount | null,
+  ): AcademyUnitListItemDto {
     const detail = this.toDetailDto(row, predecessor);
     return {
       ...detail,
@@ -426,7 +526,12 @@ export class PrismaAcademyReadModelPort implements AcademyReadModelPort {
     id: string;
     versionId: string;
     deliveredAt: Date;
-    observations: readonly { category: string; strength: string; explanation: string; suggestion: string }[];
+    observations: readonly {
+      category: string;
+      strength: string;
+      explanation: string;
+      suggestion: string;
+    }[];
   }): FeedbackResponseDto {
     return {
       id: row.id,

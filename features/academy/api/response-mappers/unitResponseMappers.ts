@@ -2,7 +2,10 @@ import type {
   AcademyUnitSummaryResponseDto,
   AcademyUnitDetailResponseDto,
 } from "@/features/academy/application/dto/AcademyUnitDto";
-import type { AcademyUnitListItemDto } from "@/features/academy/application/dto/QueryDto";
+import type {
+  AcademyUnitListItemDto,
+  UnitStepContentResponseDto,
+} from "@/features/academy/application/dto/QueryDto";
 
 // Response Mapper (Alcance #7) — Application DTO → HTTP Response, sin
 // lógica de negocio, renombrando únicamente los campos cuyo nombre difiere
@@ -44,6 +47,23 @@ export function toUnitSummaryHttp(dto: AcademyUnitSummaryResponseDto): AcademyUn
     state: dto.state,
     activeAttemptId: dto.activeAttemptId,
   };
+}
+
+// Academy Content v1 (Bloque 3A) — el DTO de Application ya es la forma
+// HTTP mínima exacta pedida (sin campos internos) — este mapper existe
+// solo para mantener el mismo patrón "Response Mapper" del resto del
+// archivo (Alcance #7), no porque haya ningún campo que renombrar.
+export interface UnitStepContentHttp {
+  readonly step: string;
+  readonly blocks: ReadonlyArray<{
+    readonly order: number;
+    readonly type: string;
+    readonly data: unknown;
+  }>;
+}
+
+export function toUnitStepContentHttp(dto: UnitStepContentResponseDto): UnitStepContentHttp {
+  return { step: dto.step, blocks: dto.blocks };
 }
 
 export function toUnitDetailHttp(

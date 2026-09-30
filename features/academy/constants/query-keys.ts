@@ -13,7 +13,10 @@ export const academyKeys = {
   draft: (attemptId: string) => [...academyKeys.all, "attempt", attemptId, "draft"] as const,
   feedback: (attemptId: string, versionNumber: number) =>
     [...academyKeys.all, "attempt", attemptId, "feedback", versionNumber] as const,
-  modelExamples: (textType?: TextType) => [...academyKeys.all, "model-examples", { textType }] as const,
+  modelExamples: (textType?: TextType) =>
+    [...academyKeys.all, "model-examples", { textType }] as const,
+  unitStepContent: (unitId: string, step: string, locale: string) =>
+    [...academyKeys.all, "unit", unitId, "steps", step, "content", locale] as const,
   myProgress: () => [...academyKeys.all, "progress", "me"] as const,
   studentProgress: (studentId: string) => [...academyKeys.all, "progress", studentId] as const,
   studentUnitHistory: (studentId: string, unitId: string) =>

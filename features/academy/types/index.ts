@@ -6,6 +6,7 @@ export * from "./draft.types";
 export * from "./version.types";
 export * from "./feedback.types";
 export * from "./model-example.types";
+export * from "./unit-content.types";
 export * from "./teacher.types";
 export * from "./progress.types";
 export * from "./continuation.types";

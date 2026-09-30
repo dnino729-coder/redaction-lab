@@ -92,6 +92,7 @@ import { GetContinuationStateHandler } from "@/features/academy/application/hand
 import { GetAttemptHistoryHandler } from "@/features/academy/application/handlers/GetAttemptHistoryHandler";
 import { GetVersionFeedbackHandler } from "@/features/academy/application/handlers/GetVersionFeedbackHandler";
 import { ListModelExamplesByTextTypeHandler } from "@/features/academy/application/handlers/ListModelExamplesByTextTypeHandler";
+import { GetUnitStepContentHandler } from "@/features/academy/application/handlers/GetUnitStepContentHandler";
 import { GetStudentProgressSummaryHandler } from "@/features/academy/application/handlers/GetStudentProgressSummaryHandler";
 import { GetTeacherOverrideHistoryHandler } from "@/features/academy/application/handlers/GetTeacherOverrideHistoryHandler";
 import { GetStudentUnitHistoryHandler } from "@/features/academy/application/handlers/GetStudentUnitHistoryHandler";
@@ -172,6 +173,7 @@ export interface AcademyContainer {
     readonly getAttemptHistory: GetAttemptHistoryHandler;
     readonly getVersionFeedback: GetVersionFeedbackHandler;
     readonly listModelExamplesByTextType: ListModelExamplesByTextTypeHandler;
+    readonly getUnitStepContent: GetUnitStepContentHandler;
     readonly getStudentProgressSummary: GetStudentProgressSummaryHandler;
     readonly getTeacherOverrideHistory: GetTeacherOverrideHistoryHandler;
     readonly getStudentUnitHistory: GetStudentUnitHistoryHandler;
@@ -361,7 +363,11 @@ export function createAcademyContainer(): AcademyContainer {
       ports.uuidGenerator,
       ports.logger,
     ),
-    advanceStep: new AdvanceStepHandler(repositories.attempt, ports.unitOfWork, services.authorizationGuard),
+    advanceStep: new AdvanceStepHandler(
+      repositories.attempt,
+      ports.unitOfWork,
+      services.authorizationGuard,
+    ),
     verifyComprehension: new VerifyComprehensionHandler(
       repositories.attempt,
       ports.unitOfWork,
@@ -407,9 +413,19 @@ export function createAcademyContainer(): AcademyContainer {
     getAttemptHistory: new GetAttemptHistoryHandler(ports.readModel),
     getVersionFeedback: new GetVersionFeedbackHandler(ports.readModel),
     listModelExamplesByTextType: new ListModelExamplesByTextTypeHandler(ports.readModel),
-    getStudentProgressSummary: new GetStudentProgressSummaryHandler(ports.readModel, services.authorizationGuard),
-    getTeacherOverrideHistory: new GetTeacherOverrideHistoryHandler(ports.readModel, services.authorizationGuard),
-    getStudentUnitHistory: new GetStudentUnitHistoryHandler(ports.readModel, services.authorizationGuard),
+    getUnitStepContent: new GetUnitStepContentHandler(ports.readModel),
+    getStudentProgressSummary: new GetStudentProgressSummaryHandler(
+      ports.readModel,
+      services.authorizationGuard,
+    ),
+    getTeacherOverrideHistory: new GetTeacherOverrideHistoryHandler(
+      ports.readModel,
+      services.authorizationGuard,
+    ),
+    getStudentUnitHistory: new GetStudentUnitHistoryHandler(
+      ports.readModel,
+      services.authorizationGuard,
+    ),
   };
 
   cachedContainer = {

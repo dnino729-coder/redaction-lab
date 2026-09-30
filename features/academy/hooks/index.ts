@@ -13,6 +13,7 @@ export * from "./useAdvanceStep";
 export * from "./useVerifyComprehension";
 export * from "./useFeedback";
 export * from "./useModelExamples";
+export * from "./useUnitStepContent";
 export * from "./useCreateModelExample";
 export * from "./useUpdateModelExample";
 export * from "./useRetireModelExample";
