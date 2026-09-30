@@ -146,6 +146,7 @@ import {
   useModelExamples,
   useRepeatUnit,
   useSubmitVersion,
+  useUnitStepContent,
   useVerifyComprehension,
 } from "../../hooks";
 import { academyRoutes, STEP_TO_URL_SLUG, stepFromUrlSlug } from "../../constants";
@@ -222,7 +223,9 @@ export function AttemptStepContainer({ attemptId, step }: AttemptStepContainerPr
   // `ANALYZE` — trade-off aceptado del patrón de un solo Container que no
   // modifica el hook (no expone `enabled`); su `staleTime: 60s` deja el
   // resultado en caché listo para cuando el estudiante llegue a P-06.
-  const modelExamplesQuery = useModelExamples(matchedAttempt ? continuationQuery.data!.unit.textType : undefined);
+  const modelExamplesQuery = useModelExamples(
+    matchedAttempt ? continuationQuery.data!.unit.textType : undefined,
+  );
 
   // P-08 (§12): `useSubmitVersion()` requiere `unitId` (para invalidar
   // `academyKeys.unit(unitId)`, Blueprint §8.2) — ni `DraftHttp` ni
@@ -237,6 +240,17 @@ export function AttemptStepContainer({ attemptId, step }: AttemptStepContainerPr
   // mismo trade-off ya aceptado por `useModelExamples` en P-06).
   const versionNumber = matchedAttempt?.versionCount ?? 0;
   const feedbackQuery = useFeedback(attemptId, versionNumber);
+
+  // Academy Content v1 (Bloque 3F): mismo trade-off ya aceptado arriba por
+  // `useModelExamples`/`useFeedback` (Rules of Hooks, un único Container
+  // para P-04 a P-10) — se invoca sin condicional, usando la misma
+  // expresión que más abajo calcula `displayStep` (todavía no declarado en
+  // este punto del componente). `useUnitStepContent` internamente no
+  // dispara la petición si `unitId` está vacío (`enabled`, ver el hook).
+  const unitStepContentQuery = useUnitStepContent(
+    unitId,
+    matchedAttempt?.currentStep ?? (stepFromUrl as UnitStep),
+  );
   const advancePhase = useAdvancePhase();
   const completeReflection = useCompleteReflection();
   const repeatUnit = useRepeatUnit();
@@ -422,7 +436,7 @@ export function AttemptStepContainer({ attemptId, step }: AttemptStepContainerPr
     // Nunca se muestran esos resultados sin filtrar: se trata como Empty,
     // igual que el caso ya contemplado por el Blueprint ("Empty, nunca
     // error"), sin tocar la llamada al hook ni su firma.
-    const examples = matchedAttempt ? modelExamplesQuery.data?.data ?? [] : [];
+    const examples = matchedAttempt ? (modelExamplesQuery.data?.data ?? []) : [];
 
     return (
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
@@ -463,7 +477,8 @@ export function AttemptStepContainer({ attemptId, step }: AttemptStepContainerPr
 
     // EP-17 en 404 (sin borrador previo) no es un error — el editor inicia
     // vacío (Blueprint §12 P-08, criterio de aceptación 2).
-    const isDraftNotFound = draftQuery.isError && draftQuery.error instanceof ApiError && draftQuery.error.status === 404;
+    const isDraftNotFound =
+      draftQuery.isError && draftQuery.error instanceof ApiError && draftQuery.error.status === 404;
 
     if (draftQuery.isError && !isDraftNotFound) {
       return (
@@ -476,7 +491,7 @@ export function AttemptStepContainer({ attemptId, step }: AttemptStepContainerPr
       );
     }
 
-    const initialContent = isDraftNotFound ? "" : draftQuery.data?.content ?? "";
+    const initialContent = isDraftNotFound ? "" : (draftQuery.data?.content ?? "");
     const autosaveState = autosaveDraft.isPending
       ? "saving"
       : autosaveDraft.isError
@@ -587,7 +602,14 @@ export function AttemptStepContainer({ attemptId, step }: AttemptStepContainerPr
       ) : isReflectionStep ? (
         renderReflectionSection()
       ) : (
-        <StepContentPanel step={displayStep} />
+        <StepContentPanel
+          step={displayStep}
+          isLoading={unitStepContentQuery.isLoading}
+          isError={unitStepContentQuery.isError}
+          error={unitStepContentQuery.error}
+          blocks={unitStepContentQuery.data?.blocks ?? []}
+          onRetry={() => unitStepContentQuery.refetch()}
+        />
       )}
 
       {isComprehendStep ? (

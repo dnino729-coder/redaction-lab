@@ -30,9 +30,13 @@ export const academyHandlers = [
   // EP-14
   http.get(`${BASE}/units/:unitId`, () => HttpResponse.json(unitDetailFixture)),
   // EP-16
-  http.get(`${BASE}/units/:unitId/attempts`, () => HttpResponse.json(paginated([attemptSummaryFixture]))),
+  http.get(`${BASE}/units/:unitId/attempts`, () =>
+    HttpResponse.json(paginated([attemptSummaryFixture])),
+  ),
   // EP-07
-  http.post(`${BASE}/units/:unitId/teacher-overrides`, () => HttpResponse.json(teacherOverrideFixture)),
+  http.post(`${BASE}/units/:unitId/teacher-overrides`, () =>
+    HttpResponse.json(teacherOverrideFixture),
+  ),
   // EP-08
   http.post(`${BASE}/students/:studentId/unit-recommendations`, () =>
     HttpResponse.json(teacherRecommendationFixture),
@@ -42,7 +46,9 @@ export const academyHandlers = [
   // EP-19
   http.get(`${BASE}/model-examples`, () => HttpResponse.json(paginated([modelExampleFixture]))),
   // EP-10
-  http.patch(`${BASE}/model-examples/:modelExampleId`, () => HttpResponse.json(modelExampleFixture)),
+  http.patch(`${BASE}/model-examples/:modelExampleId`, () =>
+    HttpResponse.json(modelExampleFixture),
+  ),
   // EP-11
   http.delete(`${BASE}/model-examples/:modelExampleId`, () =>
     HttpResponse.json({ ...modelExampleFixture, status: "RETIRED" }),
@@ -50,7 +56,9 @@ export const academyHandlers = [
   // EP-12
   http.get(`${BASE}/progress-summary`, () => HttpResponse.json(progressSummaryFixture)),
   // EP-20
-  http.get(`${BASE}/students/:studentId/progress-summary`, () => HttpResponse.json(progressSummaryFixture)),
+  http.get(`${BASE}/students/:studentId/progress-summary`, () =>
+    HttpResponse.json(progressSummaryFixture),
+  ),
   // EP-15
   http.get(`${BASE}/continuation`, () => HttpResponse.json(continuationFixture)),
   // EP-17
@@ -64,5 +72,14 @@ export const academyHandlers = [
   // EP-23
   http.get(`${BASE}/students/:studentId/units/:unitId/history`, () =>
     HttpResponse.json(studentUnitHistoryFixture),
+  ),
+  // Academy Content v1 (Bloque 3F) — sin número EP (fuera de los 23
+  // originales). Happy path por defecto: sin contenido publicado
+  // (`blocks: []`) — es el estado más seguro para no romper los tests ya
+  // existentes que no cubren esta feature; los tests propios de Bloque 3F
+  // sobreescriben este handler con `server.use(...)` para casos con
+  // bloques reales.
+  http.get(`${BASE}/units/:unitId/steps/:step/content`, ({ params }) =>
+    HttpResponse.json({ step: params.step, blocks: [] }),
   ),
 ];

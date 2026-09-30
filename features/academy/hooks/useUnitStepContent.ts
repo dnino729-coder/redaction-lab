@@ -19,6 +19,13 @@ export function useUnitStepContent(unitId: string, step: UnitStep) {
   return useQuery({
     queryKey: academyKeys.unitStepContent(unitId, step, locale),
     queryFn: () => getUnitStepContent(unitId, step, locale),
+    // Bloque 3F: a diferencia de `textType` en `useModelExamples` (query
+    // param opcional, seguro de omitir), `unitId` es un segmento de ruta
+    // obligatorio — invocar el endpoint con `unitId` vacío produciría una
+    // URL malformada. `AttemptStepContainer` invoca este hook sin
+    // condicional (Rules of Hooks, mismo trade-off ya aceptado por
+    // `useModelExamples`/`useFeedback`), así que la guarda va aquí.
+    enabled: unitId.length > 0,
     staleTime: 60_000,
     gcTime: 10 * 60_000,
     retry: 2,
