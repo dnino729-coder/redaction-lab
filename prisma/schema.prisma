@@ -33,6 +33,7 @@ model User {
   updatedAt                   DateTime                @updatedAt @map("updated_at")
   deletedAt                   DateTime?               @map("deleted_at")
   academyUnitsAsStudent       AcademyUnit[]           @relation("AcademyUnitsForStudent")
+  academyUnitContentsAuthored AcademyUnitContent[]    @relation("AcademyUnitContentAuthor")
   coachContext                CoachContext?
   coachRecommendations        CoachRecommendation[]
   examAttempts                ExamAttempt[]
@@ -714,6 +715,48 @@ model AcademyOutbox {
   @@map("academy_outbox")
 }
 
+/// Academy Content v1 (diseño aprobado 2026-09-30) — contenido editorial
+/// de una etapa (`AcademyUnitStep`), a nivel de catálogo curricular
+/// `(textType, position)`, NUNCA por `academyUnitId` (evita duplicar
+/// contenido idéntico por cada fila AcademyUnit de cada estudiante — mismo
+/// principio ya aplicado por `ModelExample`, que solo tiene `textType`).
+/// Versionado append-only (`version` incremental, sin tabla de versionado
+/// separada — mismo criterio que `Version` en Attempt).
+model AcademyUnitContent {
+  id          String               @id(map: "pk_academy_unit_content") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  textType    AcademyTextType      @map("text_type")
+  position    Int
+  step        AcademyUnitStep      @map("step")
+  locale      String               @db.VarChar(10)
+  status      AcademyContentStatus @default(DRAFT)
+  version     Int                  @default(1)
+  publishedAt DateTime?            @map("published_at")
+  createdBy   String?              @map("created_by") @db.Uuid
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+  blocks      UnitContentBlock[]
+  author      User?                @relation("AcademyUnitContentAuthor", fields: [createdBy], references: [id], map: "fk_academy_unit_content_created_by")
+
+  @@unique([textType, position, step, locale, version], map: "uq_academy_unit_content_slot_version")
+  @@index([textType, position, step, locale, status], map: "idx_academy_unit_content_lookup")
+  @@map("academy_unit_content")
+}
+
+/// Academy Content v1 (diseño aprobado 2026-09-30) — bloque individual,
+/// ordenado, dentro de un `AcademyUnitContent`. `data` (Json) varía por
+/// `type` — sin tabla por tipo, evita 7 tablas casi vacías.
+model UnitContentBlock {
+  id        String               @id(map: "pk_unit_content_block") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contentId String               @map("content_id") @db.Uuid
+  order     Int
+  type      UnitContentBlockType
+  data      Json
+  content   AcademyUnitContent   @relation(fields: [contentId], references: [id], onDelete: Cascade, map: "fk_unit_content_block_content_id")
+
+  @@unique([contentId, order], map: "uq_unit_content_block_content_id_order")
+  @@map("unit_content_block")
+}
+
 /// Laboratoire — ejercicios guiados y autónomos de producción escrita.
 /// Bounded context independiente de Academia: sin FK ni relación hacia
 /// academy_unit/attempt/draft/version/feedback.
@@ -967,6 +1010,29 @@ enum AcademyFeedbackStrength {
 enum AcademyOverrideAction {
   FORCE_LOCK
   FORCE_RESTART
+}
+
+/// Academy Content v1 (diseño aprobado 2026-09-30) — estado de publicación
+/// de `AcademyUnitContent`. Ciclo: DRAFT → PUBLISHED → ARCHIVED (nunca
+/// PUBLISHED → DRAFT directo; ver documento de diseño, sección 8/9).
+enum AcademyContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+/// Academy Content v1 (diseño aprobado 2026-09-30) — catálogo mínimo de
+/// tipos de bloque de contenido editorial (7 tipos, deliberadamente sin
+/// auto-evaluación ni persistencia de respuesta — ver documento de diseño,
+/// sección 6).
+enum UnitContentBlockType {
+  RICH_TEXT
+  INSTRUCTION
+  TIP
+  EXAMPLE
+  QUESTION
+  CHECKLIST
+  MODEL_EXAMPLE_REF
 }
 
 /// `ModelExampleDTO.rating` — calificación editorial.
