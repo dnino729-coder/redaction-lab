@@ -1,4 +1,14 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+
+// Redis Sprint — esta mutación inicializa learning_progress, leído
+// directamente por DashboardReadModel.goal/.plan: debe invalidar la caché
+// del estudiante dueño del plan tras confirmar la transacción, pero NUNCA en
+// la rama idempotente (no se escribió nada nuevo).
+const invalidateDashboardCache = vi.fn();
+vi.mock("@/services/dashboard-cache", () => ({
+  invalidateDashboardCache: (...args: unknown[]) => invalidateDashboardCache(...args),
+}));
+
 import { GenerateInitialPlanStructureHandler } from "@/features/my-plan/application/handlers/GenerateInitialPlanStructureHandler";
 import { GenerateInitialPlanStructureCommand } from "@/features/my-plan/application/commands/GenerateInitialPlanStructureCommand";
 import { ResourceNotFoundException } from "@/features/my-plan/application/exceptions/ResourceNotFoundException";
@@ -85,6 +95,10 @@ function buildHandler() {
 }
 
 describe("GenerateInitialPlanStructureHandler", () => {
+  beforeEach(() => {
+    invalidateDashboardCache.mockClear();
+  });
+
   it("1. crea una fase inicial y una tarea inicial para un plan sin fases", async () => {
     const {
       handler,
@@ -108,6 +122,8 @@ describe("GenerateInitialPlanStructureHandler", () => {
     });
     expect(learningPhaseRepository.save).toHaveBeenCalledTimes(1);
     expect(learningTaskRepository.save).toHaveBeenCalledTimes(1);
+    expect(invalidateDashboardCache).toHaveBeenCalledTimes(1);
+    expect(invalidateDashboardCache).toHaveBeenCalledWith(APP_FIXTURE_IDS.student);
   });
 
   it("2. usa StudySchedule.minutesPerSession como LearningTask.estimatedMinutes", async () => {
@@ -185,6 +201,8 @@ describe("GenerateInitialPlanStructureHandler", () => {
     expect(learningPhaseRepository.save).not.toHaveBeenCalled();
     // No debería ni siquiera necesitar leer StudySchedule si ya hay fases.
     expect(studyScheduleRepository.findByLearningPlanId).not.toHaveBeenCalled();
+    // Idempotente: no se escribió learning_progress nuevo — no invalida.
+    expect(invalidateDashboardCache).not.toHaveBeenCalled();
   });
 
   it("7. si ya existe una fase, no crea una tarea duplicada", async () => {
@@ -209,6 +227,7 @@ describe("GenerateInitialPlanStructureHandler", () => {
       ),
     ).rejects.toBeInstanceOf(ResourceNotFoundException);
     expect(learningPhaseRepository.findByLearningPlanId).not.toHaveBeenCalled();
+    expect(invalidateDashboardCache).not.toHaveBeenCalled();
   });
 
   it("9. propaga ResourceNotFoundException si el plan no tiene StudySchedule", async () => {
@@ -223,6 +242,7 @@ describe("GenerateInitialPlanStructureHandler", () => {
       ),
     ).rejects.toBeInstanceOf(ResourceNotFoundException);
     expect(learningPhaseRepository.save).not.toHaveBeenCalled();
+    expect(invalidateDashboardCache).not.toHaveBeenCalled();
   });
 
   it("10. si falla el guardado de la tarea, el error se propaga (rollback real delegado a PrismaUnitOfWork, ya probado en infrastructure/PrismaUnitOfWork.test.ts)", async () => {
@@ -237,6 +257,7 @@ describe("GenerateInitialPlanStructureHandler", () => {
         GenerateInitialPlanStructureCommand.fromRequest({ learningPlanId: APP_FIXTURE_IDS.plan }),
       ),
     ).rejects.toThrow("db down");
+    expect(invalidateDashboardCache).not.toHaveBeenCalled();
     // Nota (ver auditoría, sección "idempotencia"/"transacción"): este mock de
     // UnitOfWork.execute() ejecuta el callback directamente, sin abrir una
     // transacción Postgres real — no puede verificar el rollback físico de la

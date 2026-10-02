@@ -21,6 +21,7 @@ import { buildEcosystemLinks, daysBetween, selectWelcomeVariant } from "./dashbo
 import type { DashboardReadModel } from "../types";
 
 export { buildEcosystemLinks, daysBetween, selectWelcomeVariant } from "./dashboardService.logic";
+export { invalidateDashboardCache } from "@/services/dashboard-cache";
 
 // Valores por defecto usados únicamente cuando su propia lectura
 // independiente falla (Sprint 10, remediación D1 — Destructive Testing
@@ -193,30 +194,25 @@ export async function getDashboardReadModel(studentId: string): Promise<Dashboar
   try {
     const cached = await redis.get(cacheKey);
     if (cached) {
+      console.log("[dashboard] dashboard_cache_hit", { studentId });
       return JSON.parse(cached) as DashboardReadModel;
     }
-  } catch {
+  } catch (error) {
     // Redis no disponible: se degrada a lectura directa sin caché — nunca
     // bloquea la carga del Dashboard por un fallo de infraestructura de
     // caché (14.7).
+    console.error("[dashboard] dashboard_cache_read_error", { studentId, error });
   }
 
+  console.log("[dashboard] dashboard_cache_miss", { studentId });
   const readModel = await buildReadModel(studentId);
 
   try {
     await redis.set(cacheKey, JSON.stringify(readModel), "EX", DASHBOARD_CACHE_TTL_SECONDS);
-  } catch {
+  } catch (error) {
     // Ídem: un fallo al escribir en caché no debe impedir devolver los datos ya obtenidos.
+    console.error("[dashboard] dashboard_cache_write_error", { studentId, error });
   }
 
   return readModel;
-}
-
-/** Invalida la caché tras una interacción que cambia el estado visible (sección 8). */
-export async function invalidateDashboardCache(studentId: string): Promise<void> {
-  try {
-    await redis.del(`${DASHBOARD_CACHE_KEY_PREFIX}${studentId}`);
-  } catch {
-    // No crítico: la próxima carga natural del TTL reflejará el cambio.
-  }
 }

@@ -1,5 +1,7 @@
 // Constantes del módulo Dashboard (UPPER_SNAKE_CASE — sección 13.13).
 
+export { DASHBOARD_CACHE_KEY_PREFIX } from "@/services/dashboard-cache";
+
 /**
  * Umbral de inactividad para el estado `reactivation` del mensaje de
  * bienvenida (sección 3: "si han pasado varios días sin actividad"). El
@@ -15,9 +17,6 @@ export const DASHBOARD_RESPONSE_BUDGET_MS = 5000;
 
 /** TTL de caché Redis del consolidado del Dashboard (sección 15.1). */
 export const DASHBOARD_CACHE_TTL_SECONDS = 60;
-
-/** Prefijo de clave de caché Redis — evita colisiones con otros módulos. */
-export const DASHBOARD_CACHE_KEY_PREFIX = "dashboard:read-model:";
 
 /**
  * Los 8 espacios restantes accesibles desde el Dashboard (bloque 7, sección

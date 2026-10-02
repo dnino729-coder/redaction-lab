@@ -10,7 +10,8 @@ export const redis =
   globalForRedis.redis ??
   new Redis(process.env.REDIS_URL ?? "redis://localhost:6379", {
     lazyConnect: true,
-    maxRetriesPerRequest: null,
+    maxRetriesPerRequest: 2,
+    connectTimeout: 5000,
   });
 
 if (process.env.NODE_ENV !== "production") {

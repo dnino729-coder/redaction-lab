@@ -1,4 +1,13 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+
+// Redis Sprint — esta mutación escribe learning_progress, leído directamente
+// por DashboardReadModel.goal/.plan: debe invalidar la caché tras confirmar
+// la transacción.
+const invalidateDashboardCache = vi.fn();
+vi.mock("@/services/dashboard-cache", () => ({
+  invalidateDashboardCache: (...args: unknown[]) => invalidateDashboardCache(...args),
+}));
+
 import { CompleteLearningTaskHandler } from "@/features/my-plan/application/handlers/CompleteLearningTaskHandler";
 import { CompleteLearningTaskCommand } from "@/features/my-plan/application/commands/CompleteLearningTaskCommand";
 import { OwnershipVerificationService } from "@/features/my-plan/application/services/OwnershipVerificationService";
@@ -92,6 +101,10 @@ function buildHandler() {
 }
 
 describe("CompleteLearningTaskHandler", () => {
+  beforeEach(() => {
+    invalidateDashboardCache.mockClear();
+  });
+
   it("completa una tarea SELF_DIRECTED propia, recalcula la fase, publica PLAN_TASK_COMPLETED y actualiza learning_progress a 1/1 = 100%", async () => {
     const {
       handler,
@@ -131,6 +144,8 @@ describe("CompleteLearningTaskHandler", () => {
       completionPercentage: 100,
       currentStreak: 0,
     });
+    expect(invalidateDashboardCache).toHaveBeenCalledTimes(1);
+    expect(invalidateDashboardCache).toHaveBeenCalledWith(APP_FIXTURE_IDS.student);
   });
 
   it("NOT_STARTED e IN_PROGRESS cuentan para totalTasks pero no para completedTasks", async () => {
@@ -244,6 +259,7 @@ describe("CompleteLearningTaskHandler", () => {
       ),
     ).rejects.toBeInstanceOf(ConflictException);
     expect(learningProgressWritePort.upsert).not.toHaveBeenCalled();
+    expect(invalidateDashboardCache).not.toHaveBeenCalled();
   });
 
   it("rechaza con ForbiddenException si la tarea no pertenece al estudiante y no toca learning_progress", async () => {
@@ -271,6 +287,7 @@ describe("CompleteLearningTaskHandler", () => {
       ),
     ).rejects.toBeInstanceOf(ForbiddenException);
     expect(learningProgressWritePort.upsert).not.toHaveBeenCalled();
+    expect(invalidateDashboardCache).not.toHaveBeenCalled();
   });
 
   // Slice "enforce paused plan progress rules" — regla "PAUSED = no se
@@ -302,5 +319,6 @@ describe("CompleteLearningTaskHandler", () => {
     expect(learningTaskRepository.save).not.toHaveBeenCalled();
     expect(learningPhaseRepository.save).not.toHaveBeenCalled();
     expect(learningProgressWritePort.upsert).not.toHaveBeenCalled();
+    expect(invalidateDashboardCache).not.toHaveBeenCalled();
   });
 });

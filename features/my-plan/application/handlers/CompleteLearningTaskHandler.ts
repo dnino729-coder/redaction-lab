@@ -19,6 +19,7 @@ import type { OwnershipVerificationService } from "../services/OwnershipVerifica
 import type { DomainEventPublisher } from "../services/DomainEventPublisher";
 import type { LearningProgressWritePort } from "../ports/LearningProgressWritePort";
 import { LearningProgressCalculator } from "../services/LearningProgressCalculator";
+import { invalidateDashboardCache } from "@/services/dashboard-cache";
 
 // Caso de uso: CompleteLearningTask — completa manualmente una
 // LearningTask (siempre por la vía `complete()`, nunca
@@ -145,6 +146,13 @@ export class CompleteLearningTaskHandler {
         currentStreak: 0,
       });
     });
+
+    // Invalidación de caché del Dashboard (Redis Sprint): esta transacción
+    // escribe `learning_progress` (completedTasks/totalTasks/completionPercentage),
+    // leído directamente por `DashboardReadModel.goal`/`.plan`
+    // (database/queries/learningPlan.ts → queryActiveLearningPlan). Se
+    // invalida solo tras confirmar la transacción.
+    await invalidateDashboardCache(studentId.value);
 
     const task = await this.learningTaskRepository.findById(taskId);
     if (!task) throw new ResourceNotFoundException("LearningTask", taskId.value);

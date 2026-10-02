@@ -1,4 +1,15 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+
+// Redis Sprint — invalidación de caché del Dashboard: PauseLearningPlanHandler
+// y ResumeLearningPlanHandler NO invalidan (el campo `status` que mutan nunca
+// se expone en `DashboardReadModel`, ver auditoría del sprint); solo
+// CancelLearningPlanHandler invalida (CANCELLED saca el plan del filtro
+// ACTIVE|PAUSED que usa `queryActiveLearningPlan`).
+const invalidateDashboardCache = vi.fn();
+vi.mock("@/services/dashboard-cache", () => ({
+  invalidateDashboardCache: (...args: unknown[]) => invalidateDashboardCache(...args),
+}));
+
 import { PauseLearningPlanHandler } from "@/features/my-plan/application/handlers/PauseLearningPlanHandler";
 import { PauseLearningPlanCommand } from "@/features/my-plan/application/commands/PauseLearningPlanCommand";
 import { ResumeLearningPlanHandler } from "@/features/my-plan/application/handlers/ResumeLearningPlanHandler";
@@ -25,6 +36,10 @@ function activePlan(studentId: string = APP_FIXTURE_IDS.student) {
 }
 
 describe("PauseLearningPlanHandler", () => {
+  beforeEach(() => {
+    invalidateDashboardCache.mockClear();
+  });
+
   it("pausa un plan ACTIVE propio", async () => {
     const learningPlanRepository = makeLearningPlanRepository();
     learningPlanRepository.findById.mockResolvedValue(activePlan());
@@ -41,6 +56,8 @@ describe("PauseLearningPlanHandler", () => {
       }),
     );
     expect(result.status).toBe("PAUSED");
+    // Redis Sprint: `status` no se expone en DashboardReadModel — no invalida.
+    expect(invalidateDashboardCache).not.toHaveBeenCalled();
   });
 
   it("lanza ResourceNotFoundException si el plan no existe", async () => {
@@ -103,6 +120,10 @@ describe("PauseLearningPlanHandler", () => {
 });
 
 describe("ResumeLearningPlanHandler", () => {
+  beforeEach(() => {
+    invalidateDashboardCache.mockClear();
+  });
+
   it("reanuda un plan PAUSED propio", async () => {
     const learningPlanRepository = makeLearningPlanRepository();
     const plan = activePlan();
@@ -121,6 +142,8 @@ describe("ResumeLearningPlanHandler", () => {
       }),
     );
     expect(result.status).toBe("ACTIVE");
+    // Redis Sprint: `status` no se expone en DashboardReadModel — no invalida.
+    expect(invalidateDashboardCache).not.toHaveBeenCalled();
   });
 
   // Slice "expose learning plan lifecycle actions" — cierra la asimetría
@@ -186,6 +209,10 @@ describe("ResumeLearningPlanHandler", () => {
 });
 
 describe("CancelLearningPlanHandler", () => {
+  beforeEach(() => {
+    invalidateDashboardCache.mockClear();
+  });
+
   it("cancela un plan y usa Clock.now() para endDate, nunca un valor del cliente", async () => {
     const learningPlanRepository = makeLearningPlanRepository();
     learningPlanRepository.findById.mockResolvedValue(activePlan());
@@ -205,6 +232,10 @@ describe("CancelLearningPlanHandler", () => {
     );
     expect(result.status).toBe("CANCELLED");
     expect(result.endDate).toBe(fixedNow.toISOString());
+    // Redis Sprint: CANCELLED saca el plan del filtro ACTIVE|PAUSED que lee
+    // el Dashboard — invalida tras confirmar la transacción.
+    expect(invalidateDashboardCache).toHaveBeenCalledTimes(1);
+    expect(invalidateDashboardCache).toHaveBeenCalledWith(APP_FIXTURE_IDS.student);
   });
 
   // Slice "expose learning plan lifecycle actions" — mismos 3 casos que
@@ -228,6 +259,7 @@ describe("CancelLearningPlanHandler", () => {
         }),
       ),
     ).rejects.toBeInstanceOf(ResourceNotFoundException);
+    expect(invalidateDashboardCache).not.toHaveBeenCalled();
   });
 
   it("lanza ForbiddenException si el plan pertenece a otro estudiante", async () => {
@@ -248,6 +280,7 @@ describe("CancelLearningPlanHandler", () => {
         }),
       ),
     ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(invalidateDashboardCache).not.toHaveBeenCalled();
   });
 
   it("traduce InvalidStatusTransitionException del dominio a ConflictException (plan ya CANCELLED)", async () => {
@@ -270,6 +303,7 @@ describe("CancelLearningPlanHandler", () => {
         }),
       ),
     ).rejects.toBeInstanceOf(ConflictException);
+    expect(invalidateDashboardCache).not.toHaveBeenCalled();
   });
 
   it("cancela un plan PAUSED (18.22: ACTIVE|PAUSED -> CANCELLED)", async () => {
@@ -293,5 +327,7 @@ describe("CancelLearningPlanHandler", () => {
     );
     expect(result.status).toBe("CANCELLED");
     expect(result.endDate).toBe(fixedNow.toISOString());
+    expect(invalidateDashboardCache).toHaveBeenCalledTimes(1);
+    expect(invalidateDashboardCache).toHaveBeenCalledWith(APP_FIXTURE_IDS.student);
   });
 });

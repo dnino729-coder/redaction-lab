@@ -13,6 +13,7 @@ import type { UnitOfWork } from "../ports/UnitOfWork";
 import type { Clock } from "../ports/Clock";
 import type { Logger } from "../ports/Logger";
 import { InvalidStatusTransitionException } from "@/features/my-plan/domain/exceptions/InvalidStatusTransitionException";
+import { invalidateDashboardCache } from "@/services/dashboard-cache";
 
 // Caso de uso: CancelLearningPlan — transición ACTIVE|PAUSED -> CANCELLED,
 // grafo formalizado en la resolución 18.22, punto 1. `endDate` se toma
@@ -20,6 +21,12 @@ import { InvalidStatusTransitionException } from "@/features/my-plan/domain/exce
 // proporcionado por el cliente) — mismo criterio que 18.21 exige para
 // `completed_at`: lo asigna siempre el servidor en el instante de la
 // transición, nunca un valor externo.
+//
+// Invalidación de caché del Dashboard (Redis Sprint): CANCELLED saca el plan
+// del filtro ACTIVE|PAUSED que usa `queryActiveLearningPlan`
+// (database/queries/learningPlan.ts) — `DashboardReadModel.plan.hasActivePlan`
+// cambia de true a false. Se invalida solo tras confirmar la transacción
+// (nunca antes, nunca si `unitOfWork.execute` falla).
 export class CancelLearningPlanHandler {
   constructor(
     private readonly learningPlanRepository: LearningPlanRepository,
@@ -39,7 +46,9 @@ export class CancelLearningPlanHandler {
       const plan = await this.learningPlanRepository.findById(planId);
       if (!plan) throw new ResourceNotFoundException("LearningPlan", planId.value);
       if (!plan.studentId.equals(studentId)) {
-        throw new ForbiddenException(`El estudiante ${studentId.value} no es propietario del plan ${planId.value}.`);
+        throw new ForbiddenException(
+          `El estudiante ${studentId.value} no es propietario del plan ${planId.value}.`,
+        );
       }
 
       try {
@@ -53,6 +62,8 @@ export class CancelLearningPlanHandler {
 
       await this.learningPlanRepository.save(plan);
     });
+
+    await invalidateDashboardCache(studentId.value);
 
     const plan = await this.learningPlanRepository.findById(planId);
     if (!plan) throw new ResourceNotFoundException("LearningPlan", planId.value);

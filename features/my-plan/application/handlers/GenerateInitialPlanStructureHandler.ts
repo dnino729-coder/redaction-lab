@@ -18,6 +18,7 @@ import type { UuidGenerator } from "../ports/UuidGenerator";
 import type { Logger } from "../ports/Logger";
 import type { LearningProgressWritePort } from "../ports/LearningProgressWritePort";
 import { LearningProgressCalculator } from "../services/LearningProgressCalculator";
+import { invalidateDashboardCache } from "@/services/dashboard-cache";
 
 // Caso de uso: GenerateInitialPlanStructure — productor determinista de la
 // ESTRUCTURA mínima (LearningPhase + LearningTask) de un LearningPlan ya
@@ -90,9 +91,15 @@ export class GenerateInitialPlanStructureHandler {
 
     const planId = LearningPlanId.create(request.learningPlanId);
 
+    // Capturado dentro de la transacción (no llega por el Command — ver nota
+    // de "frontera de confianza" arriba) para poder invalidar la caché del
+    // Dashboard del estudiante dueño del plan tras confirmar la transacción.
+    let studentIdForCacheInvalidation: string | undefined;
+
     const result = await this.unitOfWork.execute(async () => {
       const plan = await this.learningPlanRepository.findById(planId);
       if (!plan) throw new ResourceNotFoundException("LearningPlan", planId.value);
+      studentIdForCacheInvalidation = plan.studentId.value;
 
       const existingPhases = await this.learningPhaseRepository.findByLearningPlanId(planId);
       if (existingPhases.length > 0) {
@@ -173,6 +180,15 @@ export class GenerateInitialPlanStructureHandler {
         tasksCreated: 1,
       };
     });
+
+    // Invalidación de caché del Dashboard (Redis Sprint): escribe
+    // `learning_progress` (completedTasks/totalTasks/completionPercentage),
+    // leído directamente por `DashboardReadModel.goal`/`.plan`
+    // (database/queries/learningPlan.ts → queryActiveLearningPlan). Solo si
+    // `created` es true — en la rama idempotente no se escribió nada nuevo.
+    if (result.created && studentIdForCacheInvalidation) {
+      await invalidateDashboardCache(studentIdForCacheInvalidation);
+    }
 
     this.logger.info("GenerateInitialPlanStructure resuelto", {
       learningPlanId: planId.value,

@@ -22,6 +22,7 @@ import type { UnitOfWork } from "../ports/UnitOfWork";
 import type { UuidGenerator } from "../ports/UuidGenerator";
 import type { Logger } from "../ports/Logger";
 import type { DomainEventPublisher } from "../services/DomainEventPublisher";
+import { invalidateDashboardCache } from "@/services/dashboard-cache";
 
 // Caso de uso: CreateLearningPlan.
 //
@@ -117,6 +118,12 @@ export class CreateLearningPlanHandler {
       }
       await this.studyScheduleRepository.save(schedule);
     });
+
+    // Invalidación de caché del Dashboard (Redis Sprint): crea una fila
+    // `learning_plan` en estado ACTIVE — `DashboardReadModel.plan.hasActivePlan`
+    // cambia de false a true (database/queries/learningPlan.ts →
+    // queryActiveLearningPlan). Se invalida solo tras confirmar la transacción.
+    await invalidateDashboardCache(studentId.value);
 
     // Publicación de eventos únicamente tras confirmar la transacción
     // ("PUBLICACIÓN DE EVENTOS... únicamente desde Application Layer").

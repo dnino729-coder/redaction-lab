@@ -1,4 +1,12 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+
+// Redis Sprint — crear un plan ACTIVE cambia DashboardReadModel.plan.hasActivePlan
+// de false a true: debe invalidar la caché tras confirmar la transacción.
+const invalidateDashboardCache = vi.fn();
+vi.mock("@/services/dashboard-cache", () => ({
+  invalidateDashboardCache: (...args: unknown[]) => invalidateDashboardCache(...args),
+}));
+
 import { CreateLearningPlanHandler } from "@/features/my-plan/application/handlers/CreateLearningPlanHandler";
 import { CreateLearningPlanCommand } from "@/features/my-plan/application/commands/CreateLearningPlanCommand";
 import { DomainEventPublisher } from "@/features/my-plan/application/services/DomainEventPublisher";
@@ -65,6 +73,10 @@ function buildHandler() {
 }
 
 describe("CreateLearningPlanHandler", () => {
+  beforeEach(() => {
+    invalidateDashboardCache.mockClear();
+  });
+
   it("crea el plan, sus metas iniciales y su horario, y publica PLAN_CREATED tras el commit", async () => {
     const {
       handler,
@@ -87,6 +99,8 @@ describe("CreateLearningPlanHandler", () => {
     const publishedEvents = eventBus.publish.mock.calls[0]![0];
     expect(publishedEvents).toHaveLength(1);
     expect(publishedEvents[0]!.eventName).toBe("PLAN_CREATED");
+    expect(invalidateDashboardCache).toHaveBeenCalledTimes(1);
+    expect(invalidateDashboardCache).toHaveBeenCalledWith(APP_FIXTURE_IDS.student);
   });
 
   it("rechaza con ConflictException si el estudiante ya tiene un plan activo (13.4 MUST)", async () => {
@@ -105,6 +119,7 @@ describe("CreateLearningPlanHandler", () => {
     ).rejects.toBeInstanceOf(ConflictException);
     expect(unitOfWork.execute).not.toHaveBeenCalled();
     expect(eventBus.publish).not.toHaveBeenCalled();
+    expect(invalidateDashboardCache).not.toHaveBeenCalled();
   });
 
   // Slice "resolve current learning plan including paused state" — un plan
@@ -128,6 +143,7 @@ describe("CreateLearningPlanHandler", () => {
     ).rejects.toBeInstanceOf(ConflictException);
     expect(unitOfWork.execute).not.toHaveBeenCalled();
     expect(eventBus.publish).not.toHaveBeenCalled();
+    expect(invalidateDashboardCache).not.toHaveBeenCalled();
   });
 
   it("rechaza con ValidationException si initialGoals está vacío (validación sintáctica, no de dominio)", async () => {
@@ -137,5 +153,6 @@ describe("CreateLearningPlanHandler", () => {
     await expect(
       handler.handle(CreateLearningPlanCommand.fromRequest(request)),
     ).rejects.toBeInstanceOf(ValidationException);
+    expect(invalidateDashboardCache).not.toHaveBeenCalled();
   });
 });
